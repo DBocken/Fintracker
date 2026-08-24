@@ -4381,6 +4381,7 @@ export const ru = {
       schulden: { restschuld: 'Остаток долга' },
       raten: { offen: 'Открытая рассрочка' },
       leistbarkeit: { anschaffung: 'Могу ли я себе это позволить' },
+      szenario: { kombination: 'Расчёт «что если»' },
     },
     trigger: {
       uebrig: 'осталось, ещё потратить, остаток бюджета',
@@ -4413,6 +4414,7 @@ export const ru = {
       restschuld: 'остаток долга, непогашенный',
       budget: 'бюджет, бюджеты',
       leistbarkeit: 'позволить себе, по карману, покупка',
+      szenarioKombination: 'что если я, что будет если, просчитай, прикинь',
     },
     answer: {
       budgetRest: 'Столько ещё осталось в подходящих бюджетах в этом месяце.',
@@ -4451,6 +4453,7 @@ export const ru = {
       budgetStatus: 'Настолько заполнены ваши баки в среднем. Превышено: {ueberzogen}.',
       budgetKeines: 'Для этого бюджет ещё не создан.',
       leistbarkeitVerweis: 'Это считает симуляция — там уже подставлена ваша сумма.',
+      szenarioKombination: 'Я распознал {anzahl} изменений в вашем вопросе и считаю, как с ними изменится ваш баланс.',
     },
     reason: {
       tagesrateBasis: 'База: {rest} остатка в бюджете.',

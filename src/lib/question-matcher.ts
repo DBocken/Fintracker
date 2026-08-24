@@ -31,6 +31,7 @@
 import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
 import { parseZeitraum } from '@/lib/question-time-expressions';
+import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-intent';
 
 export interface VokabelEintrag {
   /** Wonach gesucht wird — kleingeschrieben. */
@@ -549,6 +550,22 @@ const MIN_INTENT_MARGE_STICH = 0.05;
  */
 const MIN_INTENT_MARGE_GELERNT = 0.25;
 
+/**
+ * Trägt eine extrahierte Absicht genug Evidenz, um die Frage als
+ * Kombinations-Szenario zu routen? Zwei erkannte Veränderungen sind
+ * stärkere Evidenz als jedes einzelne Auslösewort (je Delta mussten
+ * Signalwort, Betrag/Konzept und ggf. Zukunftstermin ZUSAMMEN passen);
+ * eine einzelne Veränderung reicht nur mit ausdrücklicher Schwelle
+ * („… ohne den Notgroschen anzugreifen") — am Korpus gemessen: Ein
+ * einzelnes Delta ohne Schwelle ist zu oft Nebensatz einer Frage, deren
+ * Kern eine andere Familie beantwortet („wann kann ich mir den Urlaub
+ * leisten, wenn ich 300 € monatlich spare" gehört der Leistbarkeit).
+ */
+export function traegtSzenarioRouting(absicht: SzenarioAbsicht | null): absicht is SzenarioAbsicht {
+  if (!absicht) return false;
+  return absicht.deltas.length >= 2 || (absicht.deltas.length >= 1 && absicht.schwelle !== undefined);
+}
+
 export function routeFrage(
   text: string,
   vokabular: QuestionVocabulary,
@@ -557,6 +574,22 @@ export function routeFrage(
   jetzt: Date,
   intent?: IntentVorschlag | null,
 ): RoutingErgebnis {
+  // Stufe 0 (WP-H): Eine Frage, die mehrere VERÄNDERUNGEN beschreibt, ist
+  // ein Kombinations-Szenario — deterministisch erkannt, VOR Wort- und
+  // Subword-Ebene. Die Deltas selbst sind die Evidenz; die Fläche zeigt sie
+  // als korrigierbare Chips, bevor gerechnet wird.
+  const absicht = extrahiereSzenarioAbsicht(text, locale, jetzt);
+  if (traegtSzenarioRouting(absicht)) {
+    const szenarioEntry = entries.find((e) => e.nimmtSzenarioAbsicht);
+    if (szenarioEntry) {
+      const kandidat = kandidatFuer(text, vokabular, szenarioEntry, locale, jetzt);
+      return {
+        art: 'aufloesen',
+        kandidat: { ...kandidat, slots: { ...kandidat.slots, szenario: absicht } },
+      };
+    }
+  }
+
   const kandidaten = lexicalQuestionMatcher.match(text, vokabular, entries, locale, jetzt);
   const lexikalisch = entscheideRouting(kandidaten);
   if (!intent) return lexikalisch;

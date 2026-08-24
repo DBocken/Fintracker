@@ -44,6 +44,7 @@ import type { Account, Category, Transaction, TransactionAllocation } from '@/ty
 import type { Budget } from '@/lib/budget-types';
 import type { Debt } from '@/lib/debt-types';
 import type { ContractDecision } from '@/lib/contract-types';
+import type { SzenarioAbsicht } from '@/lib/scenario-intent';
 
 export type SlotName = 'zeitraum' | 'kategorie' | 'haendler' | 'konto' | 'betrag';
 
@@ -76,6 +77,13 @@ export interface QuestionSlots {
   haendler?: string;
   kontoId?: string;
   betrag?: number;
+  /**
+   * Erkannte Szenario-Absicht (WP-H) — die MENGE der Veränderungen einer
+   * kombinierten Was-wäre-wenn-Frage. Kein `SlotName`: Sie wird nie einzeln
+   * nachgefragt, sondern vom Router als Ganzes extrahiert; korrigiert wird
+   * sie in der Fläche über die Delta-Chips, nicht über eine Slot-Rückfrage.
+   */
+  szenario?: SzenarioAbsicht;
 }
 
 /**
@@ -104,8 +112,15 @@ export interface QuestionData {
   jetzt: Date;
 }
 
-/** Art der Antwort — steuert, wie die Präsentation sie darstellt. */
-export type AnswerKind = 'geld' | 'anzahl' | 'quote' | 'datum' | 'liste' | 'verweis' | 'keine';
+/**
+ * Art der Antwort — steuert, wie die Präsentation sie darstellt.
+ *
+ * `szenario` (WP-H): Die Antwort IST noch keine Zahl, sondern die erkannte
+ * Veränderungs-Menge — die Präsentation zeigt sie als korrigierbare Chips
+ * und rechnet die Monte-Carlo-Simulation asynchron nach (`antwort()` bleibt
+ * rein und synchron; eine teure Rechnung gehört nicht ins Register).
+ */
+export type AnswerKind = 'geld' | 'anzahl' | 'quote' | 'datum' | 'liste' | 'verweis' | 'szenario' | 'keine';
 
 /**
  * Eine Zeile einer Listen-Antwort („Top-Händler", „teurer gewordene
@@ -139,6 +154,8 @@ export interface QuestionAnswer {
   anzahl: number;
   /** Zeilen einer `art: 'liste'`-Antwort — sonst leer. */
   posten?: readonly ListenPosten[];
+  /** Die Veränderungs-Menge einer `art: 'szenario'`-Antwort — sonst leer. */
+  szenario?: SzenarioAbsicht;
   aussage: Aussage;
   /** Worauf der Wert beruht — erklärbar wie `CategorizationResult.reasons`. */
   begruendung?: Aussage[];
@@ -204,6 +221,14 @@ export interface QuestionEntry {
    * Simulation — sie ist die einzige Funktion, die veränderte Welten rechnet.
    */
   beantwortetSzenarien?: boolean;
+  /**
+   * Nimmt dieser Eintrag die vom Router extrahierte {@link SzenarioAbsicht}
+   * entgegen (WP-H)? Genau EIN Eintrag im Katalog trägt das Flag — der
+   * Router routet eine Frage mit mehreren erkannten Veränderungen direkt
+   * dorthin, weil mehrere extrahierte Deltas stärkere Evidenz sind als jedes
+   * einzelne Auslösewort.
+   */
+  nimmtSzenarioAbsicht?: boolean;
   /** REIN und SYNCHRON. Ruft keinen Service. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }

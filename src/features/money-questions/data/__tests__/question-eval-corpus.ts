@@ -129,7 +129,11 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Kann ich mir den 5.000-Euro-Urlaub leisten, wenn ich mein Freizeitbudget für sechs Monate um 200 Euro reduziere?', 'leistbarkeit.anschaffung'),
   z('Wann kann ich mir den Urlaub leisten, wenn ich zusätzlich monatlich 300 Euro spare?', 'leistbarkeit.anschaffung'),
   z('Was passiert, wenn mein Gehalt um 10 Prozent steigt, aber meine Miete gleichzeitig um 200 Euro steigt?', 'luecke'),
-  z('Wie verändert sich meine finanzielle Situation, wenn ich mein Auto verkaufe und dafür monatlich 100 Euro für ÖPNV ausgebe?', 'luecke'),
+  // Kurations-Korrektur (WP-H): war 'luecke', solange keine Funktion eine
+  // VERÄNDERTE Welt mit mehreren Deltas rechnen konnte. Genau das tut die
+  // Kombinations-Rechnung jetzt (Auto-Verträge entfallen + neuer
+  // Monatsposten) — die Lücke ist geschlossen, nicht umdefiniert.
+  z('Wie verändert sich meine finanzielle Situation, wenn ich mein Auto verkaufe und dafür monatlich 100 Euro für ÖPNV ausgebe?', 'szenario.kombination'),
   z('Kann ich meine Arbeitszeit reduzieren, ohne meine aktuellen Sparziele aufzugeben?', 'luecke'),
   z('Wie viel weniger dürfte ich verdienen, bevor mein aktueller Lebensstil nicht mehr tragbar wäre?', 'luecke'),
   z('Was passiert mit meinem Vermögen, wenn meine Lebenshaltungskosten jedes Jahr um 3 Prozent steigen?', 'luecke'),
@@ -207,7 +211,11 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Welches meiner Sparziele sollte ich priorisieren, wenn ich meine aktuelle Liquidität und die jeweiligen Fristen berücksichtige?', 'luecke'),
 
   // ── Block 2: 50 noch komplexere Fragen ──────────────────────────────────
-  z('Kann ich mir einen Urlaub für 5.000 Euro im nächsten Sommer leisten, wenn mein Notgroschen mindestens 10.000 Euro bleiben soll und gleichzeitig 400 Euro monatlich in meine Altersvorsorge fließen?', 'leistbarkeit.anschaffung'),
+  // Kurations-Korrektur (WP-H): von der Leistbarkeit hierher. Die Frage
+  // nennt DREI Bedingungen (Kauf im Sommer, Schwelle 10.000, 400 €/Monat
+  // gebunden) — die Ein-Betrag-Leistbarkeit kann nur die erste; die
+  // Kombinations-Rechnung nimmt alle drei als Deltas + Schwelle.
+  z('Kann ich mir einen Urlaub für 5.000 Euro im nächsten Sommer leisten, wenn mein Notgroschen mindestens 10.000 Euro bleiben soll und gleichzeitig 400 Euro monatlich in meine Altersvorsorge fließen?', 'szenario.kombination'),
   z('Wann kann ich mir einen Urlaub für 5.000 Euro mit mindestens 90 Prozent Wahrscheinlichkeit leisten, wenn meine monatlichen Ausgaben ähnlich stark schwanken wie in den letzten zwei Jahren?', 'leistbarkeit.anschaffung'),
   z('Wie hoch darf mein Urlaubsbudget maximal sein, damit mein Kontostand in den darauffolgenden sechs Monaten mit mindestens 95 Prozent Wahrscheinlichkeit nicht unter 3.000 Euro fällt?', 'leistbarkeit.anschaffung'),
   z('Was passiert mit meinem Finanzplan, wenn ich meinen Urlaub dieses Jahr buche, mein Auto nächstes Jahr ersetzen muss und gleichzeitig meine Miete um 10 Prozent steigt?', 'luecke'),
@@ -223,7 +231,10 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Wie hoch müsste mein Nettogehalt sein, damit meine aktuelle Lebensweise inklusive Sparziele langfristig tragfähig bleibt?', 'luecke'),
   z('Um wie viel dürfte mein Einkommen sinken, bevor ich mein aktuelles Budget grundsätzlich neu strukturieren müsste?', 'luecke'),
   z('Welche Kosten müsste ich bei einer Einkommensreduzierung zuerst streichen, um meinen Notgroschen möglichst lange nicht anzutasten?', 'luecke'),
-  z('Wie lange reicht mein Notgroschen, wenn ich meinen Job verliere und meine Ausgaben nicht sofort vollständig reduzieren kann?', 'luecke'),
+  // Kurations-Korrektur (WP-H): war 'luecke'. Jobverlust (−100 % Einkommen)
+  // gegen die Notgroschen-Schwelle ist exakt die Pufferbruch-Analyse der
+  // Kombinations-Rechnung — sie nennt den kritischen Tag, also „wie lange".
+  z('Wie lange reicht mein Notgroschen, wenn ich meinen Job verliere und meine Ausgaben nicht sofort vollständig reduzieren kann?', 'szenario.kombination'),
   z('Wie lange reicht mein Vermögen bei Arbeitslosigkeit, wenn nach drei Monaten bestimmte freiwillige Ausgaben reduziert werden?', 'luecke'),
   z('Welche finanzielle Strategie schützt mich am besten, wenn meine Einnahmen stark schwanken und größere unregelmäßige Kosten auftreten?', 'luecke'),
   z('Wie groß sollte mein Notgroschen sein, wenn meine tatsächlichen monatlichen Ausgaben, Einkommensschwankungen und möglichen Notfallkosten berücksichtigt werden?', 'luecke'),
@@ -285,4 +296,19 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('wieviel müsste ich verdiehnen damit ich monatlich 1000 sparen kann', 'luecke'),
   z('was muss ich ändern damit ich in 2 jahren 30000 euro hab', 'luecke'),
   z('zeig mir die beste kombi aus weniger ausgeben mehr sparen und trotzdem noch genug geld zum leben', 'luecke'),
+
+  // ── Block 10 (WP-H): kombinierte Was-wäre-wenn-Fragen ───────────────────
+  // Die Referenzfrage des Auftrags plus Varianten. Erwartung: die
+  // Kombinations-Rechnung — der Router erkennt die Deltas deterministisch
+  // (`scenario-intent.ts`), kein Auslösewort nötig. Die letzten beiden
+  // sichern die Abgrenzung: EIN Delta ohne Schwelle bleibt bei der
+  // bestehenden Familie bzw. der Lücke.
+  z('Ich verdiene aktuell 2k netto und bekomme in 2 Monaten eine Gehaltserhöhung. Mein Auto würde ich verkaufen. Kann ich im Dezember für 5k in den Urlaub fliegen, ohne in den Notgroschen zu fallen?', 'szenario.kombination'),
+  z('Ich verkaufe mein Auto und fahre stattdessen für 60 Euro im Monat Bus — wie entwickelt sich mein Konto?', 'szenario.kombination'),
+  z('Was wäre, wenn ich ab März 500 Euro mehr verdiene und gleichzeitig 200 Euro im Monat zusätzlich spare?', 'szenario.kombination'),
+  z('Wenn ich meinen Job verliere, wie lange komme ich hin, ohne den Notgroschen ganz aufzubrauchen?', 'szenario.kombination'),
+  z('was wär wen ich mein auto verkauf und im dezember fur 5k urlaub mach', 'szenario.kombination'),
+  z('ich krieg ne gehaltserhöhung in 3 monaten und will im winter für 2k wegfliegen geht sich das aus ohne notgroschen', 'szenario.kombination'),
+  z('Kann ich mir nächstes Jahr ein E-Bike für 4.000 Euro kaufen?', 'leistbarkeit.anschaffung'),
+  z('Was bringt es mir, wenn ich kündige und mich selbstständig mache?', 'luecke'),
 ];

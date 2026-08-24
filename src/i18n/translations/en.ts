@@ -4381,6 +4381,7 @@ export const en = {
       schulden: { restschuld: 'Outstanding debt' },
       raten: { offen: 'Open instalments' },
       leistbarkeit: { anschaffung: 'Affordability of a purchase' },
+      szenario: { kombination: 'What-if calculation' },
     },
     trigger: {
       uebrig: 'left over, still spend, remaining budget, left for',
@@ -4413,6 +4414,7 @@ export const en = {
       restschuld: 'outstanding, remaining debt',
       budget: 'budget, budgets',
       leistbarkeit: 'afford, affordable, purchase',
+      szenarioKombination: 'what if i, what would happen if, run the numbers, play through',
     },
     answer: {
       budgetRest: 'This much is still left in the matching budgets this month.',
@@ -4451,6 +4453,7 @@ export const en = {
       budgetStatus: 'That is how full your tanks are on average. Over limit: {ueberzogen}.',
       budgetKeines: 'No budget has been set up for that yet.',
       leistbarkeitVerweis: 'The simulation works that out — prefilled there with your amount.',
+      szenarioKombination: 'I recognised {anzahl} changes in your question and am working out how your balance develops with them.',
     },
     reason: {
       tagesrateBasis: 'Basis: {rest} left in the budget.',

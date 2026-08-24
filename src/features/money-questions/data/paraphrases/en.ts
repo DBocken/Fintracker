@@ -102,6 +102,11 @@ export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
     'is a 1500 purchase feasible for me',
     'can i buy a laptop for 1200',
   ],
+  'szenario.kombination': [
+    'what if i sell my car and take the train instead',
+    'run the numbers on a raise plus higher rent',
+    'play through me quitting and starting something new',
+  ],
   'budget.status': [
     'how are my budgets doing',
     'am i over budget',

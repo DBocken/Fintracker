@@ -191,9 +191,27 @@ export function parseZukunft(text: string, locale: string, jetzt: Date): Zukunft
   }
 
   // „nächsten monat" / „next month" / „в следующем месяце".
-  const naechster = /\b(naechsten?\s+monat|next\s+month|следующем\s+месяце)\b/g;
+  const naechster = /(?<!\p{L})(naechsten?\s+monat|next\s+month|следующем\s+месяце)(?!\p{L})/gu;
   for (const m of n.matchAll(naechster)) {
     treffer.push({ abTag: 30, index: m.index, laenge: m[0].length });
+  }
+
+  // Jahreszeiten ⇒ 1. ihres nächsten Anfangsmonats („im nächsten Sommer" =
+  // 1. Juni). Grob, aber ehrlich grob: Ein Szenario über Monate hinweg hängt
+  // nicht am Tag — und die Chips zeigen den angenommenen Termin.
+  const saisonMonat: readonly (readonly [RegExp, number])[] = [
+    [/(?<!\p{L})(fruehling|fruehjahr|spring|весн)/gu, 2],
+    [/(?<!\p{L})(sommer|summer|лет)/gu, 5],
+    [/(?<!\p{L})(herbst|autumn|fall|осен)/gu, 8],
+    [/(?<!\p{L})(winter|зим)/gu, 11],
+  ];
+  for (const [regex, monatIndex] of saisonMonat) {
+    for (const m of n.matchAll(regex)) {
+      const jahr =
+        monatIndex > jetzt.getUTCMonth() ? jetzt.getUTCFullYear() : jetzt.getUTCFullYear() + 1;
+      const ziel = new Date(Date.UTC(jahr, monatIndex, 1));
+      treffer.push({ abTag: tageBis(jetzt, ziel), index: m.index, laenge: m[0].length });
+    }
   }
 
   // Monatsname ⇒ 1. des nächsten Vorkommens.
@@ -218,7 +236,7 @@ const SIGNALE = {
   // Mieterhöhung — das ist eine AUSGABEN-Änderung, keine Einkommens-.
   einkommenAenderung: [
     'gehaltserhoehung', 'lohnerhoehung', 'gehaltssprung', 'mehr gehalt',
-    'mehr verdienen', 'verdiene mehr', 'raise', 'salary increase', 'pay rise',
+    'mehr verdien', 'verdiene mehr', 'raise', 'salary increase', 'pay rise',
     'повышение зарплаты', 'прибавк',
   ],
   einkommenVerlust: [
@@ -323,11 +341,17 @@ export function extrahiereSzenarioAbsicht(
         continue;
       }
       // „Kündige Netflix" — kein Oberbegriff, aber ein konkretes Wort: die
-      // übrigen Wörter des Teilsatzes werden zu Stichworten. Stoppwörter
-      // braucht es nicht: Der FlowSelector trifft nur, was als Vertragsname
-      // existiert.
+      // übrigen Wörter des Teilsatzes werden zu Stichworten. Der FlowSelector
+      // trifft ohnehin nur, was als Vertragsname existiert; nur Possessive
+      // fliegen raus, damit „meine Wohnung kündige" nicht „meine" als
+      // Konzeptnamen führt.
+      const FUNKTIONSWORTE = ['mein', 'meine', 'meinen', 'unser', 'unsere', 'wuerde', 'moechte'];
       const worte = teilsatz.split(/[^a-z0-9а-яё]+/).filter((w) => w.length >= 4);
-      const kandidaten = worte.filter((w) => !SIGNALE.entfallen.some((s) => w.startsWith(s.split(' ')[0])));
+      const kandidaten = worte.filter(
+        (w) =>
+          !FUNKTIONSWORTE.includes(w) &&
+          !SIGNALE.entfallen.some((s) => w.startsWith(s.split(' ')[0])),
+      );
       if (kandidaten.length > 0) {
         deltas.push({ art: 'flow_entfaellt', konzept: kandidaten[0], stichworte: kandidaten, abTag });
         continue;

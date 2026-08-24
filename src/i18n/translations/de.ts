@@ -4393,6 +4393,7 @@ export const de = {
       schulden: { restschuld: 'Offene Restschuld' },
       raten: { offen: 'Offene Raten' },
       leistbarkeit: { anschaffung: 'Leistbarkeit einer Anschaffung' },
+      szenario: { kombination: 'Was-wäre-wenn-Rechnung' },
     },
     trigger: {
       uebrig: 'übrig, noch ausgeben, restbudget, noch für',
@@ -4425,6 +4426,7 @@ export const de = {
       restschuld: 'restschuld',
       budget: 'budget, budgets',
       leistbarkeit: 'leisten, leistbar, anschaffung',
+      szenarioKombination: 'was wäre wenn ich, was wäre wenn, durchrechnen, durchspielen',
     },
     answer: {
       budgetRest: 'So viel ist in den passenden Budgets diesen Monat noch übrig.',
@@ -4463,6 +4465,7 @@ export const de = {
       budgetStatus: 'So voll sind deine Tanks im Schnitt. Überzogen: {ueberzogen}.',
       budgetKeines: 'Dafür ist noch kein Budget angelegt.',
       leistbarkeitVerweis: 'Das rechnet die Simulation aus — dort mit deinem Betrag vorbelegt.',
+      szenarioKombination: 'Ich habe {anzahl} Veränderungen in deiner Frage erkannt und rechne durch, wie sich dein Kontostand damit entwickelt.',
     },
     reason: {
       tagesrateBasis: 'Basis: {rest} Rest im Budget.',

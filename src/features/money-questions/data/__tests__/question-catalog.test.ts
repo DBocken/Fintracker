@@ -223,7 +223,12 @@ describe('Abfrage-Register: Katalog', () => {
 
   it('sollte teure Einträge verweisen lassen statt rechnen', () => {
     for (const entry of questionCatalog.entries.filter((e) => e.aufwand === 'teuer')) {
-      expect(entry.antwort(alleSlots, daten).art).toBe('verweis');
+      // `verweis` UND `szenario` erfüllen die Invariante: `antwort()` rechnet
+      // in beiden Fällen NICHT — der Verweis öffnet die rechnende Fläche, das
+      // Szenario reicht die erkannte Absicht durch, und die Monte-Carlo läuft
+      // asynchron in der Fläche (WP-H). Verboten bleibt eine teure Rechnung
+      // IM Register.
+      expect(['verweis', 'szenario']).toContain(entry.antwort(alleSlots, daten).art);
       // Ein teurer Eintrag darf keine Daten anfordern — sonst würde die
       // Fläche für eine Antwort laden, die sie gar nicht berechnet.
       expect(entry.needs).toEqual([]);

@@ -145,7 +145,9 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
   const anzahl = (a: Ausgang) => ausgaenge.filter((x) => x.ausgang === a).length;
 
   it('sollte den vollständigen Korpus vermessen', () => {
-    expect(EVAL_KORPUS).toHaveLength(225);
+    // 225 aus dem WP-F-Auftrag + 8 Kombinations-Szenarien (WP-H, Block 10) —
+    // darunter die Referenzfrage des Auftraggebers als Abnahmetest.
+    expect(EVAL_KORPUS).toHaveLength(233);
   });
 
   it('[REGRESSION] richtigOderSicher darf nur steigen', () => {
@@ -213,5 +215,14 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
 //   verbleibenden 8 Falschen und 14 Verpassten sind Einzeltreffer legitimer
 //   Wörter auf Lücken-Fragen („Als Student: … Einnahmen") — die Adresse
 //   von F.4.
+// - H.3 (Kombinations-Szenarien, Korpus 225 → 233): richtig/sicher 231 ·
+//   verpasst 2 · falsch 0 (99,1 % / 0 %). Die Stufe 0 des Routers
+//   (extrahierte Deltas als Evidenz) fängt alle 8 neuen Szenario-Fragen und
+//   drei umkuratierte Bestandszeilen; die neue NB-Klasse hat die
+//   Wahrscheinlichkeitsmasse leicht verschoben, was vier gezielte
+//   Paraphrasen (Lücke, ausgaben.kategorie, leistbarkeit) wieder
+//   ausgeglichen haben. Die 2 Verpassten sind ehrliche Enthaltungen
+//   derselben Bauform wie der eine Verpasste aus F.4 („Sparziele
+//   verzögern …") — kein Schaden, keine falsche Zahl.
 const MIN_RICHTIG_ODER_SICHER = 0.99;
 const MAX_ZUVERSICHTLICH_FALSCH = 0.01;

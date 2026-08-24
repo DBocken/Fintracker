@@ -47,6 +47,8 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'was zahle ich für benzin',
     'meine ausgaben im bereich haushalt',
     'wieviel ging diesen monat für die kinder weg',
+    'was geben wir jeden monat für den nachwuchs aus',
+    'wie viel geht bei uns monatlich für die familie drauf',
     'was hab ich fürs tanken ausgegebn',
   ],
   'ausgaben.gesamt': [
@@ -230,6 +232,20 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'passt eine grosse anschaffung gerade rein',
     'kann ich mir nen laptop für 1200 kaufen',
     'geht sich ein urlaub für 4000 aus',
+    'wie teuer darf die anschaffung höchstens sein damit mein puffer hält',
+    'wie hoch darf eine ausgabe maximal sein ohne dass mein konto kippt',
+  ],
+  'szenario.kombination': [
+    'was wäre wenn ich mein auto verkaufe und dafür bahn fahre',
+    'rechne durch was passiert wenn mein gehalt steigt und die miete auch',
+    'wenn ich kündige und was neues anfange wie sieht mein konto dann aus',
+    'spiel mal durch dass ich ab herbst 300 mehr verdiene',
+    'was wäre wenn ich das abo kündige und stattdessen monatlich spare',
+    'durchrechnen ob umzug plus neues auto zusammen gehen',
+    'wie siehts aus wenn ich weniger arbeite und trotzdem verreisen will',
+    'was wär wenn ich mein moped abschaffe und die versicherung wegfällt',
+    'simulier mal gehaltserhöhung ab april und teurere wohnung ab sommer',
+    'wenn zwei sachen gleichzeitig passieren was macht das mit meinem geld',
   ],
   'budget.status': [
     'wie stehen meine budgets',
@@ -344,5 +360,16 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wo weicht die prognose am stärksten ab',
     'welcher durchschnittliche tagessatz ist nötig',
     'wie hoch muss mein satz als freelancer sein',
+    // WP-H: Die neue Kombinations-Klasse hat die Wahrscheinlichkeitsmasse
+    // verschoben; zwei Lücken-Formen verloren dadurch ihre Demotions-Marge
+    // und fielen wieder auf Bestandsauswertungen (Vorhersagegüte →
+    // Top-Kategorien, Eigenkapital-Frage → Einkommens-Schwankung). Diese
+    // Umschreibungen geben der Lücke ihr Gewicht zurück.
+    'welche ausgabenbereiche schwanken zu stark für eine prognose',
+    'bei welchen kategorien liegt die vorhersage oft daneben',
+    'darf ich ein budget erhöhen ohne die sparziele zu gefährden',
+    'kann ich einen topf aufstocken ohne dass meine ziele leiden',
+    'wann hab ich genug eigenkapital fürs haus zusammen',
+    'wann reicht mein erspartes für eine immobilie wenn die preise schwanken',
   ],
 };
