@@ -5057,6 +5057,7 @@ export const en = {
     additionalIncome: 'Additional income',
     moreIncome: 'Extra income',
     higherCosts: 'Higher everyday costs',
+    newRecurring: 'New monthly item',
   },
   snapshotSyncService: {
     encryptionRequiredForCreate: 'Please enable and unlock local encryption before creating a snapshot.',

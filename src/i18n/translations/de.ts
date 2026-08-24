@@ -5069,6 +5069,7 @@ export const de = {
     additionalIncome: 'Zusätzliche Einnahme',
     moreIncome: 'Mehr-Einkommen',
     higherCosts: 'Höhere Alltagskosten',
+    newRecurring: 'Neuer monatlicher Posten',
   },
   snapshotSyncService: {
     encryptionRequiredForCreate: 'Bitte lokale Verschlüsselung aktivieren und entsperren, bevor ein Snapshot erstellt wird.',

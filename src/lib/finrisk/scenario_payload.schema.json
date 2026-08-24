@@ -58,7 +58,9 @@
               "expense",
               "income",
               "income_reduction",
-              "baseline_multiplier"
+              "baseline_multiplier",
+              "flow_change",
+              "recurring_flow"
             ]
           },
           "amount": {
@@ -96,6 +98,49 @@
           },
           "description": {
             "type": "string"
+          },
+          "flowSelector": {
+            "type": "object",
+            "description": "Nur für flow_change: welche erkannten Einträge getroffen werden.",
+            "oneOf": [
+              {
+                "properties": {
+                  "kind": { "const": "ids" },
+                  "ids": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["kind", "ids"],
+                "additionalProperties": false
+              },
+              {
+                "properties": { "kind": { "const": "largestIncome" } },
+                "required": ["kind"],
+                "additionalProperties": false
+              },
+              {
+                "properties": { "kind": { "const": "largestExpense" } },
+                "required": ["kind"],
+                "additionalProperties": false
+              },
+              {
+                "properties": {
+                  "kind": { "const": "keyword" },
+                  "keyword": { "type": "string", "minLength": 1 },
+                  "direction": { "type": "string", "enum": ["income", "expense"] }
+                },
+                "required": ["kind", "keyword"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "factor": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Nur für flow_change: 0 = Eintrag entfällt, 1.1 = +10 %."
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["income", "expense"],
+            "description": "Nur für recurring_flow: Vorzeichen des neuen Postens."
           }
         }
       }

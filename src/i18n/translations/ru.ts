@@ -5057,6 +5057,7 @@ export const ru = {
     additionalIncome: 'Дополнительный доход',
     moreIncome: 'Дополнительный заработок',
     higherCosts: 'Более высокие повседневные расходы',
+    newRecurring: 'Новая ежемесячная статья',
   },
   snapshotSyncService: {
     encryptionRequiredForCreate: 'Пожалуйста, включите и разблокируйте локальное шифрование перед созданием снапшота.',
