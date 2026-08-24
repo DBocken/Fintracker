@@ -164,11 +164,11 @@ export interface KonzeptTreffer {
  * (`resolveKategorieAusText`) die genauere Antwort — sie kennt zusätzlich die
  * eigenen Händlerregeln und den gelernten Klassifikator.
  */
-export function findeKonzeptKategorien(
+/** Alle Oberbegriffe, die im Text als Wort(anfang) vorkommen, in Tabellenreihenfolge. */
+function* konzepteImText(
   text: string,
-  categories: readonly Category[],
   locale: string,
-): KonzeptTreffer | null {
+): Generator<{ konzept: string; begriffe: readonly string[] }> {
   const tabelle = JE_SPRACHE[locale] ?? KONZEPTE_DE;
   const textworte = worte(text);
 
@@ -178,13 +178,38 @@ export function findeKonzeptKategorien(
     // Der Oberbegriff muss als Wort(anfang) vorkommen — „essensausgaben"
     // zählt, „interessen" nicht.
     if (!textworte.some((wort) => trifftWort(wort, schluessel))) continue;
+    yield { konzept, begriffe };
+  }
+}
 
+export function findeKonzeptKategorien(
+  text: string,
+  categories: readonly Category[],
+  locale: string,
+): KonzeptTreffer | null {
+  for (const { konzept, begriffe } of konzepteImText(text, locale)) {
     const treffer = categories.filter((k) => trifftKategorie(k, begriffe));
     if (treffer.length < 2) continue;
 
     return { konzept, categoryIds: treffer.map((k) => k.id) };
   }
 
+  return null;
+}
+
+/**
+ * Nur die TEXT-Hälfte von {@link findeKonzeptKategorien}: Welcher Oberbegriff
+ * steht in diesem Text, und welche Suchbegriffe gehören zu ihm? Ohne
+ * Kategorien-Auflösung — der Szenario-Baustein (`scenario-intent.ts`) trifft
+ * damit VERTRÄGE über deren Namen/Kategorie (`FlowSelector` mit `keyword`),
+ * nicht den Kategorienbestand. Gleiche Wortanfangs-Regeln, gleiche Tabelle —
+ * eine Zweitliste würde driften.
+ */
+export function findeKonzeptImText(
+  text: string,
+  locale: string,
+): { konzept: string; begriffe: readonly string[] } | null {
+  for (const treffer of konzepteImText(text, locale)) return treffer;
   return null;
 }
 
