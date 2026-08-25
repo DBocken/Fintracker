@@ -10,6 +10,7 @@ import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import type { Aussage, QuestionAnswer } from '@/lib/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
 import { SzenarioAntwort } from './SzenarioAntwort';
+import { BudgetAktionAntwort } from './BudgetAktionAntwort';
 
 /**
  * Die Fläche „Nachfragen" (WP-D).
@@ -75,7 +76,7 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
 }
 
 function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const ergebnis = model.ergebnis;
 
   if (ergebnis.art === 'leer') return null;
@@ -175,6 +176,19 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
   // Monte-Carlo läuft im Worker — das Register hat nur die Absicht geliefert.
   if (ergebnis.antwort.art === 'szenario' && ergebnis.antwort.szenario) {
     return <SzenarioAntwort absicht={ergebnis.antwort.szenario} />;
+  }
+
+  // Eine Aktions-Antwort ist eine VORSCHAU (WP-I): Geschrieben wird erst auf
+  // Klick — das Register hat gerechnet, was passieren WÜRDE.
+  if (ergebnis.antwort.art === 'aktion' && ergebnis.antwort.aktion) {
+    return (
+      <BudgetAktionAntwort
+        antwort={ergebnis.antwort}
+        vorschlag={ergebnis.antwort.aktion}
+        budgets={model.budgets}
+        aussage={einsetzen(ergebnis.antwort.aussage, t, (b) => String(b), locale)}
+      />
+    );
   }
 
   return (

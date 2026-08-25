@@ -6,6 +6,7 @@ import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getDebts } from '@/services/debt-service';
 import { getBudgets } from '@/services/budget-service';
+import type { Budget } from '@/lib/budget-types';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { getMerchantRules } from '@/services/merchant-rules-service';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
@@ -112,6 +113,12 @@ export interface MoneyQuestionsViewModel {
   ergaenzeKategorie: (wert: string) => void;
   /** Beispielfragen aus dem EIGENEN Bestand — nie erfundene Händler. */
   beispiele: string[];
+  /**
+   * Die geladenen Budgets — die Aktions-Fläche (WP-I) braucht sie für den
+   * Schnappschuss des Rückgängig-Machens. Durchgereicht statt zweiter
+   * Abfrage: Das ViewModel lädt sie ohnehin für die Budget-Antworten.
+   */
+  budgets: readonly Budget[];
   hatBestand: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -483,6 +490,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     entferneKategorie,
     ergaenzeKategorie,
     beispiele,
+    budgets: budgets.data ?? [],
     hatBestand: (transaktionen.data ?? []).length > 0,
     isLoading,
     isError,
