@@ -9,6 +9,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import type { Aussage, QuestionAnswer } from '@/lib/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
+import { SzenarioAntwort } from './SzenarioAntwort';
 
 /**
  * Die Fläche „Nachfragen" (WP-D).
@@ -167,6 +168,13 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
         </div>
       </InfoGroup>
     );
+  }
+
+  // Eine Szenario-Antwort rechnet asynchron in der Fläche (WP-H): Die
+  // erkannten Veränderungen erscheinen als korrigierbare Chips, die
+  // Monte-Carlo läuft im Worker — das Register hat nur die Absicht geliefert.
+  if (ergebnis.antwort.art === 'szenario' && ergebnis.antwort.szenario) {
+    return <SzenarioAntwort absicht={ergebnis.antwort.szenario} />;
   }
 
   return (

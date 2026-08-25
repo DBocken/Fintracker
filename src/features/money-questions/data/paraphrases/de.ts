@@ -60,6 +60,11 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel hab ich unterm strich verbraucht',
     'meine kompletten ausgaben anzeigen',
     'gesamtsumme meiner zahlungen im august',
+    // WP-H: Die neue Kombinations-Klasse drückte die Stichentscheid-Marge
+    // der nackten Gesamtsummen-Frage unter die Schwelle — die Fläche fragte
+    // wieder zur Auswahl, was F.4 bereits direkt beantwortet hatte.
+    'wieviel habe ich ausgegeben',
+    'wie viel hab ich denn ausgegeben',
   ],
   'ausgaben.topHaendler': [
     'an wen zahle ich am meisten',
