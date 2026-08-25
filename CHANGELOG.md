@@ -24,6 +24,15 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Budgets per Chat anlegen und ändern — mit Bestätigung und Rückgängig.**
+  „Lege ein Budget von 200 € für Lebensmittel an", „erhöhe mein
+  Freizeitbudget um 50", „lösch das Budget für Kino" versteht die Seite
+  „Nachfragen" jetzt als Befehl. Bevor irgendetwas passiert, steht da, was
+  passieren würde — beim Ändern mit Vorher und Nachher; erst der Klick auf
+  „Bestätigen" schreibt, und danach steht „Rückgängig" bereit. Fragen bleiben
+  Fragen: „Wie viel Budget habe ich noch?" wird weiterhin beantwortet und nie
+  als Anweisung missverstanden.
+
 - **Was-wäre-wenn-Fragen mit mehreren Veränderungen — direkt im Chat.**
   „Ich verkaufe mein Auto, bekomme in 2 Monaten eine Gehaltserhöhung — kann
   ich im Dezember für 5k in den Urlaub, ohne den Notgroschen anzugreifen?"

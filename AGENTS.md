@@ -171,6 +171,17 @@ halten Zeilensumme und Gesamtbetrag einander stand
 (`services/receipt-parser-service.ts`), und eine Korrektur zählt nur, wenn sie
 den Widerspruch auflöst **und** die einzige ist, die das tut.
 
+**Der Chat schreibt nie aus eigener Deutung.** Seit WP-I kann die Chat-Fläche
+Budgets anlegen, ändern und löschen — aber die Deutung selbst darf nichts
+verändern: Grammatik (`lib/budget-action-intent.ts`) und Vorschau
+(Registereintrag `budget.aktion`) sind rein, geschrieben wird ausschliesslich
+im Bestätigen-Klick (`use-budget-action.ts`), und jede ausgeführte Aktion
+bleibt über einen Schnappschuss zurücknehmbar. Das Imperativ-Gate der
+Grammatik trägt dieselbe Last wie das Szenario-Gate beim Lesen: Eine FRAGE
+darf nie als Befehl gedeutet werden — eine falsch beantwortete Frage zeigt
+eine falsche Zahl, ein falsch gedeuteter Befehl schlägt eine Schreiboperation
+vor.
+
 **Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
 gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche
