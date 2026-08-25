@@ -4366,7 +4366,7 @@ export const en = {
     entryName: {
       forecast: { monatsende: 'Balance at month end', horizont: 'Balance trajectory' },
       verfuegbar: { bisGehalt: 'Free until payday' },
-      budget: { status: 'Budget status', rest: 'Budget remaining', tagesrate: 'Budget per day' },
+      budget: { status: 'Budget status', rest: 'Budget remaining', tagesrate: 'Budget per day', aktion: 'Create or change a budget' },
       einkommen: { letztes: 'Latest salary payment', durchschnitt: 'Average income', schwankung: 'Income fluctuation' },
       abos: { liste: 'Your subscriptions', summe: 'Subscription costs combined' },
       vertraege: { teurer: 'Contracts that got pricier' },
@@ -4418,6 +4418,7 @@ export const en = {
       budget: 'budget, budgets',
       leistbarkeit: 'afford, affordable, purchase',
       szenarioKombination: 'what if i, what would happen if, run the numbers, play through',
+      budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
       budgetRest: 'This much is still left in the matching budgets this month.',
@@ -4457,6 +4458,11 @@ export const en = {
       budgetKeines: 'No budget has been set up for that yet.',
       leistbarkeitVerweis: 'The simulation works that out — prefilled there with your amount.',
       szenarioKombination: 'I recognised {anzahl} changes in your question and am working out how your balance develops with them.',
+      budgetAktionAnlegen: 'Create a budget for {name}?',
+      budgetAktionAendern: 'Change the budget for {name}?',
+      budgetAktionLoeschen: 'Delete the budget for {name}?',
+      budgetAktionKeinBudget: 'There is no budget for {name} yet — so there is nothing to delete.',
+      budgetAktionStattdessenAnlegen: 'There is no budget for {name} yet. Shall I create one?',
     },
     reason: {
       tagesrateBasis: 'Basis: {rest} left in the budget.',

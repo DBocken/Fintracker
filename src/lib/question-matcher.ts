@@ -32,6 +32,7 @@ import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-regi
 import { fehlendeSlots } from '@/lib/question-registry';
 import { parseZeitraum } from '@/lib/question-time-expressions';
 import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-intent';
+import { extrahiereBudgetAktion } from '@/lib/budget-action-intent';
 
 export interface VokabelEintrag {
   /** Wonach gesucht wird — kleingeschrieben. */
@@ -574,7 +575,24 @@ export function routeFrage(
   jetzt: Date,
   intent?: IntentVorschlag | null,
 ): RoutingErgebnis {
-  // Stufe 0 (WP-H): Eine Frage, die mehrere VERÄNDERUNGEN beschreibt, ist
+  // Stufe 0a (WP-I): Ein BEFEHL ist keine Frage. Das Imperativ-Gate in
+  // `extrahiereBudgetAktion` lässt nur Aktionsverben durch; steht eines da,
+  // ist die Absicht eindeutiger als jedes Auslösewort — und die Antwort ist
+  // ohnehin nur eine Vorschau, die bestätigt werden muss.
+  const budgetAktion = extrahiereBudgetAktion(text);
+  if (budgetAktion) {
+    const aktionsEintrag = entries.find((e) => e.nimmtBudgetAktion);
+    if (aktionsEintrag) {
+      const kandidat = kandidatFuer(text, vokabular, aktionsEintrag, locale, jetzt);
+      const slots = { ...kandidat.slots, budgetAktion };
+      return {
+        art: 'aufloesen',
+        kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(aktionsEintrag, slots) },
+      };
+    }
+  }
+
+  // Stufe 0b (WP-H): Eine Frage, die mehrere VERÄNDERUNGEN beschreibt, ist
   // ein Kombinations-Szenario — deterministisch erkannt, VOR Wort- und
   // Subword-Ebene. Die Deltas selbst sind die Evidenz; die Fläche zeigt sie
   // als korrigierbare Chips, bevor gerechnet wird.

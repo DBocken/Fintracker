@@ -4378,7 +4378,7 @@ export const de = {
     entryName: {
       forecast: { monatsende: 'Kontostand am Monatsende', horizont: 'Kontostand-Verlauf' },
       verfuegbar: { bisGehalt: 'Frei bis zum Gehalt' },
-      budget: { status: 'Stand der Budgets', rest: 'Rest im Budget', tagesrate: 'Budget pro Tag' },
+      budget: { status: 'Stand der Budgets', rest: 'Rest im Budget', tagesrate: 'Budget pro Tag', aktion: 'Budget anlegen oder ändern' },
       einkommen: { letztes: 'Letzter Gehaltseingang', durchschnitt: 'Durchschnittliches Einkommen', schwankung: 'Einkommens-Schwankung' },
       abos: { liste: 'Deine Abonnements', summe: 'Abo-Kosten zusammen' },
       vertraege: { teurer: 'Teurer gewordene Verträge' },
@@ -4430,6 +4430,7 @@ export const de = {
       budget: 'budget, budgets',
       leistbarkeit: 'leisten, leistbar, anschaffung',
       szenarioKombination: 'was wäre wenn ich, was wäre wenn, durchrechnen, durchspielen',
+      budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
       budgetRest: 'So viel ist in den passenden Budgets diesen Monat noch übrig.',
@@ -4469,6 +4470,11 @@ export const de = {
       budgetKeines: 'Dafür ist noch kein Budget angelegt.',
       leistbarkeitVerweis: 'Das rechnet die Simulation aus — dort mit deinem Betrag vorbelegt.',
       szenarioKombination: 'Ich habe {anzahl} Veränderungen in deiner Frage erkannt und rechne durch, wie sich dein Kontostand damit entwickelt.',
+      budgetAktionAnlegen: 'Budget für {name} anlegen?',
+      budgetAktionAendern: 'Budget für {name} ändern?',
+      budgetAktionLoeschen: 'Budget für {name} löschen?',
+      budgetAktionKeinBudget: 'Für {name} gibt es noch kein Budget — es ist also auch nichts zu löschen.',
+      budgetAktionStattdessenAnlegen: 'Für {name} gibt es noch kein Budget. Soll ich eines anlegen?',
     },
     reason: {
       tagesrateBasis: 'Basis: {rest} Rest im Budget.',

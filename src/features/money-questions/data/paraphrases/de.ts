@@ -47,6 +47,11 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'was zahle ich für benzin',
     'meine ausgaben im bereich haushalt',
     'wieviel ging diesen monat für die kinder weg',
+    // WP-I: „wieviel habe ich für X ausgegeben" IST die Kategorie-Frage —
+    // gemessen kippte sie sonst über den Stichentscheid zur Gesamtsumme und
+    // beantwortete bei einem UNBEKANNTEN X die falsche Frage, statt nach der
+    // Kategorie zu fragen.
+    'wieviel ist im juli für drogerie draufgegangen',
     'was geben wir jeden monat für den nachwuchs aus',
     'wie viel geht bei uns monatlich für die familie drauf',
     'was hab ich fürs tanken ausgegebn',
@@ -239,6 +244,23 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'geht sich ein urlaub für 4000 aus',
     'wie teuer darf die anschaffung höchstens sein damit mein puffer hält',
     'wie hoch darf eine ausgabe maximal sein ohne dass mein konto kippt',
+    // WP-I: Die Aktions-Klasse hat die Wahrscheinlichkeitsmasse verschoben;
+    // Kauf-Fragen mit fernem Termin und Sparziel-Bezug verloren ihre Marge.
+    'kann ich mir nächstes jahr ein rad für 4000 zulegen',
+    'schaffe ich eine anschaffung ohne mein sparziel zu verfehlen',
+    'verzögert eine grosse ausgabe jetzt meine ziele',
+  ],
+  'budget.aktion': [
+    'leg mir einen topf für lebensmittel an',
+    'erstell ein budget von 200 für essen',
+    'setz mein freizeitbudget auf 150',
+    'erhöhe den topf für shopping um 40',
+    'reduzier das budget für kleidung um 20',
+    'lösch den budgettopf für kino',
+    'richte ein budget von 80 euro für drogerie ein',
+    'mach das haushaltsbudget 50 euro grösser',
+    'entferne das budget für abos',
+    'stell das budget für tanken auf 120',
   ],
   'szenario.kombination': [
     'was wäre wenn ich mein auto verkaufe und dafür bahn fahre',

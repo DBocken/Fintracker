@@ -71,6 +71,16 @@ describe('extrahiereBudgetAktion', () => {
     expect(extrahiereBudgetAktion('wie hoch sollte mein Lebensmittelbudget sein')).toBeNull();
   });
 
+  it('[REGRESSION] sollte auch gebeugte Frageworte als Frage erkennen', () => {
+    // Gemessen an der Korpus-Ratsche (WP-I.2): Das Gate kannte „welche",
+    // nicht „welches" — und deutete damit eine Beratungsfrage als Befehl,
+    // die Antwort wäre ein Vorschlag zum Kürzen eines Budgets gewesen.
+    expect(
+      extrahiereBudgetAktion('Welches Budget sollte ich reduzieren, wenn ich monatlich zusätzlich 300 Euro sparen möchte?'),
+    ).toBeNull();
+    expect(extrahiereBudgetAktion('welchen budgettopf soll ich erhöhen')).toBeNull();
+  });
+
   it('sollte ohne Budget-Wort nichts behaupten', () => {
     // „erhöhe" allein könnte alles meinen — ohne „budget" keine Aktion.
     expect(extrahiereBudgetAktion('erhöhe meine Sparrate um 50 €')).toBeNull();

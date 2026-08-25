@@ -187,4 +187,113 @@ const budgetTagesrate: QuestionEntry = {
   },
 };
 
-export const questions: readonly QuestionEntry[] = [budgetStatus, budgetRest, budgetTagesrate];
+/**
+ * Der erste SCHREIBENDE Eintrag (WP-I) — und er schreibt trotzdem nicht.
+ *
+ * `antwort()` bleibt rein: Sie sucht das bestehende Budget zur erkannten
+ * Kategorie, rechnet Vorher/Nachher und liefert die VORSCHAU. Ausgeführt
+ * wird erst per Bestätigen-Klick in der Fläche
+ * (`use-budget-action.ts`) — der Chat schreibt nie aus eigener Deutung.
+ *
+ * `kategorie` ist Pflicht-Slot: Ohne aufgelöste Kategorie greift die übliche
+ * Slot-Rückfrage mit den eigenen Kategorien als Vorschläge. Eine Aktion auf
+ * „irgendein Budget" gibt es nicht.
+ */
+const budgetAktion: QuestionEntry = {
+  id: 'budget.aktion',
+  slots: { erforderlich: ['kategorie'], optional: ['betrag'] },
+  ausloeser: ['financeQuestions.trigger.budgetAktion'],
+  needs: ['budgets', 'categories'],
+  aufwand: 'guenstig',
+  nimmtBudgetAktion: true,
+  antwort: (slots, daten): QuestionAnswer => {
+    const absicht = slots.budgetAktion;
+    const kategorieId = slots.kategorieIds?.[0];
+    const kategorie = (daten.categories ?? []).find((k) => k.id === kategorieId);
+
+    if (!absicht || !kategorieId) {
+      return { ...KEIN_BUDGET, aussage: { key: 'financeQuestions.answer.budgetKeines', params: {} } };
+    }
+
+    const bestehend = (daten.budgets ?? []).find((b) => b.category_id === kategorieId);
+    const name = bestehend?.name ?? kategorie?.name ?? '';
+
+    // Ändern oder Löschen ohne bestehendes Budget: Das wird BENANNT, und die
+    // Anlage als Vorschlag angeboten — stillschweigend nichts zu tun wäre
+    // die schlechtere Auskunft.
+    if (absicht.art !== 'anlegen' && !bestehend) {
+      if (absicht.art === 'loeschen') {
+        return {
+          ...KEIN_BUDGET,
+          aussage: { key: 'financeQuestions.answer.budgetAktionKeinBudget', params: { name } },
+        };
+      }
+      return {
+        art: 'aktion',
+        wert: absicht.betrag,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.budgetAktionStattdessenAnlegen', params: { name } },
+        aktion: { art: 'anlegen', kategorieId, name, nachher: absicht.betrag },
+        deepLink: '/budgets',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    if (absicht.art === 'loeschen') {
+      return {
+        art: 'aktion',
+        wert: bestehend!.limit,
+        anzahl: 1,
+        aussage: { key: 'financeQuestions.answer.budgetAktionLoeschen', params: { name } },
+        aktion: { art: 'loeschen', kategorieId, name, vorher: bestehend!.limit, budgetId: bestehend!.id },
+        deepLink: '/budgets',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    if (absicht.art === 'anlegen') {
+      // Existiert schon eins, ist „anlegen" in Wahrheit eine Änderung — sonst
+      // entstünde ein zweiter Tank für dieselbe Kategorie.
+      const nachher = absicht.betrag;
+      return {
+        art: 'aktion',
+        wert: nachher,
+        anzahl: bestehend ? 1 : 0,
+        aussage: {
+          key: bestehend
+            ? 'financeQuestions.answer.budgetAktionAendern'
+            : 'financeQuestions.answer.budgetAktionAnlegen',
+          params: { name },
+        },
+        aktion: bestehend
+          ? { art: 'aendern', kategorieId, name, vorher: bestehend.limit, nachher, budgetId: bestehend.id }
+          : { art: 'anlegen', kategorieId, name, nachher },
+        deepLink: '/budgets',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    const vorher = bestehend!.limit;
+    const nachher =
+      absicht.modus === 'auf'
+        ? absicht.betrag
+        : Math.max(0, vorher + (absicht.richtung === 'weniger' ? -absicht.betrag : absicht.betrag));
+
+    return {
+      art: 'aktion',
+      wert: nachher,
+      anzahl: 1,
+      aussage: { key: 'financeQuestions.answer.budgetAktionAendern', params: { name } },
+      aktion: { art: 'aendern', kategorieId, name, vorher, nachher, budgetId: bestehend!.id },
+      deepLink: '/budgets',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
+export const questions: readonly QuestionEntry[] = [
+  budgetStatus,
+  budgetRest,
+  budgetTagesrate,
+  budgetAktion,
+];

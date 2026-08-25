@@ -145,9 +145,9 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
   const anzahl = (a: Ausgang) => ausgaenge.filter((x) => x.ausgang === a).length;
 
   it('sollte den vollständigen Korpus vermessen', () => {
-    // 225 aus dem WP-F-Auftrag + 8 Kombinations-Szenarien (WP-H, Block 10) —
-    // darunter die Referenzfrage des Auftraggebers als Abnahmetest.
-    expect(EVAL_KORPUS).toHaveLength(233);
+    // 225 aus dem WP-F-Auftrag + 8 Kombinations-Szenarien (WP-H, Block 10)
+    // + 10 Budget-Befehle und ihre Lese-Gegenbeispiele (WP-I, Block 11).
+    expect(EVAL_KORPUS).toHaveLength(243);
   });
 
   it('[REGRESSION] richtigOderSicher darf nur steigen', () => {
@@ -224,5 +224,13 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
 //   ausgeglichen haben. Die 2 Verpassten sind ehrliche Enthaltungen
 //   derselben Bauform wie der eine Verpasste aus F.4 („Sparziele
 //   verzögern …") — kein Schaden, keine falsche Zahl.
+// - I.2 (Budget-Aktionen, Korpus 233 → 243): richtig/sicher 243 · verpasst 0
+//   · falsch 0 — erstmals der gesamte Korpus. Zwei Funde unterwegs: Das
+//   Imperativ-Gate kannte „welche", nicht „welches" — „Welches Budget sollte
+//   ich reduzieren …?" wurde damit zum Befehl (behoben, Regressionstest in
+//   `budget-action-intent.test.ts`); und die neue Aktions-Klasse nahm drei
+//   Kauf-Fragen mit fernem Termin die Marge (drei Leistbarkeits-Paraphrasen
+//   ergänzt). Die Ratsche bleibt bei 0.99/0.01 gepinnt: Der Vorsprung ist
+//   Luft für Sprachpflege, keine neue Schranke.
 const MIN_RICHTIG_ODER_SICHER = 0.99;
 const MAX_ZUVERSICHTLICH_FALSCH = 0.01;

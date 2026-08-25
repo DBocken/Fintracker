@@ -45,6 +45,7 @@ import type { Budget } from '@/lib/budget-types';
 import type { Debt } from '@/lib/debt-types';
 import type { ContractDecision } from '@/lib/contract-types';
 import type { SzenarioAbsicht } from '@/lib/scenario-intent';
+import type { BudgetAktionsAbsicht } from '@/lib/budget-action-intent';
 
 export type SlotName = 'zeitraum' | 'kategorie' | 'haendler' | 'konto' | 'betrag';
 
@@ -84,6 +85,35 @@ export interface QuestionSlots {
    * sie in der Fläche über die Delta-Chips, nicht über eine Slot-Rückfrage.
    */
   szenario?: SzenarioAbsicht;
+  /**
+   * Erkannte Budget-Aktion (WP-I) — eine SCHREIBENDE Absicht. Wie
+   * `szenario` kein `SlotName`: Sie wird als Ganzes extrahiert. Die
+   * Kategorie dagegen IST ein normaler Slot und läuft durch die übliche
+   * Rückfrage, wenn sie fehlt.
+   */
+  budgetAktion?: BudgetAktionsAbsicht;
+}
+
+/**
+ * Die VORSCHAU einer Budget-Aktion — als Daten, nie als fertiger Satz
+ * (Register-Regel). Beträge roh; maskiert wird in der Präsentation.
+ *
+ * Das Register RECHNET die Vorschau (Vorher/Nachher), es SCHREIBT nichts:
+ * `antwort()` bleibt rein, die einzige schreibende Stelle ist der
+ * Bestätigen-Klick in der Fläche.
+ */
+export interface BudgetAktionsVorschlag {
+  art: 'anlegen' | 'aendern' | 'loeschen';
+  /** Stabile Kategorie-ID, nie ein Anzeigename (§6). */
+  kategorieId: string;
+  /** Name des betroffenen bzw. neu anzulegenden Budgets — Nutzerdatum. */
+  name: string;
+  /** Bestehendes Limit; fehlt beim Anlegen. */
+  vorher?: number;
+  /** Limit nach der Aktion; fehlt beim Löschen. */
+  nachher?: number;
+  /** ID des bestehenden Budgets — fehlt beim Anlegen. */
+  budgetId?: string;
 }
 
 /**
@@ -120,7 +150,21 @@ export interface QuestionData {
  * und rechnet die Monte-Carlo-Simulation asynchron nach (`antwort()` bleibt
  * rein und synchron; eine teure Rechnung gehört nicht ins Register).
  */
-export type AnswerKind = 'geld' | 'anzahl' | 'quote' | 'datum' | 'liste' | 'verweis' | 'szenario' | 'keine';
+export type AnswerKind =
+  | 'geld'
+  | 'anzahl'
+  | 'quote'
+  | 'datum'
+  | 'liste'
+  | 'verweis'
+  | 'szenario'
+  /**
+   * `aktion` (WP-I): Die Antwort IST eine VORSCHAU einer Schreiboperation,
+   * nicht ihre Ausführung. Die Präsentation zeigt sie und schreibt erst auf
+   * ausdrücklichen Klick — der Chat schreibt nie aus eigener Deutung.
+   */
+  | 'aktion'
+  | 'keine';
 
 /**
  * Eine Zeile einer Listen-Antwort („Top-Händler", „teurer gewordene
@@ -156,6 +200,8 @@ export interface QuestionAnswer {
   posten?: readonly ListenPosten[];
   /** Die Veränderungs-Menge einer `art: 'szenario'`-Antwort — sonst leer. */
   szenario?: SzenarioAbsicht;
+  /** Die Vorschau einer `art: 'aktion'`-Antwort — sonst leer. */
+  aktion?: BudgetAktionsVorschlag;
   aussage: Aussage;
   /** Worauf der Wert beruht — erklärbar wie `CategorizationResult.reasons`. */
   begruendung?: Aussage[];
@@ -229,7 +275,13 @@ export interface QuestionEntry {
    * einzelne Auslösewort.
    */
   nimmtSzenarioAbsicht?: boolean;
-  /** REIN und SYNCHRON. Ruft keinen Service. */
+  /**
+   * Nimmt dieser Eintrag eine erkannte {@link BudgetAktionsAbsicht} entgegen
+   * (WP-I)? Genau EIN Eintrag im Katalog trägt das Flag. Auch er RECHNET nur
+   * die Vorschau — geschrieben wird ausschliesslich per Bestätigen-Klick.
+   */
+  nimmtBudgetAktion?: boolean;
+  /** REIN und SYNCHRON. Ruft keinen Service — auch ein Aktions-Eintrag nicht. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }
 

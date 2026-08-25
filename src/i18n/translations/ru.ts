@@ -4366,7 +4366,7 @@ export const ru = {
     entryName: {
       forecast: { monatsende: 'Остаток в конце месяца', horizont: 'Ход остатка' },
       verfuegbar: { bisGehalt: 'Свободно до зарплаты' },
-      budget: { status: 'Состояние бюджетов', rest: 'Остаток бюджета', tagesrate: 'Бюджет в день' },
+      budget: { status: 'Состояние бюджетов', rest: 'Остаток бюджета', tagesrate: 'Бюджет в день', aktion: 'Создать или изменить бюджет' },
       einkommen: { letztes: 'Последняя зарплата', durchschnitt: 'Средний доход', schwankung: 'Колебания дохода' },
       abos: { liste: 'Ваши подписки', summe: 'Подписки в сумме' },
       vertraege: { teurer: 'Подорожавшие договоры' },
@@ -4418,6 +4418,7 @@ export const ru = {
       budget: 'бюджет, бюджеты',
       leistbarkeit: 'позволить себе, по карману, покупка',
       szenarioKombination: 'что если я, что будет если, просчитай, прикинь',
+      budgetAktion: 'создать бюджет, изменить бюджет, увеличить бюджет, удалить бюджет',
     },
     answer: {
       budgetRest: 'Столько ещё осталось в подходящих бюджетах в этом месяце.',
@@ -4457,6 +4458,11 @@ export const ru = {
       budgetKeines: 'Для этого бюджет ещё не создан.',
       leistbarkeitVerweis: 'Это считает симуляция — там уже подставлена ваша сумма.',
       szenarioKombination: 'Я распознал {anzahl} изменений в вашем вопросе и считаю, как с ними изменится ваш баланс.',
+      budgetAktionAnlegen: 'Создать бюджет для «{name}»?',
+      budgetAktionAendern: 'Изменить бюджет для «{name}»?',
+      budgetAktionLoeschen: 'Удалить бюджет для «{name}»?',
+      budgetAktionKeinBudget: 'Для «{name}» бюджета ещё нет — удалять нечего.',
+      budgetAktionStattdessenAnlegen: 'Для «{name}» бюджета ещё нет. Создать его?',
     },
     reason: {
       tagesrateBasis: 'База: {rest} остатка в бюджете.',

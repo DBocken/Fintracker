@@ -311,4 +311,20 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('ich krieg ne gehaltserhöhung in 3 monaten und will im winter für 2k wegfliegen geht sich das aus ohne notgroschen', 'szenario.kombination'),
   z('Kann ich mir nächstes Jahr ein E-Bike für 4.000 Euro kaufen?', 'leistbarkeit.anschaffung'),
   z('Was bringt es mir, wenn ich kündige und mich selbstständig mache?', 'luecke'),
+
+  // ── Block 11 (WP-I): Budget-BEFEHLE, und die Fragen daneben ─────────────
+  // Die erste schreibende Familie. Die zweite Hälfte dieses Blocks ist die
+  // wichtigere: Lese-Fragen, die dieselben Wörter benutzen, müssen bei ihren
+  // Lese-Familien BLEIBEN — sonst schlüge der Chat eine Schreiboperation vor,
+  // wo jemand nur wissen wollte, wie es steht.
+  z('Lege ein Budget von 200 Euro für Lebensmittel an', 'budget.aktion'),
+  z('Erhöhe mein Freizeitbudget um 50 Euro', 'budget.aktion'),
+  z('Setz das Budget für Restaurants auf 120', 'budget.aktion'),
+  z('Reduzier mein Shoppingbudget um 30 Euro', 'budget.aktion'),
+  z('Lösch das Budget für Kleidung', 'budget.aktion'),
+  z('leg mir bitte ein budget von 90 euro für kinder an', 'budget.aktion'),
+  z('erhoehe das budget für wohnen um 100', 'budget.aktion'),
+  z('Wie viel Budget habe ich diesen Monat noch übrig?', 'budget.rest'),
+  z('Welche Budgets werde ich diesen Monat überschreiten?', 'budget.status'),
+  z('Wie viel darf ich pro Tag ausgeben, damit mein Budget reicht?', 'budget.tagesrate'),
 ];

@@ -98,9 +98,13 @@ export function extrahiereBudgetAktion(text: string): BudgetAktionsAbsicht | nul
 
   // Fragen sind nie Aktionen — auch wenn ein Aktionsverb im Nebensatz steht
   // („kann ich mein budget erhoehen ohne …" fragt, befiehlt nicht).
-  if (/(^|\s)(wie|was|wann|warum|welche|wieviel|wie viel|kann ich|koennte|how|what|which|can i|сколько|какие|могу ли)\b/.test(n)) {
+  // `welche` steht bewusst OHNE Wortgrenze am Ende: „welches", „welchen",
+  // „welcher" sind dieselbe Frage — gemessen fiel „Welches Budget sollte ich
+  // reduzieren …?" genau durch diese Lücke und wurde zum Befehl.
+  if (/(^|\s)(wie|was|wann|warum|wieviel|wie viel|kann ich|koennte|sollte ich|soll ich|how|what|which|should i|can i|сколько|какие|могу ли)\b/.test(n)) {
     return null;
   }
+  if (/(^|\s)welche/.test(n)) return null;
   if (!BUDGET_WORT.test(n)) return null;
 
   const betraege = parseBetraege(n);
