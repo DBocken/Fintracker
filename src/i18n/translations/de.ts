@@ -3779,6 +3779,9 @@ export const de = {
     in3Months: 'in 3 Monaten',
     in6Months: 'in 6 Monaten',
     askYourMoneyTitle: 'Frag dein Geld',
+    chatScenarioTitle: 'Szenario aus deiner Frage',
+    chatScenarioActive: 'Die Ansicht rechnet mit den Änderungen, die du beschrieben hast.',
+    chatScenarioClear: 'Szenario verwerfen',
     askYourMoneyDesc:
       'Kann ich mir das leisten? Ich rechne tausende deiner möglichen Zukünfte durch – und sage dir ehrlich, mit welcher Sicherheit. Lokal, nichts verlässt dein Gerät.',
     amount: 'Betrag',

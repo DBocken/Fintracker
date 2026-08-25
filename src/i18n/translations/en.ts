@@ -3767,6 +3767,9 @@ export const en = {
     in3Months: 'in 3 months',
     in6Months: 'in 6 months',
     askYourMoneyTitle: 'Ask your money',
+    chatScenarioTitle: 'Scenario from your question',
+    chatScenarioActive: 'This view is calculated with the changes you described.',
+    chatScenarioClear: 'Discard scenario',
     askYourMoneyDesc:
       'Can I afford this? I run through thousands of your possible futures – and tell you honestly with what confidence. Local, nothing leaves your device.',
     amount: 'Amount',

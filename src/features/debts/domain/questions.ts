@@ -67,7 +67,13 @@ const leistbarkeitAnschaffung: QuestionEntry = {
       key: 'financeQuestions.answer.leistbarkeitVerweis',
       params: { betrag: slots.betrag ?? 0 },
     },
-    deepLink: '/liquidity?mode=simulation',
+    // Der Betrag reist im Link mit (WP-H.5): `LiquidityReport` liest ihn und
+    // belegt „Frag dein Geld" vor — der Antworttext verspricht genau das,
+    // und bis WP-H las diese Parameter schlicht niemand.
+    deepLink:
+      slots.betrag !== undefined
+        ? `/liquidity?mode=simulation&betrag=${slots.betrag}`
+        : '/liquidity?mode=simulation',
     deepLinkArt: 'kontext',
   }),
 };
