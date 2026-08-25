@@ -24,6 +24,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Was-wäre-wenn-Fragen mit mehreren Veränderungen — direkt im Chat.**
+  „Ich verkaufe mein Auto, bekomme in 2 Monaten eine Gehaltserhöhung — kann
+  ich im Dezember für 5k in den Urlaub, ohne den Notgroschen anzugreifen?"
+  wird jetzt als Kombination verstanden: Die erkannten Veränderungen stehen
+  als einzeln entfernbare Chips da (eine unbezifferte Gehaltserhöhung fragt
+  nach dem Betrag, statt einen zu erfinden; wegfallende Verträge werden beim
+  Namen genannt), die Monte-Carlo-Simulation rechnet die veränderte Welt
+  durch und antwortet mit Puffer-Wahrscheinlichkeit, Kontostand-Delta und
+  engstem Tag. Der Link „volle Analyse" öffnet die Liquiditäts-Ansicht mit
+  genau diesem Szenario.
+
 - **Oberbegriffe fassen mehrere Kategorien zusammen.** „Wieviel gebe ich für
   Essen aus?" rechnet jetzt über alle Kategorien, die dazugehören — bei der
   Standard-Aufteilung sind das Lebensmittel, Supermarkt, Wochenmarkt, Bäckerei
@@ -83,6 +94,10 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **Der Leistbarkeits-Verweis hält jetzt sein Versprechen.** Die Chat-Antwort
+  „kann ich mir X leisten" behauptete seit jeher, die Simulation sei „dort
+  mit deinem Betrag vorbelegt" — tatsächlich las die Zielseite die Parameter
+  nie. Jetzt kommt der Betrag an, „Frag dein Geld" rechnet automatisch.
 - **Eine Ausgabenfrage wurde mit Einnahmen beantwortet.** Eine Frage konnte
   ohne einen einzigen Treffer auf ihre Auslösewörter gewinnen, und die
   Sortierung stellte Vollständigkeit über Relevanz.
