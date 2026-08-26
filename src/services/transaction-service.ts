@@ -18,7 +18,7 @@ import {
 import { backfillAusgabenklasse } from '@/lib/category-migrations';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getMerchantRules, upsertMerchantRule } from './merchant-rules-service';
-import { categorizeTransaction, categorizeTransactionConfident } from '@/lib/categorization';
+import { createCategorizer } from '@/lib/categorization';
 import type { CategorizationContext, MerchantRule } from '@/lib/categorization';
 import { buildCategoryModel } from '@/lib/category-model-evaluation';
 import { parseGermanNumber, isCentPrecise } from '../lib/money';
@@ -437,6 +437,7 @@ export async function recategorizeTransactions(): Promise<{
   let changed = 0;
   const total = transactions.length;
   const undo: CategorizationSnapshotEntry[] = [];
+  const categorizer = createCategorizer(categories, learnedRules, context);
 
   for (const tx of transactions) {
     // Vom Nutzer bestätigte Kategorien sind manuelle Arbeit und werden vom
@@ -447,7 +448,7 @@ export async function recategorizeTransactions(): Promise<{
       continue;
     }
 
-    const newCat = categorizeTransactionConfident(tx, categories, learnedRules, context);
+    const newCat = categorizer.categorizeConfident(tx);
     const prevCat = tx.category_id || null;
 
     if (newCat) assigned += 1;
@@ -497,8 +498,9 @@ export async function applyAutoCategorization(transactions: Transaction[]): Prom
   // Buchungen: Die haben noch keine bestätigte Kategorie und trügen nichts
   // bei — schlimmer noch, sie kämen ohne Label in die Zählung.
   const context = modellKontext(await getTransactions(10000), learnedRules);
+  const categorizer = createCategorizer(categories, learnedRules, context);
   return transactions.map((t) => {
-    const newCat = categorizeTransactionConfident(t, categories, learnedRules, context);
+    const newCat = categorizer.categorizeConfident(t);
     return {
       ...t,
       category_id: newCat,
@@ -515,8 +517,9 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
   const learnedRules = await getMerchantRules();
   const all = await getTransactions(2000);
   const context = modellKontext(all, learnedRules);
+  const categorizer = createCategorizer(categories, learnedRules, context);
   const affected = all.filter((t) => {
-    const newCat = categorizeTransaction(t, categories, learnedRules, context);
+    const newCat = categorizer.categorize(t);
     return t.category_id !== categoryId && newCat === categoryId;
   });
 
@@ -533,9 +536,10 @@ export async function getTopCategorySuggestion(): Promise<CategorySuggestion | n
   const context = modellKontext(all, learnedRules);
 
   const counts: Record<string, number> = {};
+  const categorizer = createCategorizer(categories, learnedRules, context);
 
   for (const t of all) {
-    const newCat = categorizeTransaction(t, categories, learnedRules, context);
+    const newCat = categorizer.categorize(t);
     if (!newCat) continue;
     if (t.category_id === newCat) continue;
     counts[newCat] = (counts[newCat] || 0) + 1;

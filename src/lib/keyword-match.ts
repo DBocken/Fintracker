@@ -28,25 +28,58 @@ function isWordChar(text: string, index: number): boolean {
 }
 
 /**
+ * Einmal vorbereitetes Keyword: kleingeschrieben, und die Frage „Wortgrenze
+ * nötig?" schon beantwortet.
+ *
+ * Beides hängt allein am Keyword und nicht am geprüften Text — in der
+ * Auto-Kategorisierung stehen aber Hunderte Keywords gegen jede Buchung, und
+ * ohne diese Trennung wird je Paarung neu kleingeschrieben und die
+ * Buchstaben-Regex neu ausgewertet (AGENTS.md §3, „Was vor der Schleife
+ * indiziert wird").
+ */
+export interface PreparedKeyword {
+  /** Kleingeschriebenes Keyword. */
+  needle: string;
+  /** Nur als eigenständiges Wort matchen (kurz und rein alphabetisch)? */
+  needsBoundary: boolean;
+}
+
+/** Bereitet ein Keyword für wiederholte Vergleiche vor. */
+export function prepareKeyword(keyword: string): PreparedKeyword {
+  const needle = keyword.toLowerCase();
+  return {
+    needle,
+    needsBoundary: needle.length <= WORD_BOUNDARY_MAX_LENGTH && PURE_LETTERS.test(needle),
+  };
+}
+
+/**
+ * Kern des Matchings. Erwartet den Text BEREITS kleingeschrieben — wer viele
+ * Keywords gegen denselben Text prüft, schreibt ihn einmal klein statt je
+ * Keyword erneut. Für den Einzelfall gibt es {@link matchesKeyword}.
+ */
+export function matchesPreparedKeyword(loweredText: string, keyword: PreparedKeyword): boolean {
+  const { needle, needsBoundary } = keyword;
+  if (!loweredText || !needle) return false;
+  if (!needsBoundary) return loweredText.includes(needle);
+
+  let from = 0;
+  while (from <= loweredText.length - needle.length) {
+    const idx = loweredText.indexOf(needle, from);
+    if (idx === -1) return false;
+    const beforeIsWord = isWordChar(loweredText, idx - 1);
+    const afterIsWord = isWordChar(loweredText, idx + needle.length);
+    if (!beforeIsWord && !afterIsWord) return true;
+    from = idx + 1;
+  }
+  return false;
+}
+
+/**
  * Prüft, ob `keyword` in `text` vorkommt — kurze Wort-Keywords nur an
  * Wortgrenzen, alles andere als Substring. Case-insensitiv.
  */
 export function matchesKeyword(text: string, keyword: string): boolean {
   if (!text || !keyword) return false;
-  const haystack = text.toLowerCase();
-  const needle = keyword.toLowerCase();
-
-  const needsBoundary = needle.length <= WORD_BOUNDARY_MAX_LENGTH && PURE_LETTERS.test(needle);
-  if (!needsBoundary) return haystack.includes(needle);
-
-  let from = 0;
-  while (from <= haystack.length - needle.length) {
-    const idx = haystack.indexOf(needle, from);
-    if (idx === -1) return false;
-    const beforeIsWord = isWordChar(haystack, idx - 1);
-    const afterIsWord = isWordChar(haystack, idx + needle.length);
-    if (!beforeIsWord && !afterIsWord) return true;
-    from = idx + 1;
-  }
-  return false;
+  return matchesPreparedKeyword(text.toLowerCase(), prepareKeyword(keyword));
 }

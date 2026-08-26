@@ -131,6 +131,24 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   `node_modules` bricht er ab, statt still leer grün zu melden.
 - `AGENTS.md` §3 hält die Regel „Rechnen, schließen, prüfen" fest: wo Inferenz
   sitzen darf und warum kein Modellgewicht ausgeliefert wird.
+- **Auto-Kategorisierung bereitet einmal vor statt je Buchung.** Neu ist
+  `createCategorizer(categories, learnedRules, context)`: Kategorie-Index und
+  Filter-Vergleichsformen entstehen einmal, danach wird je Buchung nur noch
+  verglichen. Alle Schleifen-Aufrufer (Bulk-Recategorize, CSV-Import,
+  GoCardless-Sync, Review-Vorschau, Vorschlagsliste) nutzen die neue Form;
+  `explainCategorization` bleibt als Einzelfall darüber. Gemessen 1,65× über
+  alle geprüften Bestandsgrößen — verbessert wurde die Konstante, nicht die
+  Komplexitätsklasse (Zahlen und die bewusst nicht gegangene Alternative in
+  `docs/performance.md`). Abgesichert durch einen Test, der die Kategorie-
+  Zugriffe ZÄHLT statt die Uhr zu lesen, plus ein absolutes Laufzeitbudget.
+- **`matchesKeyword` trennt Vorbereiten und Vergleichen.** `prepareKeyword()` /
+  `matchesPreparedKeyword()` machen das wiederholte Kleinschreiben beider Seiten
+  einmalig; die bestehende Signatur bleibt für den Einzelfall unverändert.
+- **Tote Grenzkonstante `MAX_TRANSACTIONS_LOCAL` entfernt.** Sie stand
+  jahrelang in `lib/constants.ts` und wurde nirgends gelesen — eine Grenze ohne
+  Prüfstelle beruhigt beim Lesen und schützt beim Laufen nicht.
+- **Neue Selbst-Review-Regel „Was vor der Schleife indiziert wird"**
+  (`AGENTS.md` §3) samt Begründung, warum sie bewusst kein Wächter ist.
 
 ## 2026.8.3 — 2026-08-26
 

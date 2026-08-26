@@ -224,6 +224,46 @@ Nutzer weiter unten zum Import nach oben.
 | React-Context-Hook, den auch ein ViewModel liest (`useLocalEncryption`) | `src/hooks/` — der Provider bleibt Komponente, der Lesezugriff nicht |
 | Identität des Nutzers (`Identity`, `UserId`) | `src/lib/identity.ts` — **nie** der Anbietertyp (`Session`/`User`). Das IdP-Subject ist ein Anbieterdetail; `userIdFromSubject()` ist die einzige Stelle, die daraus die interne userId macht (heute 1:1). Daran hängt das Versprechen aus WP 7.2: Subject-Wechsel ohne userId-Wechsel, Entitlements bleiben unberührt |
 
+### Was vor der Schleife indiziert wird
+
+Nur **eine** Menge in dieser App wächst unbegrenzt: die Buchungen. Kategorien,
+Konten, KPIs und Verträge sind zweistellig — dort ist ein verschachtelter Scan
+billiger als der Aufwand, ihn wegzuoptimieren. Laufzeit ist deshalb keine
+allgemeine Sorgfaltspflicht, sondern eine Frage an genau eine Stelle:
+
+> **Berührt eine Schleife die Buchungsmenge, wird die Gegenseite VOR der
+> Schleife aufbereitet** — als `Map`/`Set` für Nachschlagen, als vorbereitete
+> Vergleichsform für wiederholtes Matching.
+
+Der Grund ist nicht die Komplexitätsklasse allein: Die teuerste Operation der
+App ist AES-GCM plus IndexedDB-Roundtrip, nicht die CPU-Schleife. Asymptotik
+entscheidet, welche Bauform überhaupt in Frage kommt; **die Konstante
+entscheidet zwischen den verbleibenden** — die Quartals-Chunks (WP 4.1c) haben
+Monats-Chunks bei identischer Klasse rein nach Messung geschlagen. Wer eine
+Laufzeit behauptet, misst sie deshalb, statt sie auszurechnen; die Infrastruktur
+dafür steht (`@/test-utils/synthetic-transactions`, `*.perf.test.ts`).
+
+Zwei Fallen, die hier schon zugeschlagen haben:
+
+| Falle | Was passiert |
+|---|---|
+| Index IM Callback statt davor | `explainCategorization` baute seine `byId`-Map je Buchung neu; über einen Import von 10 000 Zeilen war das 10 000-mal derselbe Aufbau. Ersatz: `createCategorizer(categories)` einmal, danach `.explain(tx)` je Buchung |
+| Aufbereitung im innersten Vergleich | `matchesKeyword` schrieb bei **jedem** Aufruf beide Seiten klein — bei 200 Kategorien × 3 Filtern × 4 Feldern 2 400-mal je Buchung dasselbe Ergebnis. Ersatz: `prepareKeyword()` einmal je Filter, Buchungstext einmal je Buchung (`matchesPreparedKeyword`) |
+
+Dies ist **bewusst kein Wächter.** Ob `.find()` in einem `.map()` teuer ist,
+hängt daran, ob das Array 12 Kategorien oder 40 000 Buchungen enthält — aus der
+AST ist das nicht entscheidbar, und ein Wächter mit Fehlalarm wird abgeschaltet
+statt durchgesetzt (dieselbe Lehre wie bei `check:money-format`). Die Regel
+gehört zum Selbst-Review; abgesichert wird der Einzelfall durch einen Test, der
+die **Zugriffe zählt** statt die Uhr zu lesen (Vorbild:
+`src/lib/__tests__/categorizer.test.ts`).
+
+Ebenfalls Selbst-Review: **keine Grenzkonstante ohne Prüfstelle.**
+`MAX_TRANSACTIONS_LOCAL = 10000` stand jahrelang in `lib/constants.ts` und wurde
+nirgends gelesen — sie beruhigte beim Lesen („n ist ja gedeckelt") und schützte
+beim Laufen nicht. Entweder die Grenze wird an ihrem Pfad geprüft, oder sie wird
+gelöscht.
+
 ### Vorentschiedenes zuerst lesen
 
 Für manche Themen liegen Vorüberlegungen bereits schriftlich vor. Sie werden
