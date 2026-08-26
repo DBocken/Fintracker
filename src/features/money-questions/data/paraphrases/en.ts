@@ -398,6 +398,16 @@ export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
     'if i add 80 a month how does that help',
     'interest saved with 250 more per month',
   ],
+  'kategorie.begruendung': [
+    'why is the rewe transaction in groceries',
+    'why was amazon filed like that',
+    'why does dm end up in drugstore',
+    'how come netflix sits in leisure',
+    'why is the aldi transaction in there',
+    'why does it assign lidl that way',
+    'why is spotify in this category',
+    'how does the assignment at edeka come about',
+  ],
   'verfuegbar.bisGehalt': [
     'what can i still spend until payday',
     'how much is free until my next salary',

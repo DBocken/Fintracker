@@ -47,6 +47,7 @@ const QUELLEN_KEY: Record<DataNeed, string> = {
   portfolios: 'financeQuestions.source.portfolios',
   netWorth: 'financeQuestions.source.netWorth',
   taxReserve: 'financeQuestions.source.taxReserve',
+  merchantRules: 'financeQuestions.source.merchantRules',
 };
 
 export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }) {

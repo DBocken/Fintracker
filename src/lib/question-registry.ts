@@ -51,6 +51,7 @@ import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';
 import type { TaxReserveState } from '@/lib/tax-types';
 import type { UserSettings } from '@/lib/settings-types';
+import type { MerchantRule } from '@/lib/categorization';
 
 export type SlotName = 'zeitraum' | 'kategorie' | 'haendler' | 'konto' | 'betrag' | 'anlass';
 
@@ -173,7 +174,9 @@ export type DataNeed =
   | 'specialCategories'
   | 'portfolios'
   | 'netWorth'
-  | 'taxReserve';
+  | 'taxReserve'
+  /* Welle 3 — die gelernten Händlerregeln, damit der Chat eine Zuordnung ERKLÄREN kann. */
+  | 'merchantRules';
 
 /**
  * Was die `application`-Schicht bereitstellt. Optional, weil `needs` steuert.
@@ -208,6 +211,12 @@ export interface QuestionData {
   netWorth?: NetWorthBreakdown | null;
   /** Steuerrücklage des laufenden Veranlagungsjahres. */
   taxReserve?: TaxReserveState | null;
+  /**
+   * Vom Nutzer gelernte Händlerregeln. Nur für die ERKLÄRUNG einer Zuordnung
+   * (`explainCategorization`) — der Chat kategorisiert nichts, er legt offen,
+   * warum die App es getan hat.
+   */
+  merchantRules?: readonly MerchantRule[];
   /** Bezugszeitpunkt — hereingereicht, damit `antwort()` rein bleibt. */
   jetzt: Date;
 }

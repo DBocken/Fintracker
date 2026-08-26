@@ -3677,6 +3677,7 @@ export const en = {
       notCovered: 'not covered',
       stepHints: {
         taxReserve: 'Taxes are not your money',
+        merchantRules: 'your learned merchant rules',
         savings: 'Pay yourself first',
         essentials: 'Essential',
         discretionary: 'Zero balance',
@@ -4384,6 +4385,7 @@ export const en = {
         betrag: 'Which amount are we talking about?',
       },
     entryName: {
+      kategorie: { begruendung: 'Why a transaction is filed this way' },
       liquiditaet: { reichweite: 'How long your money lasts' },
       abbuchung: { naechste: 'Upcoming debits', letzte: 'Last transaction at a merchant' },
       ziel: { obergrenze: 'Highest amount that still holds', sparrate: 'Monthly rate needed' },
@@ -4438,7 +4440,15 @@ export const en = {
       unerreichbar: 'Even with setting money aside I cannot reach this goal in the period. Naming a rate that would not hold does not help you.',
     },
     ohneKategorie: 'Without category',
+    quelle: {
+      merchant_rule: 'Because you taught this assignment yourself.',
+      category_filter: 'Because a keyword of your category matches.',
+      learned_model: 'Because your own confirmed transactions show this pattern.',
+      regex_fallback: 'Because a generic keyword matches — the weakest of the four sources.',
+      none: 'There was no sufficient signal for that.',
+    },
     trigger: {
+      warumKategorie: 'why is, why was, how come, why does it end up',
       schuldenDauer: 'how long will i be paying, when am i debt free, how long to pay off, term of my debts',
       schuldenZinsen: 'how much interest do i pay, interest in total, what do my debts cost me, interest burden',
       sondertilgung: 'extra repayment, if i pay more, what does it do if i, pay extra',
@@ -4509,6 +4519,8 @@ export const en = {
       budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
+      kategorieBegruendung: 'Your most recent transaction at {haendler} sits in "{kategorie}".',
+      kategorieOhneZuordnung: 'The most recent transaction at {haendler} has no category yet — the automation could not assign one with confidence either.',
       schuldenDauer: 'That is how many months it takes at your current minimum payments.',
       schuldenZinsen: 'That is the interest you pay on the way to the last instalment.',
       schuldenSondertilgung: 'With {betrag} more per month you save {gespart} in interest.',
@@ -4616,6 +4628,8 @@ export const en = {
       budgetAktionStattdessenAnlegen: 'There is no budget for {name} yet. Shall I create one?',
     },
     reason: {
+      kategorieAbweichung: 'The automation would pick a different category today — your assignment stands.',
+      kategorieGrund: 'Reason: {grund}',
       schuldenBudget: 'Computed with your minimum payments: {betrag} per month',
       schuldenZinsenGesamt: 'Interest in total: {betrag}',
       schuldenLaufzeit: 'Term: {monate} months',

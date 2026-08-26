@@ -3,6 +3,13 @@ import { metricQuestions } from '../metric-questions';
 import type { QuestionData, QuestionEntry, QuestionSlots } from '@/lib/question-registry';
 import type { Category, Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';
+import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';
+import type { CategorizationSource } from '@/lib/categorization';
+
+/** Punktpfad in einem Sprachbaum auflösen. */
+function blatt(baum: unknown, pfad: string): unknown {
+  return pfad.split('.').reduce<unknown>((k, teil) => (k as Record<string, unknown>)?.[teil], baum);
+}
 
 /**
  * Diese Tests prüfen, was die Registry-Invarianten NICHT prüfen können: dass
@@ -207,5 +214,59 @@ describe('einkommen.arten', () => {
     const summe = (antwort.posten ?? []).reduce((s, p) => s + p.betrag, 0);
     expect(summe).toBe(antwort.wert);
     expect(antwort.posten?.some((p) => p.labelKey === 'financeQuestions.ohneKategorie')).toBe(true);
+  });
+});
+
+describe('kategorie.begruendung', () => {
+  const e = eintrag('kategorie.begruendung');
+
+  it('sollte die Kategorie samt QUELLE der Zuordnung nennen', () => {
+    const antwort = e.antwort(
+      { haendler: 'rewe' },
+      { ...mit([tx('2026-07-02', -30, 'REWE', 'c-lebensmittel')]), merchantRules: [] },
+    );
+    expect(antwort.begruendung?.[0]?.key).toMatch(/^financeQuestions\.quelle\./);
+  });
+
+  it('sollte eine SELBST gelernte Regel als solche ausweisen', () => {
+    // Der Kern der Erklärbarkeit: Eine ausdrückliche Nutzerentscheidung ist
+    // eine andere Auskunft als ein geratenes Stichwort.
+    const antwort = e.antwort(
+      { haendler: 'rewe' },
+      {
+        ...mit([tx('2026-07-02', -30, 'REWE')]),
+        merchantRules: [
+          { id: 'r1', user_id: 'local', merchant_pattern: 'rewe', category_id: 'c-lebensmittel' },
+        ],
+      },
+    );
+    expect(antwort.begruendung?.[0]?.key).toBe('financeQuestions.quelle.merchant_rule');
+  });
+
+  it('sollte für JEDE Quelle einen Text in ALLEN Sprachen haben', () => {
+    // `financeQuestions.quelle.<source>` wird im Eintrag GEBAUT — weder die
+    // Aufrufstellen-Prüfung noch der Katalog-Test sehen alle fünf Werte.
+    // Dieselbe Ausleuchtung wie bei `labelKey` in Welle 2: Ein fehlender
+    // Zweig stünde sonst roh auf dem Bildschirm.
+    const quellen: CategorizationSource[] = [
+      'merchant_rule',
+      'category_filter',
+      'learned_model',
+      'regex_fallback',
+      'none',
+    ];
+    for (const quelle of quellen) {
+      for (const locale of SUPPORTED_LOCALES) {
+        expect(
+          typeof blatt(translations[locale], `financeQuestions.quelle.${quelle}`),
+          `${locale}: ${quelle}`,
+        ).toBe('string');
+      }
+    }
+  });
+
+  it('sollte ohne Buchung nichts behaupten', () => {
+    const antwort = e.antwort({ haendler: 'gibtsnicht' }, { ...mit([]), merchantRules: [] });
+    expect(antwort.art).toBe('keine');
   });
 });

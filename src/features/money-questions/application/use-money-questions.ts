@@ -279,6 +279,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     portfolios: depots,
     netWorth: vermoegen,
     taxReserve: steuerRuecklage,
+    merchantRules: regeln,
   };
 
   /** Kanäle eines Eintrags, die NICHT lesbar waren bzw. noch laden. */
@@ -325,6 +326,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       positionsByPortfolio: depots.data?.positionen,
       netWorth: vermoegen.data ?? null,
       taxReserve: steuerRuecklage.data ?? null,
+      merchantRules: regeln.data,
       jetzt,
     }),
     [
@@ -341,6 +343,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       depots.data,
       vermoegen.data,
       steuerRuecklage.data,
+      regeln.data,
       jetzt,
     ],
   );

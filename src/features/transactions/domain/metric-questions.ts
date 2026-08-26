@@ -28,6 +28,7 @@ import type {
 } from '@/lib/question-registry';
 import type { Transaction } from '@/types';
 import { filterTransactions, buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
+import { explainCategorization } from '@/lib/categorization';
 import {
   anteilAnGesamt,
   durchschnittJeVorgang,
@@ -454,6 +455,99 @@ const einkommenArten: QuestionEntry = {
   },
 };
 
+/**
+ * „Warum ist diese Buchung in dieser Kategorie?" (Welle 3)
+ *
+ * Die `reasons[]` aus `CategorizationResult` gab es seit WP-B — sie
+ * erreichten nur nie den Chat. AGENTS.md §3 verlangt für Ebene 2 und 3, dass
+ * nie ein Ergebnis ohne Beleg herauskommt; dieser Eintrag löst das Versprechen
+ * für die Kategorisierung ein.
+ *
+ * **Der Chat kategorisiert nichts.** Er ruft `explainCategorization` auf die
+ * jüngste Buchung des genannten Händlers und legt offen, WARUM die App sie
+ * so eingeordnet hat — gelernte Regel, Kategorie-Filter, gelerntes Modell
+ * oder Stichwort-Rückfall. Geschrieben wird nichts.
+ */
+const kategorieBegruendung: QuestionEntry = {
+  id: 'kategorie.begruendung',
+  slots: { erforderlich: ['haendler'], optional: [] },
+  ausloeser: ['financeQuestions.trigger.warumKategorie'],
+  needs: ['transactions', 'categories', 'accounts', 'merchantRules'],
+  aufwand: 'guenstig',
+  antwort(slots, daten): QuestionAnswer {
+    const { transactions: menge, deepLink } = mengeFuer(this, slots, daten);
+    const juengste = [...menge]
+      .filter((t) => !t.is_transfer)
+      .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+    if (!juengste) {
+      return {
+        art: 'keine',
+        wert: null,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.noMatch', params: { zeitraum: 'all' } },
+        deepLink,
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    const ergebnis = explainCategorization(
+      juengste,
+      [...(daten.categories ?? [])],
+      [...(daten.merchantRules ?? [])],
+    );
+    // Die GESPEICHERTE Kategorie ist die, die der Nutzer in der App sieht —
+    // sie gewinnt. `explainCategorization` erklärt, wie die Automatik zu
+    // ihrem Ergebnis käme; das ist nicht dasselbe: Eine von Hand geänderte
+    // Zuordnung steht in der Buchung, nicht in der Ableitung. Eine zweite
+    // Kategorie zu nennen wäre eine zweite Wahrheit.
+    const kategorieId = juengste.category_id ?? ergebnis.categoryId;
+    const name = (daten.categories ?? []).find((c) => c.id === kategorieId)?.name;
+
+    if (!kategorieId || !name) {
+      return {
+        art: 'keine',
+        wert: null,
+        anzahl: 1,
+        aussage: {
+          key: 'financeQuestions.answer.kategorieOhneZuordnung',
+          params: { haendler: slots.haendler ?? '' },
+        },
+        deepLink,
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    return {
+      art: 'verweis',
+      wert: null,
+      anzahl: 1,
+      aussage: {
+        key: 'financeQuestions.answer.kategorieBegruendung',
+        params: { haendler: slots.haendler ?? '', kategorie: name },
+      },
+      // Die Gründe der Engine, unverändert durchgereicht. Sie sind bereits
+      // i18n-Keys mit Platzhaltern — genau die Form, die das Register
+      // ohnehin verlangt.
+      begruendung: [
+        { key: `financeQuestions.quelle.${ergebnis.source}`, params: {} },
+        // Weicht die Ableitung von der gespeicherten Zuordnung ab, gehört das
+        // gesagt: Dann steht dort eine Entscheidung, die die Automatik heute
+        // anders träfe — und genau das will jemand wissen, der „warum" fragt.
+        ...(ergebnis.categoryId && ergebnis.categoryId !== kategorieId
+          ? [{ key: 'financeQuestions.reason.kategorieAbweichung', params: {} }]
+          : []),
+        ...ergebnis.reasons.map((text) => ({
+          key: 'financeQuestions.reason.kategorieGrund',
+          params: { grund: text },
+        })),
+      ],
+      deepLink,
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const metricQuestions: readonly QuestionEntry[] = [
   ausgabenDurchschnitt,
   ausgabenAnteil,
@@ -465,4 +559,5 @@ export const metricQuestions: readonly QuestionEntry[] = [
   vergleichsEintrag('vergleich.zeitraum', 'zeitraum', 'financeQuestions.trigger.vergleichZeitraum'),
   abbuchungLetzte,
   einkommenArten,
+  kategorieBegruendung,
 ];

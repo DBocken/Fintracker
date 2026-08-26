@@ -3689,6 +3689,7 @@ export const de = {
       notCovered: 'nicht gedeckt',
       stepHints: {
         taxReserve: 'Steuern sind fremdes Geld',
+        merchantRules: 'deine gelernten Händlerregeln',
         savings: 'Pay-yourself-first',
         essentials: 'existenzsichernd',
         discretionary: 'Null-Saldo',
@@ -4396,6 +4397,7 @@ export const de = {
         betrag: 'Um welchen Betrag geht es?',
       },
     entryName: {
+      kategorie: { begruendung: 'Warum eine Buchung so eingeordnet ist' },
       liquiditaet: { reichweite: 'Reichweite deines Geldes' },
       abbuchung: { naechste: 'Nächste Abbuchungen', letzte: 'Letzte Buchung bei einem Händler' },
       ziel: { obergrenze: 'Höchstbetrag, der noch trägt', sparrate: 'Nötige monatliche Rate' },
@@ -4450,7 +4452,15 @@ export const de = {
       unerreichbar: 'Auch mit Zurücklegen erreiche ich dieses Ziel im Zeitraum nicht. Eine Rate zu nennen, die nicht hält, hilft dir nicht.',
     },
     ohneKategorie: 'Ohne Kategorie',
+    quelle: {
+      merchant_rule: 'Weil du diese Zuordnung selbst gelernt hast.',
+      category_filter: 'Weil ein Stichwort deiner Kategorie zutrifft.',
+      learned_model: 'Weil deine eigenen bestätigten Buchungen dieses Muster zeigen.',
+      regex_fallback: 'Weil ein allgemeines Stichwort zutrifft — die schwächste der vier Quellen.',
+      none: 'Dafür gab es kein ausreichendes Signal.',
+    },
     trigger: {
+      warumKategorie: 'warum ist, wieso ist, warum wurde, wieso wurde, wie kommt es dass, warum landet',
       schuldenDauer: 'wie lange zahle ich, wann bin ich schuldenfrei, wie lange noch abbezahlen, laufzeit meiner schulden, wann bin ich fertig mit',
       schuldenZinsen: 'wie viel zinsen zahle ich, zinsen insgesamt, was kosten mich meine schulden, zinslast',
       sondertilgung: 'sondertilgung, wenn ich mehr zahle, was bringt es wenn ich, mehr tilge, extra zahle',
@@ -4521,6 +4531,8 @@ export const de = {
       budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
+      kategorieBegruendung: 'Deine jüngste Buchung bei {haendler} steht in „{kategorie}“.',
+      kategorieOhneZuordnung: 'Die jüngste Buchung bei {haendler} hat noch keine Kategorie — auch die Automatik konnte keine sicher zuordnen.',
       schuldenDauer: 'So viele Monate brauchst du bei deinen jetzigen Mindestraten.',
       schuldenZinsen: 'So viel Zinsen zahlst du auf dem Weg bis zur letzten Rate.',
       schuldenSondertilgung: 'Mit {betrag} mehr im Monat sparst du {gespart} an Zinsen.',
@@ -4628,6 +4640,8 @@ export const de = {
       budgetAktionStattdessenAnlegen: 'Für {name} gibt es noch kein Budget. Soll ich eines anlegen?',
     },
     reason: {
+      kategorieAbweichung: 'Die Automatik käme heute zu einer anderen Kategorie — deine Zuordnung gilt.',
+      kategorieGrund: 'Grund: {grund}',
       schuldenBudget: 'Gerechnet mit deinen Mindestraten: {betrag} im Monat',
       schuldenZinsenGesamt: 'Zinsen insgesamt: {betrag}',
       schuldenLaufzeit: 'Laufzeit: {monate} Monate',

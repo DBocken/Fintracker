@@ -650,6 +650,16 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wenn ich 80 im monat drauflege wie wirkt das',
     'zinsersparnis bei 250 mehr im monat',
   ],
+  'kategorie.begruendung': [
+    'warum ist die rewe buchung in lebensmittel',
+    'wieso wurde amazon so einsortiert',
+    'warum landet dm bei drogerie',
+    'wie kommt es dass netflix in freizeit steht',
+    'warum ist die buchung von aldi da drin',
+    'wieso ordnet er lidl so zu',
+    'warum steht spotify in dieser kategorie',
+    'wie kommt die zuordnung bei edeka zustande',
+  ],
   'verfuegbar.bisGehalt': [
     'was kann ich bis zum gehalt noch ausgeben',
     'reicht es bis zur nächsten zahlung',
