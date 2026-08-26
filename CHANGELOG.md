@@ -24,6 +24,19 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Der Chat kann jetzt auch kategorisieren, Anlässe anlegen und Überträge
+  markieren.** „Ordne die Rewe-Buchungen Lebensmitteln zu", „Merk dir, Rewe
+  ist immer Lebensmittel", „Leg einen Anlass Urlaub Italien an", „Markiere die
+  Umbuchungen als Überträge". Wie beim Budget gilt: Vorher steht da, was
+  passieren würde; geschrieben wird erst auf Klick, und Rückgängig bleibt
+  stehen. Die Vorschau des Übertrags nennt die **Summe**, die aus Einnahmen
+  und Ausgaben fällt — sie ändert jede Monatssumme rückwirkend, und das soll
+  niemand erst hinterher merken.
+- **„Ordne zu" und „merk dir" sind zweierlei.** Das eine korrigiert den
+  Bestand, das andere schaltet eine Dauerregel ein. Der Chat unterscheidet
+  beides und sagt bei der Regel dazu, dass sie auch für Buchungen gilt, die es
+  noch nicht gibt.
+
 - **Nachfragen rechnet Ziele rückwärts.** „Wie hoch darf mein Urlaubsbudget
   höchstens sein, damit mein Puffer hält?" und „Wie viel muss ich monatlich
   sparen, um 5000 € zu schaffen?" — der gesuchte Betrag IST die Antwort. Wo
@@ -185,6 +198,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Antwort, „0,00 €" wo „keine Buchung" gemeint war.
 
 ### Intern
+
+- **Schreibende Chat-Einträge sind nur noch über ihre eigene Grammatik
+  erreichbar.** Wortebene und Klassifikator konnten sie bisher ohne das
+  Imperativ-Gate erreichen — der Welle-5-Korpus hat beide Wege gefunden. Die
+  Regel steht in `AGENTS.md` §3, und eine eigene Zusicherung im Ratschen-Test
+  prüft für JEDE Korpuszeile, dass keine Frage in einer Aktions-Familie
+  landet.
+- **Ein Imperativ-Gate statt vier.** `lib/action-intent.ts` trägt
+  Normalisierung, Gate, Verbtisch und Rest-Extraktion für alle vier
+  Aktions-Grammatiken; die Budget-Grammatik aus WP-I ist darauf zurückgeführt,
+  ohne dass eine ihrer Erwartungen angefasst wurde.
 
 - **Tilgungssimulation: Abbruchgrenze ist kein Ergebnis.** Decken die
   Mindestraten die Zinsen nicht, läuft die Rechnung bis zum Deckel und

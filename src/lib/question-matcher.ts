@@ -902,6 +902,22 @@ export function routeFrage(
   // 0c, weder über die Wort- noch über die Subword-Ebene.
   const ohneVergleiche = entries.filter((e) => !e.nimmtVergleich);
   /**
+   * Aktions-Einträge sind auch für die WORTEBENE gesperrt (Welle 5).
+   *
+   * Der Korpus dieser Welle hat es aufgedeckt: „Wie ordne ich Rewe zu
+   * Lebensmitteln?" landete bei `kategorie.aktion` — nicht über die
+   * Grammatik (deren Gate wies die Frage korrekt ab), sondern über den
+   * Auslöser „ordne" auf der Wortebene. Dieselbe Lücke wie bei Stufe 2, nur
+   * eine Stufe früher, und mit derselben Folge: eine Schreib-Vorschau als
+   * Antwort auf eine Frage.
+   *
+   * Die Regel ist damit eindeutig und gilt für alle Stufen: **Ein
+   * schreibender Eintrag ist AUSSCHLIESSLICH über seine eigene Grammatik
+   * erreichbar** (Stufe 0a). Sie trägt das Imperativ-Gate; jeder andere Weg
+   * dorthin umgeht es.
+   */
+  const lesbareEintraege = ohneVergleiche.filter((e) => !istAktionsEintrag(e));
+  /**
    * Dieselbe Menge, zusätzlich um das SZENARIO-GATE beschnitten (Welle 2).
    *
    * `match()` wendet das Gate an — Stufe 2 tat es nicht. Damit konnte der
@@ -922,17 +938,11 @@ export function routeFrage(
   const offeneBezugsgroesse = hatUnaufgelösteBezugsgroesse(
     analysiereFrage(text, vokabular, locale, jetzt),
   );
-  // Aktions-Einträge sind für Stufe 2 gesperrt: Sie hat kein Imperativ-Gate,
-  // und ein vom Klassifikator vorgeschlagener Befehl wäre eine Schreib-
-  // Vorschau ohne die Prüfung, die sie tragen soll (siehe
-  // `istAktionsEintrag`). Sie erreichen die Fläche ausschliesslich über ihre
-  // eigene Grammatik in Stufe 0a.
-  const ohneAktionen = ohneVergleiche.filter((e) => !istAktionsEintrag(e));
   const stufe2Faehig = szenarioFrage
-    ? ohneAktionen.filter((e) => e.beantwortetSzenarien)
-    : ohneAktionen;
+    ? lesbareEintraege.filter((e) => e.beantwortetSzenarien)
+    : lesbareEintraege;
 
-  const kandidaten = lexicalQuestionMatcher.match(text, vokabular, ohneVergleiche, locale, jetzt);
+  const kandidaten = lexicalQuestionMatcher.match(text, vokabular, lesbareEintraege, locale, jetzt);
   const lexikalisch = entscheideRouting(kandidaten);
   if (!intent) return lexikalisch;
 

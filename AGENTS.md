@@ -207,6 +207,17 @@ Lautlos, ohne Fehler, kein Test rot. Seither gilt: `undefined` heisst „nicht
 geladen", nie „leer"; die `application`-Schicht füllt jeden Kanal, den ein
 Eintrag anmeldet, und eine Quelle, die nicht lesbar war, wird BENANNT.
 
+**Ein schreibender Eintrag ist AUSSCHLIESSLICH über seine eigene Grammatik
+erreichbar.** Das Imperativ-Gate sitzt dort — jeder andere Weg zu ihm umgeht
+es. Gemessen hat der Welle-5-Korpus gleich zwei solche Wege gefunden: die
+Wortebene holte `kategorie.aktion` über den Auslöser „ordne" herein, obwohl
+das Gate die Frage „Wie ordne ich Rewe zu Lebensmitteln?" korrekt abgewiesen
+hatte, und der Klassifikator der Stufe 2 konnte einen Befehl ohne jede
+Prüfung vorschlagen. Beide Male: eine Schreib-Vorschau als Antwort auf eine
+Frage. Wer eine Aktion baut, sperrt sie an JEDER Stufe, die sie sonst
+erreichen könnte — und ihre Paraphrasen entfallen damit, statt die übrigen
+Klassen zu verdünnen.
+
 **Ein Gate schützt nicht eine FUNKTION, sondern vor einer Verwechslung.** Das
 Szenario-Gate hiess bis Welle 3 „nur die Simulation darf hypothetische Fragen
 nehmen" — zu eng: `schulden.sondertilgung` rechnet die veränderte Welt

@@ -86,8 +86,8 @@ export const AKTIONS_VERBEN = {
   setzen: ['setz', 'stell', 'set ', 'поставь'],
   loeschen: ['loesch', 'entfern', 'delete', 'remove', 'удали'],
   zuordnen: [
-    'ordne', 'zuordnen', 'weise', 'buche', 'stecke', 'pack',
-    'assign', 'categorise', 'categorize', 'file ', 'отнеси', 'присвой',
+    'ordne', 'zuordnen', 'weise', 'buche', 'stecke', 'pack', 'kategorisier',
+    'assign', 'categorise', 'categorize', 'file ', 'отнеси', 'присвой', 'категоризируй',
   ],
   markieren: ['markier', 'verknuepf', 'verknüpf', 'verbinde', 'mark ', 'link ', 'отметь', 'свяжи'],
   merken: ['merk', 'immer', 'kuenftig', 'künftig', 'always', 'from now on', 'запомни', 'всегда'],

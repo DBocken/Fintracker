@@ -1,6 +1,6 @@
 # Abfrage-Register — wie eine Frage zu einer Antwort kommt
 
-Stand: Welle 3 (2026-08). Ergänzt `AGENTS.md` §3 um die Mechanik; die
+Stand: Welle 5 (2026-08). Ergänzt `AGENTS.md` §3 um die Mechanik; die
 verbindlichen Regeln stehen dort, nicht hier.
 
 ## Der Grundriss in einem Satz
@@ -24,11 +24,18 @@ Drei Festlegungen tragen alles Weitere und stehen ausführlich im Kopf von
 
 | Stufe | Was sie tut | Warum sie zuerst kommt |
 |---|---|---|
-| **0a** Budget-Aktion | Imperativ-Grammatik erkennt einen BEFEHL | Ein Befehl ist kein Fragetyp; eine Frage darf strukturell nie zu einem werden |
+| **0a** Aktionen | Vier Imperativ-Grammatiken (Übertrag → Anlass → Kategorie → Budget) | Ein Befehl ist kein Fragetyp; eine Frage darf strukturell nie zu einem werden. Reihenfolge: das engste Gate zuerst |
 | **0b** Szenario | ≥ 2 erkannte Veränderungen (oder 1 + Schwelle) | Mehrere Deltas sind stärkere Evidenz als jedes Auslösewort |
 | **0c** Vergleich | Zwei Partner derselben Achse | Ein Vergleich braucht ein PAAR; die Wortebene kennt nur die längste Größe |
 | **1** Lexikalisch | Auslöser-Phrasen + Slot-Punkte | Läuft bei jedem Tastendruck, Mikrosekunden |
 | **2** Klassifikator | Complement NB über Subword-Merkmale | Läuft nur beim Absenden; schlägt vor, entscheidet nie allein |
+
+**Ein schreibender Eintrag ist NUR über seine eigene Grammatik erreichbar.**
+Das Imperativ-Gate sitzt dort; Wortebene und Klassifikator sind für ihn
+gesperrt (`istAktionsEintrag`). Der Welle-5-Korpus fand beide Wege offen —
+„Wie ordne ich Rewe zu Lebensmitteln?" landete über den Auslöser „ordne" bei
+der Schreib-Aktion, obwohl das Gate die Frage abgewiesen hatte. Ein
+Aktions-Eintrag braucht folgerichtig auch keine Paraphrasen.
 
 **Ein Gate schützt nicht eine Funktion, sondern vor einer Verwechslung.** Das
 Szenario-Gate hiess bis Welle 3 „nur die Simulation darf hypothetische Fragen
@@ -106,6 +113,7 @@ Drei Ratschen, drei Dateien, drei Fragen:
 | `wave1-ratchet.test.ts` | Rechenarten und Vergleiche | Muster 100 %, Varianten 88 % |
 | `wave2-ratchet.test.ts` | Konten … Steuer | Muster 100 %, Varianten 100 % |
 | `wave3-ratchet.test.ts` | Zielrückrechnung … Erklärbarkeit | Muster 100 %, Varianten 100 % |
+| `wave5-ratchet.test.ts` | Die schreibenden Befehle | Muster 100 %, Varianten 100 % — plus die Zusicherung, dass KEINE Frage in einer Aktions-Familie landet |
 
 Jeder Korpus führt zwei Sorten Zeile: die **Mustersätze** des Auftrags
 (Pflicht) und **getippte Varianten**. Ohne die zweite misst der Korpus, ob der
