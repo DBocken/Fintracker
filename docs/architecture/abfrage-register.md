@@ -1,6 +1,6 @@
 # Abfrage-Register — wie eine Frage zu einer Antwort kommt
 
-Stand: Welle 2 (2026-08). Ergänzt `AGENTS.md` §3 um die Mechanik; die
+Stand: Welle 3 (2026-08). Ergänzt `AGENTS.md` §3 um die Mechanik; die
 verbindlichen Regeln stehen dort, nicht hier.
 
 ## Der Grundriss in einem Satz
@@ -30,6 +30,19 @@ Drei Festlegungen tragen alles Weitere und stehen ausführlich im Kopf von
 | **1** Lexikalisch | Auslöser-Phrasen + Slot-Punkte | Läuft bei jedem Tastendruck, Mikrosekunden |
 | **2** Klassifikator | Complement NB über Subword-Merkmale | Läuft nur beim Absenden; schlägt vor, entscheidet nie allein |
 
+**Ein Gate schützt nicht eine Funktion, sondern vor einer Verwechslung.** Das
+Szenario-Gate hiess bis Welle 3 „nur die Simulation darf hypothetische Fragen
+nehmen". Das war zu eng formuliert: `schulden.sondertilgung` rechnet die
+veränderte Welt ebenfalls, nur deterministisch. Was das Gate abwehrt, ist
+unverändert — eine BESTANDSAUSWERTUNG, die eine Frage über eine andere Welt
+mit Ist-Zahlen beantwortet.
+
+**Ein Stichentscheid darf die Frage nicht WEITEN.** Löst Stufe 2 einen
+Gleichstand zugunsten einer Familie ohne Bezugsgröße auf, während die Frage
+eine NENNT, die der Router nicht auflösen konnte, bekommt jemand das Ganze
+statt des Teils — eine falsche Zahl mit richtigem Anstrich. Erkannt wird die
+Position (Inhaltswort hinter „für"/„bei"), nicht das Wort.
+
 **Jede Schranke der Stufe 1 muss auch für Stufe 2 gelten.** Das Szenario-Gate
 lag bis Welle 2 nur an der Wortebene — der Klassifikator konnte deshalb für
 eine hypothetische Frage einen Eintrag vorschlagen, den die Wortebene
@@ -51,6 +64,7 @@ lädt sie und prüft **genau diese** auf Lade- und Fehlerzustand.
 | `portfolios` | Depots samt Positionen, in EINER Abfrage | Welle 2 |
 | `netWorth` | `getNetWorthBreakdown()` | Welle 2 |
 | `taxReserve` | Rücklage des laufenden Jahres | Welle 2 |
+| `merchantRules` | Gelernte Händlerregeln — nur zum ERKLÄREN | Welle 3 |
 
 Drei Regeln dazu:
 
@@ -91,6 +105,7 @@ Drei Ratschen, drei Dateien, drei Fragen:
 | `question-eval-ratchet.test.ts` | 243 reale Fragen (WP-F-Auftrag) | 100 % / 0 falsch |
 | `wave1-ratchet.test.ts` | Rechenarten und Vergleiche | Muster 100 %, Varianten 88 % |
 | `wave2-ratchet.test.ts` | Konten … Steuer | Muster 100 %, Varianten 100 % |
+| `wave3-ratchet.test.ts` | Zielrückrechnung … Erklärbarkeit | Muster 100 %, Varianten 100 % |
 
 Jeder Korpus führt zwei Sorten Zeile: die **Mustersätze** des Auftrags
 (Pflicht) und **getippte Varianten**. Ohne die zweite misst der Korpus, ob der
@@ -107,6 +122,12 @@ Diese Fragen bleiben bewusst unbeantwortet, und der Chat sagt warum:
   Bestände werden ausgewiesen, nie summiert.
 - **Umsatzsteuer** — die EÜR ist Kleinunternehmer (§ 19 UStG).
 - **Vermögens-Historie** — es gibt nur den Ist-Stand, keine Zeitreihe.
+- **Sinking Funds** („monatlich zurücklegen, damit Jahresrechnungen nicht
+  überraschen") — kommt mit Welle 4. Bis dahin darf keine Sparraten-Familie
+  danach greifen: Sie fragte nach einem Zielbetrag, den der Fragende gar
+  nicht hat.
+- **Immobilienfinanzierung** — es gibt kein Darlehensmodell, also auch keine
+  Aussage über eine tragbare Kaufsumme bei 30 % Belastungsquote.
 
 Die ersten drei stehen als Lücken-Zeilen in `wave2-corpus.ts`: Dass der Chat
 sich dort zurückhält, ist gemessen und nicht bloß behauptet.

@@ -207,6 +207,24 @@ Lautlos, ohne Fehler, kein Test rot. Seither gilt: `undefined` heisst „nicht
 geladen", nie „leer"; die `application`-Schicht füllt jeden Kanal, den ein
 Eintrag anmeldet, und eine Quelle, die nicht lesbar war, wird BENANNT.
 
+**Ein Gate schützt nicht eine FUNKTION, sondern vor einer Verwechslung.** Das
+Szenario-Gate hiess bis Welle 3 „nur die Simulation darf hypothetische Fragen
+nehmen" — zu eng: `schulden.sondertilgung` rechnet die veränderte Welt
+ebenfalls, nur deterministisch, und fiel deshalb durch. Wer ein Gate
+formuliert, benennt die VERWECHSLUNG, die es verhindert (hier: eine
+Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
+beantwortet), nicht die Funktion, die zufällig heute als einzige die
+Bedingung erfüllt.
+
+**Eine Abbruchgrenze ist kein Ergebnis.** `calculatePayoffPlan` läuft
+höchstens 600 Monate; decken die Raten die Zinsen nicht, endet sie dort mit
+Zahlen ohne Aussagekraft (gemessen: 600 Monate, 399.575.500 € Zinsen). Wer
+eine Schleifengrenze einbaut, exportiert sie und prüft die Ausgabe dagegen —
+sonst wird aus „ich konnte es nicht rechnen" ein „in 50 Jahren bist du
+fertig". Dieselbe Idee wie die Grenzkonstante ohne Prüfstelle weiter oben,
+nur andersherum: Diese Grenze WIRKT, und genau deshalb muss ihr Erreichen
+sichtbar werden.
+
 **Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
 gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche

@@ -62,8 +62,12 @@ const leistbarkeitAnschaffung: QuestionEntry = {
   ausloeser: ['financeQuestions.trigger.leistbarkeit'],
   needs: [],
   aufwand: 'teuer',
-  // Die Simulation ist die einzige Funktion, die veränderte Welten rechnet —
-  // deshalb darf NUR dieser Eintrag hypothetische Fragen nehmen.
+  // Hypothetische Fragen dürfen nur Einträge nehmen, die die veränderte Welt
+  // tatsächlich RECHNEN. Bis Welle 3 war das allein die Simulation; seither
+  // gehört `schulden.sondertilgung` dazu (deterministischer Tilgungsplan mit
+  // anderem Budget). Was das Gate abwehrt, ist unverändert: eine
+  // Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
+  // beantwortet.
   beantwortetSzenarien: true,
   antwort: (slots) => ({
     art: 'verweis',
@@ -354,6 +358,18 @@ const schuldenSondertilgung: QuestionEntry = {
   verstaerker: ['financeQuestions.trigger.schulden'],
   needs: ['debts'],
   aufwand: 'guenstig',
+  // „Was bringt es, WENN ich mehr zahle?" ist eine hypothetische Frage — das
+  // Szenario-Gate hätte sie sonst abgewiesen, und der Chat hätte auf eine
+  // beantwortbare Frage geschwiegen.
+  //
+  // Damit ist die Regel am Gate präziser zu fassen als bisher: Der Kommentar
+  // an `leistbarkeit.anschaffung` sagt „die Simulation ist die EINZIGE
+  // Funktion, die veränderte Welten rechnet". Das stimmt so nicht mehr —
+  // `calculatePayoffPlan` mit einem anderen Budget rechnet ebenfalls eine
+  // veränderte Welt, nur deterministisch statt stochastisch. Das Gate schützt
+  // nicht die Simulation, sondern davor, dass eine BESTANDSAUSWERTUNG eine
+  // Frage über eine andere Welt mit Ist-Zahlen beantwortet.
+  beantwortetSzenarien: true,
   antwort: (slots, daten): QuestionAnswer => {
     const stand = planBeiMindestraten(daten);
     if (!stand || slots.betrag === undefined) {

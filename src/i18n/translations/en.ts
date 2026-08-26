@@ -4449,10 +4449,10 @@ export const en = {
     },
     trigger: {
       warumKategorie: 'why is, why was, how come, why does it end up',
-      schuldenDauer: 'how long will i be paying, when am i debt free, how long to pay off, term of my debts',
+      schuldenDauer: 'how long will i be paying, debt free, to pay off, term of my debts, months until',
       schuldenZinsen: 'how much interest do i pay, interest in total, what do my debts cost me, interest burden',
       sondertilgung: 'extra repayment, if i pay more, what does it do if i, pay extra',
-      reichweite: 'how long will it last, how long does my money last, runway, how long can i keep going',
+      reichweite: 'how long will it last, how long does my money last, runway, keep going, months can i get by',
       naechsteAbbuchung: 'what will be debited, next debit, what is coming up, which direct debits, due soon',
       letzteBuchung: 'when was i last, when last, last purchase, when did i last, last time at',
       einkommensArten: 'where does my money come from, what income do i have, sources of income, what is my income made of',

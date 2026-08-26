@@ -24,6 +24,18 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Nachfragen rechnet Ziele rückwärts.** „Wie hoch darf mein Urlaubsbudget
+  höchstens sein, damit mein Puffer hält?" und „Wie viel muss ich monatlich
+  sparen, um 5000 € zu schaffen?" — der gesuchte Betrag IST die Antwort. Wo
+  nichts trägt, wird das gesagt statt eine Zahl genannt: Reicht es schon ohne
+  die Ausgabe nicht, ist nicht die Anschaffung das Problem.
+- **Zehn weitere Fragen beantwortet**: Wie lange dein Geld reicht, was
+  demnächst abgebucht wird, wann du zuletzt bei einem Händler warst, woher
+  dein Geld kommt, wie lange du noch an Schulden zahlst, wie viel Zinsen das
+  kostet, was eine höhere Rate bringt — und **warum eine Buchung in ihrer
+  Kategorie steht**. Die Begründungen der Kategorisierung gab es seit
+  Langem; sie erreichten nur nie den Chat.
+
 - **Nachfragen kennt jetzt auch Konten, Vermögen, Depots, Anlässe, Überträge
   und Steuer.** „Wie viel Geld habe ich auf meinem Girokonto?", „Wie hoch ist
   mein Nettovermögen?", „Wie viel Gewinn habe ich in meinem Depot?", „Was hat
@@ -137,6 +149,10 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **„Wie viel habe ich für <etwas Unbekanntes> ausgegeben?" wurde mit der
+  Gesamtsumme beantwortet.** Wer nach einem Teil fragt und das Ganze bekommt,
+  bekommt eine falsche Zahl mit richtigem Anstrich. Jetzt kommt die Rückfrage.
+
 - **Gesplittete Buchungen zählten im Chat mit dem vollen Betrag gegen ein
   Budget.** Wer 100 € einkauft und 40 € davon als Lebensmittel abtrennt, sah
   auf die Frage „Wie viel Budget habe ich noch übrig?" 100 € abgezogen statt
@@ -169,6 +185,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Antwort, „0,00 €" wo „keine Buchung" gemeint war.
 
 ### Intern
+
+- **Tilgungssimulation: Abbruchgrenze ist kein Ergebnis.** Decken die
+  Mindestraten die Zinsen nicht, läuft die Rechnung bis zum Deckel und
+  liefert Zahlen ohne Aussagekraft (gemessen: 600 Monate, 399.575.500 €
+  Zinsen). Der Deckel heisst jetzt `MAX_TILGUNGS_MONATE`, ist exportiert, und
+  der Chat sagt in diesem Fall, dass es keine Laufzeit gibt.
+- **Das Szenario-Gate schützt nicht die Simulation, sondern vor Ist-Zahlen zu
+  einer anderen Welt.** `schulden.sondertilgung` rechnet die veränderte Welt
+  deterministisch und darf hypothetische Fragen deshalb nehmen.
+- `calculatePayoffPlan` zieht als reine Funktion nach `lib/debt-payoff.ts` —
+  der vierte solche Umzug im Programm, hier mit dem höchsten Einsatz.
 
 - **Der Chat lädt seine Datenquellen je BEDARF, nicht alles auf einmal.**
   `needs` stand seit WP-C im Register und steuerte nichts; jetzt entscheidet es,
