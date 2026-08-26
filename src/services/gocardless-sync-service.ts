@@ -1,5 +1,11 @@
 import { gocardlessService } from './gocardless-service';
 import { getBankBalanceForAccount } from './live-balance-service';
+import {
+  collectBankFields,
+  describeBankTransaction,
+  pickCounterparty,
+  type BankTransactionSource,
+} from '@/lib/bank-transaction-fields';
 import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
 import { categorizeTransactionConfident } from '@/lib/categorization';
@@ -35,33 +41,14 @@ function invalidateTransactionConsumers() {
   queryClientRef.invalidateQueries({ queryKey: ['net-worth'] });
 }
 
-interface GoCardlessTransaction {
-  transactionId: string;
-  bookingDate: string;
-  valueDate?: string;
-  transactionAmount: {
-    amount: string;
-    currency: string;
-  };
-  debtorName?: string;
-  creditorName?: string;
-  debtorAccount?: { iban?: string };
-  creditorAccount?: { iban?: string };
-  remittanceInformationUnstructured?: string;
-  remittanceInformationStructuredArray?: string[];
-  additionalInformation?: string;
-  purposeCode?: string;
-  bankTransactionCode?: string;
-  proprietaryBankTransactionCode?: string;
-  balanceAfterTransaction?: {
-    balanceAmount: {
-      amount: string;
-      currency: string;
-    };
-    balanceType: string;
-    creditLimitIncluded?: boolean;
-  };
-}
+/**
+ * Der Typ lebt jetzt in `@/lib/bank-transaction-fields` (AGENTS.md §3: eine
+ * Datengrenze gehört nach `lib`, nicht in den I/O-Service). Hier stand bis
+ * dahin eine eigene Fassung — und solange sie hier stand, konnte die
+ * Feldauswertung keine prüfbare Funktion sein, weil `lib` nicht auf sie
+ * zugreifen darf. Genau deshalb war sie ein Einzeiler in der Importschleife.
+ */
+type GoCardlessTransaction = BankTransactionSource;
 
 export interface ConsentCheckResult {
   valid: boolean;
@@ -340,13 +327,26 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       try {
         const amount = parseFloat(tx.transactionAmount.amount);
         const date = tx.bookingDate;
-        const payee = tx.debtorName || tx.creditorName || t('transactionService.unknownPayee');
+
+        // Gegenüber NACH DEM VORZEICHEN: Bei einer Ausgabe ist es der
+        // Creditor, bei einer Einnahme der Debtor. Hier stand
+        // `debtorName || creditorName` und `debtorAccount || creditorAccount`
+        // — dieselbe Reihenfolge für beide Richtungen, weshalb bei
+        // Kartenzahlungen die abwickelnde Stelle statt des Händlers als
+        // Empfänger erschien. Siehe `@/lib/bank-transaction-fields`.
+        const counterparty = pickCounterparty(tx, amount);
+        const payee = counterparty.name || t('transactionService.unknownPayee');
+
+        // Die Art der Buchung aus Branchen-/Buchungsschlüssel — der Teil, der
+        // „worum ging es?" beantwortet, auch wenn der Verwendungszweck nur
+        // aus Terminal-Kennungen besteht.
+        const kind = describeBankTransaction(tx);
         const description = tx.remittanceInformationUnstructured ||
           (tx.remittanceInformationStructuredArray?.join(' ')) ||
           tx.additionalInformation ||
+          kind ||
           payee;
-        // IBAN des Gegenübers für die automatische Erkennung interner Überträge.
-        const counterpartyIban = tx.debtorAccount?.iban || tx.creditorAccount?.iban || null;
+        const counterpartyIban = counterparty.iban;
 
         // Dedupe-Identifier aus derselben (gesliceten) Description bilden, die
         // auch als original_text gespeichert wird (F-ARCH-2, siehe buildTxIdentifier).
@@ -383,6 +383,11 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           auto_mapped: !!categoryId,
           confirmed: !!categoryId && userSettings.auto_confirm_mapping,
           counterparty_iban: counterpartyIban,
+          // Alles, was die Bank sonst noch mitgeliefert hat. Bis hierher fiel
+          // es beim Import lautlos weg — auch der Branchenschlüssel des
+          // Händlers, der stabilste Hinweis darauf, worum es ging.
+          bank_fields: collectBankFields(tx),
+          value_date: tx.valueDate || null,
         });
         importedTransactions.push(created);
 

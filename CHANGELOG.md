@@ -46,6 +46,24 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   ausgehebelt — den Erststart-Vorbehalt im Sync und den Hinweis „Startsaldo
   ergänzen" in der Datenqualität, der deshalb nie erschien.
 
+### Behoben (Import-Felder)
+
+- **Bei einer Kartenzahlung steht wieder der Händler als Empfänger da**, nicht
+  die abwickelnde Bank. Die Auswertung lautete `debtorName || creditorName`
+  und `debtorAccount || creditorAccount` — dieselbe Reihenfolge für beide
+  Richtungen. Bei einer Ausgabe ist das Gegenüber aber der Creditor. Betroffen
+  war auch die Gegenkonto-IBAN, und die speist die Erkennung interner
+  Überträge.
+- **Kein Bankfeld geht beim Import mehr verloren.** Branchenschlüssel des
+  Händlers (MCC), Buchungsschlüssel (ISO 20022), Wertstellungsdatum, Mandats-
+  und End-to-End-Referenz, beide Namen und beide IBANs waren im Typ
+  deklariert und wurden verworfen. Sie stehen jetzt in `bank_fields` an der
+  Buchung.
+- **Die Art der Buchung in Klartext.** MCC 7523 heißt „Parken", `PMNT-CCRD-POSD`
+  heißt „Kartenzahlung" — unabhängig davon, ob der Verwendungszweck nur aus
+  Terminal-Kennungen besteht. Wird als Beschreibung genommen, wenn die Bank
+  keinen Verwendungszweck liefert.
+
 ### Intern
 
 - `computeEffectiveBalances` nimmt die Buchungen **roh** entgegen statt
@@ -57,6 +75,14 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Fassung ersetzt.
 - 14 neue Tests zur Anker-Logik, 4 zum Sync — darunter der gemeldete Fall
   (Startsaldo zum Stichtag, Historie danach nachimportiert) als `[REGRESSION]`.
+- **Eigenschaftsbasierte Tests (`fast-check`) für die Rechenkerne.** Der
+  Saldo-Fehler hatte 15 gründliche Beispieltests neben sich, alle grün — sie
+  prüften die Fälle, die sich jemand vorgestellt hat. Zwölf Eigenschaften
+  prüfen jetzt Aussagen statt Beispiele („eine Buchung vor dem Stichtag ändert
+  den Saldo nicht", „ein Transferpaar verändert Einnahmen und Ausgaben nicht",
+  „`sumMinor` ist reihenfolgeunabhängig"). Gegenprobe: Gegen die alte Rechnung
+  fallen genau die zwei Eigenschaften, die den Fehler beschreiben — mit einem
+  auf eine Buchung und einen Cent geschrumpften Gegenbeispiel.
 
 ## 2026.8.2 — 2026-08-12
 

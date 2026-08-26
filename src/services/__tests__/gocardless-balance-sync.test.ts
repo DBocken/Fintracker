@@ -293,4 +293,78 @@ describe('syncAccountTransactions — opening balance capture', () => {
     expect(result.importedCount).toBe(1);
     expect(anchorUpdateCall()).toBeUndefined();
   });
+  it('[REGRESSION] weist bei einer Kartenzahlung den Haendler als Empfaenger aus, nicht die abwickelnde Stelle', async () => {
+    const acc = makeAccount();
+    mockAccounts = [acc];
+    mockGoCardlessTransactions = [
+      {
+        transactionId: 'gc-parken',
+        bookingDate: '2026-08-19',
+        valueDate: '2026-08-19',
+        transactionAmount: { amount: '-2.30', currency: 'EUR' },
+        debtorName: 'Landesbank Hessen-Thueringen',
+        creditorName: 'Parken - Rathaus//Wolfsburg/DE',
+        debtorAccount: { iban: 'DE00EIGENES00000000000' },
+        creditorAccount: { iban: 'DE56500500000959563149' },
+        remittanceInformationUnstructured: 'KARTENZAHLUNG',
+        merchantCategoryCode: '7523',
+        bankTransactionCode: 'PMNT-CCRD-POSD',
+      },
+    ];
+
+    await syncAccountTransactions(acc);
+
+    const created = createTransactionMock.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(created.payee).toBe('Parken - Rathaus//Wolfsburg/DE');
+    expect(created.counterparty_iban).toBe('DE56500500000959563149');
+  });
+
+  it('[REGRESSION] behaelt jedes gelieferte Bankfeld statt es beim Import zu verwerfen', async () => {
+    const acc = makeAccount();
+    mockAccounts = [acc];
+    mockGoCardlessTransactions = [
+      {
+        transactionId: 'gc-parken',
+        bookingDate: '2026-08-19',
+        valueDate: '2026-08-20',
+        transactionAmount: { amount: '-2.30', currency: 'EUR' },
+        creditorName: 'Parken - Rathaus//Wolfsburg/DE',
+        remittanceInformationUnstructured: 'KARTENZAHLUNG',
+        merchantCategoryCode: '7523',
+        bankTransactionCode: 'PMNT-CCRD-POSD',
+        mandateId: 'MND-1',
+      },
+    ];
+
+    await syncAccountTransactions(acc);
+
+    const created = createTransactionMock.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(created.value_date).toBe('2026-08-20');
+    expect(created.bank_fields).toMatchObject({
+      transactionId: 'gc-parken',
+      valueDate: '2026-08-20',
+      merchantCategoryCode: '7523',
+      bankTransactionCode: 'PMNT-CCRD-POSD',
+      mandateId: 'MND-1',
+    });
+  });
+
+  it('nimmt die Art der Buchung als Beschreibung, wenn die Bank keinen Verwendungszweck liefert', async () => {
+    const acc = makeAccount();
+    mockAccounts = [acc];
+    mockGoCardlessTransactions = [
+      {
+        transactionId: 'gc-1',
+        bookingDate: '2026-08-19',
+        transactionAmount: { amount: '-2.30', currency: 'EUR' },
+        creditorName: 'Parken - Rathaus',
+        merchantCategoryCode: '7523',
+      },
+    ];
+
+    await syncAccountTransactions(acc);
+
+    const created = createTransactionMock.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(created.description).toBe('Parken');
+  });
 });
