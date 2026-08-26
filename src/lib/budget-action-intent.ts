@@ -17,6 +17,13 @@
  * Auflösungswege würden driften.
  */
 import { parseBetraege } from './scenario-intent';
+import {
+  endetMitFragezeichen,
+  hatVerb,
+  istFrage,
+  normalisiereAktion,
+  restText,
+} from './action-intent';
 
 export type BudgetAktionsAbsicht =
   | { art: 'anlegen'; betrag: number; kategorieText?: string }
@@ -34,77 +41,24 @@ export type BudgetAktionsAbsicht =
     }
   | { art: 'loeschen'; kategorieText?: string };
 
-/** Dieselbe Faltung wie Matcher und Szenario-Grammatik. */
-function normalisiere(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss');
-}
-
-/**
- * Aktionsverben je Art — Wortanfänge, normalisiert. Bewusst OHNE generische
- * Wörter („mach", „aendere" allein): Jedes Verb hier ist eine
- * Schreib-Aufforderung, kein Gesprächswort.
- */
-const VERBEN = {
-  anlegen: [
-    'lege', 'leg ', 'erstell', 'anlegen', 'einrichten', 'richte',
-    'create', 'set up', 'add a budget', 'установи бюджет', 'создай',
-  ],
-  erhoehen: ['erhoeh', 'erhöh', 'stock', 'increase', 'raise', 'увеличь', 'подними'],
-  senken: ['senk', 'reduzier', 'verringer', 'kuerze', 'decrease', 'reduce', 'lower', 'уменьши', 'снизь'],
-  setzen: ['setz', 'stell', 'set ', 'поставь'],
-  loeschen: ['loesch', 'entfern', 'delete', 'remove', 'удали'],
-} as const;
-
 /** Ohne dieses Wort im Satz ist nichts eindeutig ein BUDGET-Befehl. */
 const BUDGET_WORT = /budget|бюджет/;
 
-function enthaelt(text: string, signale: readonly string[]): boolean {
-  return signale.some((s) => text.includes(normalisiere(s)));
-}
-
 /**
- * Der Textrest als Kategorie-Kandidat: Wörter des Satzes ohne Verben,
- * Füllwörter, Budget-Wort und Zahlen. „lege 200 € budget für lebensmittel
- * an" ⇒ „lebensmittel". Bewusst grob — die ECHTE Auflösung (inkl.
- * Mehrdeutigkeit und Rückfrage) macht das bestehende Vokabular im ViewModel.
+ * Der Textrest als Kategorie-Kandidat: „lege 200 € budget für lebensmittel
+ * an" ⇒ „lebensmittel". Gate, Verbtisch und Rest-Extraktion liegen seit
+ * Welle 5 in `action-intent.ts` — sechs Kopien eines Imperativ-Gates wären
+ * sechs Orte, an denen eine Frage zum Befehl werden kann.
  */
-const FUELLWOERTER = new Set([
-  'ein', 'eine', 'einen', 'mein', 'meine', 'mir', 'das', 'der', 'die', 'den',
-  'fuer', 'auf', 'um', 'von', 'an', 'bitte', 'euro', 'eur', 'im', 'monat',
-  'monatlich', 'neues', 'budget', 'budgets', 'a', 'an', 'the', 'my', 'for',
-  'to', 'by', 'of', 'per', 'month', 'monthly', 'new', 'please',
-]);
-
 function kategorieText(n: string): string | undefined {
-  const worte = n
-    .split(/[^\p{L}]+/u)
-    .filter(
-      (w) =>
-        w.length >= 3 &&
-        !FUELLWOERTER.has(w) &&
-        !BUDGET_WORT.test(w) &&
-        !Object.values(VERBEN).some((liste) => liste.some((v) => w.startsWith(normalisiere(v).trim()))),
-    );
-  return worte.length > 0 ? worte.join(' ') : undefined;
+  return restText(n, BUDGET_WORT);
 }
 
 export function extrahiereBudgetAktion(text: string): BudgetAktionsAbsicht | null {
-  const n = normalisiere(text);
+  const n = normalisiereAktion(text);
 
-  // Fragen sind nie Aktionen — auch wenn ein Aktionsverb im Nebensatz steht
-  // („kann ich mein budget erhoehen ohne …" fragt, befiehlt nicht).
-  // `welche` steht bewusst OHNE Wortgrenze am Ende: „welches", „welchen",
-  // „welcher" sind dieselbe Frage — gemessen fiel „Welches Budget sollte ich
-  // reduzieren …?" genau durch diese Lücke und wurde zum Befehl.
-  if (/(^|\s)(wie|was|wann|warum|wieviel|wie viel|kann ich|koennte|sollte ich|soll ich|how|what|which|should i|can i|сколько|какие|могу ли)\b/.test(n)) {
-    return null;
-  }
-  if (/(^|\s)welche/.test(n)) return null;
+  // Das Imperativ-Gate zuerst — die Sicherung, nicht die Erkennung.
+  if (istFrage(n) || endetMitFragezeichen(text)) return null;
   if (!BUDGET_WORT.test(n)) return null;
 
   const betraege = parseBetraege(n);
@@ -124,18 +78,18 @@ export function extrahiereBudgetAktion(text: string): BudgetAktionsAbsicht | nul
     }
   }
 
-  if (enthaelt(n, VERBEN.loeschen)) {
+  if (hatVerb(n, 'loeschen')) {
     return { art: 'loeschen', kategorieText: kategorieText(n) };
   }
 
   // Anlegen VOR Setzen: „erstell" enthält „stell" als Teilzeichenkette —
   // ein ausdrückliches Anlege-Verb gewinnt gegen das generischere Setzen.
-  if (enthaelt(n, VERBEN.anlegen) && betrag !== undefined) {
+  if (hatVerb(n, 'anlegen') && betrag !== undefined) {
     return { art: 'anlegen', betrag, kategorieText: kategorieText(n) };
   }
 
-  const istErhoehen = enthaelt(n, VERBEN.erhoehen);
-  const istSenken = enthaelt(n, VERBEN.senken);
+  const istErhoehen = hatVerb(n, 'erhoehen');
+  const istSenken = hatVerb(n, 'senken');
   if ((istErhoehen || istSenken) && betrag !== undefined) {
     // „auf" gewinnt nur, wenn es unmittelbar VOR dem Betrag steht („erhöhe
     // essen auf 250" = absolut); sonst ist die Änderung relativ („um 50").
@@ -149,7 +103,7 @@ export function extrahiereBudgetAktion(text: string): BudgetAktionsAbsicht | nul
       kategorieText: kategorieText(n),
     };
   }
-  if (enthaelt(n, VERBEN.setzen) && betrag !== undefined) {
+  if (hatVerb(n, 'setzen') && betrag !== undefined) {
     return { art: 'aendern', modus: 'auf', betrag, richtung: 'mehr', kategorieText: kategorieText(n) };
   }
 
