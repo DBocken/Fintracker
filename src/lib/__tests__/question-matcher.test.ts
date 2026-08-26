@@ -672,3 +672,45 @@ describe('Offene Bezugsgröße schlägt den Stichentscheid', () => {
     expect(routing.art).toBe('aufloesen');
   });
 });
+
+describe('Aktions-Einträge sind für Stufe 2 gesperrt', () => {
+  /**
+   * Der Fund der Welle 5: Ein schreibender Eintrag war über den
+   * Klassifikator erreichbar — und **Stufe 2 hat kein Imperativ-Gate.** Sie
+   * konnte damit für eine FRAGE eine Schreib-Vorschau vorschlagen.
+   *
+   * Dieselbe Klasse wie das Szenario-Gate, das die Stufe 2 in Welle 2
+   * umging, nur mit höherem Einsatz: Dort ging es um eine falsche Zahl, hier
+   * um eine angebotene Änderung an den Daten.
+   */
+  const aktion: QuestionEntry = {
+    id: 'budget.aktion',
+    slots: { erforderlich: [], optional: [] },
+    ausloeser: ['k.nie'],
+    needs: [],
+    aufwand: 'guenstig',
+    nimmtBudgetAktion: true,
+    antwort: () => { throw new Error('nicht gefragt'); },
+  };
+  const lesend: QuestionEntry = { ...aktion, id: 'budget.rest', nimmtBudgetAktion: undefined };
+  const vok: QuestionVocabulary = { kategorien: [], konten: [], haendler: [], ausloeser: new Map() };
+  const JETZT = new Date('2026-08-23');
+
+  it('[REGRESSION] sollte einen Aktions-Eintrag NICHT über Stufe 2 vorschlagen', () => {
+    const routing = routeFrage('wie viel budget habe ich noch', vok, [aktion], 'de', JETZT, {
+      klasse: 'budget.aktion',
+      marge: 0.9,
+    });
+    expect(routing.art).toBe('unverstanden');
+  });
+
+  it('sollte einen LESENDEN Eintrag weiterhin über Stufe 2 vorschlagen', () => {
+    // Die Gegenprobe: Die Sperre gilt den schreibenden Einträgen, nicht der
+    // Stufe 2.
+    const routing = routeFrage('wie viel budget habe ich noch', vok, [lesend], 'de', JETZT, {
+      klasse: 'budget.rest',
+      marge: 0.9,
+    });
+    expect(routing.art).toBe('aufloesen');
+  });
+});

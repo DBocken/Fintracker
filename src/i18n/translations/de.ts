@@ -4402,7 +4402,7 @@ export const de = {
       abbuchung: { naechste: 'Nächste Abbuchungen', letzte: 'Letzte Buchung bei einem Händler' },
       ziel: { obergrenze: 'Höchstbetrag, der noch trägt', sparrate: 'Nötige monatliche Rate' },
       steuer: { gewinn: 'Gewinn nach EÜR', ruecklage: 'Steuerrücklage' },
-      anlass: { kosten: 'Kosten eines Anlasses', liste: 'Deine Anlässe', vorschlag: 'Buchungen für einen Anlass' },
+      anlass: { kosten: 'Kosten eines Anlasses', liste: 'Deine Anlässe', vorschlag: 'Buchungen für einen Anlass', aktion: 'Anlass anlegen oder zuordnen' },
       transfer: { kandidaten: 'Mögliche interne Überträge' },
       depot: { wert: 'Wert deiner Depots', rendite: 'Gewinn oder Verlust im Depot', positionen: 'Größte Positionen' },
       vermoegen: { gesamt: 'Nettovermögen', aufteilung: 'Woraus dein Vermögen besteht' },
@@ -4467,7 +4467,12 @@ export const de = {
       erledigtMerken: 'Erledigt — und {haendler} landet künftig automatisch in „{kategorie}“.',
       nichtsZuTun: 'Alle Buchungen von {haendler} sind bereits in „{kategorie}“ — da ist nichts zu ändern.',
     },
+    anlassAktion: {
+      erledigtAnlegen: 'Anlass „{name}“ ist angelegt.',
+      erledigtZuordnen: '{anzahl} Buchungen sind jetzt „{name}“ zugeordnet.',
+    },
     trigger: {
+      anlassAktion: 'anlass anlegen, neuen anlass, ordne dem anlass, buchungen dem anlass, anlass zuordnen',
       kategorieAktion: 'ordne, zuordnen, weise zu, merk dir, kategorisiere, buche auf',
       warumKategorie: 'warum ist, wieso ist, warum wurde, wieso wurde, wie kommt es dass, warum landet',
       schuldenDauer: 'wie lange zahle ich, schuldenfrei, noch abbezahlen, laufzeit meiner schulden, fertig mit, monate noch, bis die schulden weg',
@@ -4540,6 +4545,11 @@ export const de = {
       budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
+      anlassAktionAnlegen: 'Anlass „{name}“ anlegen?',
+      anlassAktionZuordnen: '{anzahl} vorgeschlagene Buchungen dem Anlass „{name}“ zuordnen?',
+      anlassAktionUnklar: 'Dafür brauche ich, was passieren soll: einen Anlass anlegen oder Buchungen zuordnen.',
+      anlassAktionOhneName: 'Wie soll der Anlass heißen?',
+      anlassAktionSchonDa: 'Einen Anlass „{name}“ gibt es schon — ein zweiter mit demselben Namen machte jede spätere Zuordnung mehrdeutig.',
       kategorieAktionZuordnen: '{anzahl} Buchungen von {haendler} nach „{kategorie}“ umtragen?',
       kategorieAktionMerken: '{haendler} künftig immer „{kategorie}“ zuordnen?',
       kategorieAktionUnklar: 'Dafür brauche ich beides: welchen Händler und welche Kategorie.',

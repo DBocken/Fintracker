@@ -47,6 +47,7 @@ import type { ContractDecision } from '@/lib/contract-types';
 import type { SzenarioAbsicht } from '@/lib/scenario-intent';
 import type { BudgetAktionsAbsicht } from '@/lib/budget-action-intent';
 import type { KategorieAktionsAbsicht } from '@/lib/categorize-action-intent';
+import type { AnlassAktionsAbsicht } from '@/lib/anlass-action-intent';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
 import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';
@@ -139,6 +140,8 @@ export interface QuestionSlots {
    * `SlotName`: Sie wird als Ganzes extrahiert, nicht einzeln nachgefragt.
    */
   kategorieAktion?: KategorieAktionsAbsicht;
+  /** Erkannte Anlass-Absicht (Welle 5). */
+  anlassAktion?: AnlassAktionsAbsicht;
 }
 
 /**
@@ -191,8 +194,53 @@ export interface KategorieAktionsVorschlag {
   vorher: readonly { id: string; kategorieId: string | null }[];
 }
 
+/**
+ * Vorschau einer Anlass-Aktion (Welle 5).
+ *
+ * `anlegen` legt den Anlass an, `zuordnen` hängt die vorgeschlagenen
+ * Buchungen daran. Die zweite macht ausführbar, was Welle 2 nur anzeigen
+ * konnte.
+ */
+export interface AnlassAktionsVorschlag {
+  art: 'anlassAnlegen' | 'anlassZuordnen';
+  /** Name des Anlasses — Nutzerdatum. */
+  name: string;
+  /** Stabile ID; fehlt beim Anlegen, weil es sie noch nicht gibt. */
+  anlassId?: string;
+  /** IDs der Buchungen, die zugeordnet würden — der Rückweg für das Undo. */
+  buchungen: readonly string[];
+}
+
 /** Jede Vorschau einer schreibenden Chat-Aktion. */
-export type AktionsVorschlag = BudgetAktionsVorschlag | KategorieAktionsVorschlag;
+export type AktionsVorschlag =
+  | BudgetAktionsVorschlag
+  | KategorieAktionsVorschlag
+  | AnlassAktionsVorschlag;
+
+/**
+ * Ist dieser Eintrag ein SCHREIBENDER — einer, den nur seine eigene
+ * Grammatik erreichen darf?
+ *
+ * Der Fund der Welle 5: Ein Aktions-Eintrag war über Stufe 2 erreichbar, und
+ * **Stufe 2 hat kein Imperativ-Gate.** Der Klassifikator konnte damit für
+ * eine FRAGE eine Schreib-Vorschau vorschlagen — dieselbe Klasse wie das
+ * Szenario-Gate, das die Stufe 2 in Welle 2 umging, nur mit höherem Einsatz:
+ * Dort ging es um eine falsche Zahl, hier um eine angebotene Änderung an den
+ * Daten.
+ *
+ * Ein Aktions-Eintrag wird deshalb ausschliesslich über seine Grammatik
+ * geroutet (Stufe 0a), und die trägt das Gate. Er braucht folgerichtig auch
+ * keine Paraphrasen — sie hätten nur die übrigen Klassen verdünnt, und genau
+ * das war beim Bau messbar.
+ */
+export function istAktionsEintrag(entry: QuestionEntry): boolean {
+  return Boolean(entry.nimmtBudgetAktion || entry.nimmtKategorieAktion || entry.nimmtAnlassAktion);
+}
+
+/** Ist der Vorschlag eine Anlass-Aktion? */
+export function istAnlassAktion(v: AktionsVorschlag): v is AnlassAktionsVorschlag {
+  return v.art === 'anlassAnlegen' || v.art === 'anlassZuordnen';
+}
 
 /**
  * Ist der Vorschlag eine Kategorisier-Aktion?
@@ -502,6 +550,8 @@ export interface QuestionEntry {
    * `nimmtSzenarioAbsicht`.
    */
   nimmtKategorieAktion?: boolean;
+  /** Nimmt dieser Eintrag die erkannte {@link AnlassAktionsAbsicht} entgegen? */
+  nimmtAnlassAktion?: boolean;
   /** REIN und SYNCHRON. Ruft keinen Service — auch ein Aktions-Eintrag nicht. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }

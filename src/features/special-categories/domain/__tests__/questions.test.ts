@@ -167,3 +167,57 @@ describe('anlass.vorschlag', () => {
     expect(antwort.aussage.key).toBe('financeQuestions.answer.anlassOhneZeitraum');
   });
 });
+
+describe('anlass.aktion', () => {
+  const eintrag = questionCatalog.byId('anlass.aktion')!;
+
+  it('sollte das Anlegen als Vorschau liefern', () => {
+    const antwort = eintrag.antwort(
+      { anlassAktion: { art: 'anlegen', anlassText: 'urlaub italien' } },
+      daten(),
+    );
+    expect(antwort.art).toBe('aktion');
+    expect(antwort.aktion?.art).toBe('anlassAnlegen');
+  });
+
+  it('[REGRESSION] sollte einen NAMENSGLEICHEN Anlass nicht ein zweites Mal anlegen', () => {
+    // Zwei Anlässe mit demselben Namen machten jede spätere Zuordnung
+    // mehrdeutig — und die Mehrdeutigkeit fiele erst auf, wenn schon Buchungen
+    // an beiden hängen.
+    const antwort = eintrag.antwort(
+      { anlassAktion: { art: 'anlegen', anlassText: 'urlaub italien' } },
+      daten({ specialCategories: [URLAUB] }),
+    );
+    expect(antwort.art).toBe('keine');
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.anlassAktionSchonDa');
+  });
+
+  it('sollte die VORSCHLÄGE zuordnen — dieselbe Menge wie der Lese-Eintrag', () => {
+    // Zwei Wege zur selben Vorschlagsmenge wären zwei Orte, an denen sie
+    // auseinanderlaufen kann; beide rufen `suggestTransactionsForEvent`.
+    const zustand = daten({
+      specialCategories: [URLAUB],
+      transactions: [tx(-120, '2026-07-05', 't1'), tx(-90, '2026-07-10', 't2')],
+    });
+    const vorschau = eintrag.antwort(
+      { anlassId: 'ev-urlaub', anlassAktion: { art: 'zuordnen', anlassText: 'urlaub' } },
+      zustand,
+    );
+    const lesen = questionCatalog.byId('anlass.vorschlag')!.antwort({ anlassId: 'ev-urlaub' }, zustand);
+    expect(vorschau.anzahl).toBe(lesen.anzahl);
+    expect(vorschau.aktion?.art).toBe('anlassZuordnen');
+  });
+
+  it('sollte ohne Startdatum ABSAGEN statt ein Fenster zu erfinden', () => {
+    const antwort = eintrag.antwort(
+      { anlassId: 'ev-hochzeit', anlassAktion: { art: 'zuordnen', anlassText: 'hochzeit' } },
+      daten({ specialCategories: [HOCHZEIT], transactions: [tx(-120, '2026-07-05', 't1')] }),
+    );
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.anlassOhneZeitraum');
+  });
+
+  it('sollte ohne Namen nach ihm fragen statt einen zu erfinden', () => {
+    const antwort = eintrag.antwort({ anlassAktion: { art: 'anlegen' } }, daten());
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.anlassAktionOhneName');
+  });
+});

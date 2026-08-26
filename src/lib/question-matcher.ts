@@ -29,7 +29,7 @@
  * Zahlen.
  */
 import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
-import { fehlendeSlots } from '@/lib/question-registry';
+import { fehlendeSlots, istAktionsEintrag } from '@/lib/question-registry';
 import {
   erkenneVergleichsBezug,
   parseZeitraum,
@@ -38,6 +38,7 @@ import {
 import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-intent';
 import { extrahiereBudgetAktion } from '@/lib/budget-action-intent';
 import { extrahiereKategorieAktion } from '@/lib/categorize-action-intent';
+import { extrahiereAnlassAktion } from '@/lib/anlass-action-intent';
 
 export interface VokabelEintrag {
   /** Wonach gesucht wird — kleingeschrieben. */
@@ -806,6 +807,24 @@ export function routeFrage(
     }
   }
 
+  // Stufe 0a'' (Welle 5): Der Anlass-Befehl VOR dem Kategorisier-Befehl —
+  // sein Gate verlangt zusätzlich das Wort „Anlass" und ist damit enger.
+  // „Ordne Rewe zu Lebensmitteln" und „Ordne die Buchungen dem Anlass Urlaub
+  // zu" tragen dasselbe Verb; der engere Test muss zuerst laufen, sonst
+  // fienge der weitere ihm die eindeutigen Fälle weg.
+  const anlassAktion = extrahiereAnlassAktion(text);
+  if (anlassAktion) {
+    const eintrag = entries.find((e) => e.nimmtAnlassAktion);
+    if (eintrag) {
+      const kandidat = kandidatFuer(text, vokabular, eintrag, locale, jetzt);
+      const slots = { ...kandidat.slots, anlassAktion };
+      return {
+        art: 'aufloesen',
+        kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(eintrag, slots) },
+      };
+    }
+  }
+
   // Stufe 0a' (Welle 5): Dasselbe für den Kategorisier-Befehl. Er steht NACH
   // dem Budget-Befehl, weil dessen Gate zusätzlich das Wort „Budget"
   // verlangt und damit enger ist — der engere Test zuerst, sonst fienge der
@@ -885,9 +904,15 @@ export function routeFrage(
   const offeneBezugsgroesse = hatUnaufgelösteBezugsgroesse(
     analysiereFrage(text, vokabular, locale, jetzt),
   );
+  // Aktions-Einträge sind für Stufe 2 gesperrt: Sie hat kein Imperativ-Gate,
+  // und ein vom Klassifikator vorgeschlagener Befehl wäre eine Schreib-
+  // Vorschau ohne die Prüfung, die sie tragen soll (siehe
+  // `istAktionsEintrag`). Sie erreichen die Fläche ausschliesslich über ihre
+  // eigene Grammatik in Stufe 0a.
+  const ohneAktionen = ohneVergleiche.filter((e) => !istAktionsEintrag(e));
   const stufe2Faehig = szenarioFrage
-    ? ohneVergleiche.filter((e) => e.beantwortetSzenarien)
-    : ohneVergleiche;
+    ? ohneAktionen.filter((e) => e.beantwortetSzenarien)
+    : ohneAktionen;
 
   const kandidaten = lexicalQuestionMatcher.match(text, vokabular, ohneVergleiche, locale, jetzt);
   const lexikalisch = entscheideRouting(kandidaten);

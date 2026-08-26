@@ -4390,7 +4390,7 @@ export const ru = {
       abbuchung: { naechste: 'Ближайшие списания', letzte: 'Последняя операция у продавца' },
       ziel: { obergrenze: 'Максимум, который выдержит', sparrate: 'Необходимый платёж в месяц' },
       steuer: { gewinn: 'Прибыль по кассовому учёту', ruecklage: 'Налоговый резерв' },
-      anlass: { kosten: 'Стоимость события', liste: 'Твои события', vorschlag: 'Операции для события' },
+      anlass: { kosten: 'Стоимость события', liste: 'Твои события', vorschlag: 'Операции для события', aktion: 'Создать событие или привязать' },
       transfer: { kandidaten: 'Возможные внутренние переводы' },
       depot: { wert: 'Стоимость портфелей', rendite: 'Прибыль или убыток в портфеле', positionen: 'Крупнейшие позиции' },
       vermoegen: { gesamt: 'Чистый капитал', aufteilung: 'Из чего состоит капитал' },
@@ -4455,7 +4455,12 @@ export const ru = {
       erledigtMerken: 'Готово — и {haendler} впредь попадает в «{kategorie}» автоматически.',
       nichtsZuTun: 'Все операции от {haendler} уже в «{kategorie}» — менять нечего.',
     },
+    anlassAktion: {
+      erledigtAnlegen: 'Событие «{name}» создано.',
+      erledigtZuordnen: 'Операции ({anzahl}) привязаны к «{name}».',
+    },
     trigger: {
+      anlassAktion: 'создай событие, новое событие, отнеси к событию, операции к событию',
       kategorieAktion: 'отнеси, присвой, запомни что, категоризируй',
       warumKategorie: 'почему это, почему она, почему попала, как так вышло что',
       schuldenDauer: 'сколько ещё платить, когда я закрою долги, срок моих долгов, когда стану свободен от долгов',
@@ -4528,6 +4533,11 @@ export const ru = {
       budgetAktion: 'создать бюджет, изменить бюджет, увеличить бюджет, удалить бюджет',
     },
     answer: {
+      anlassAktionAnlegen: 'Создать событие «{name}»?',
+      anlassAktionZuordnen: 'Привязать предложенные операции ({anzahl}) к событию «{name}»?',
+      anlassAktionUnklar: 'Нужно понять, что сделать: создать событие или привязать операции.',
+      anlassAktionOhneName: 'Как назвать событие?',
+      anlassAktionSchonDa: 'Событие «{name}» уже есть — второе с тем же именем сделало бы любую привязку неоднозначной.',
       kategorieAktionZuordnen: 'Перенести операций ({anzahl}) от {haendler} в «{kategorie}»?',
       kategorieAktionMerken: 'Всегда относить {haendler} к «{kategorie}»?',
       kategorieAktionUnklar: 'Для этого нужны оба: продавец и категория.',

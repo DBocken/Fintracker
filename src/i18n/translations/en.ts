@@ -4390,7 +4390,7 @@ export const en = {
       abbuchung: { naechste: 'Upcoming debits', letzte: 'Last transaction at a merchant' },
       ziel: { obergrenze: 'Highest amount that still holds', sparrate: 'Monthly rate needed' },
       steuer: { gewinn: 'Profit by cash-basis accounts', ruecklage: 'Tax reserve' },
-      anlass: { kosten: 'Cost of an event', liste: 'Your events', vorschlag: 'Transactions for an event' },
+      anlass: { kosten: 'Cost of an event', liste: 'Your events', vorschlag: 'Transactions for an event', aktion: 'Create an event or assign' },
       transfer: { kandidaten: 'Possible internal transfers' },
       depot: { wert: 'Value of your portfolios', rendite: 'Gain or loss in your portfolio', positionen: 'Largest positions' },
       vermoegen: { gesamt: 'Net worth', aufteilung: 'What your net worth consists of' },
@@ -4455,7 +4455,12 @@ export const en = {
       erledigtMerken: 'Done — and {haendler} will land in "{kategorie}" automatically from now on.',
       nichtsZuTun: 'All transactions from {haendler} are already in "{kategorie}" — nothing to change.',
     },
+    anlassAktion: {
+      erledigtAnlegen: 'The event "{name}" has been created.',
+      erledigtZuordnen: '{anzahl} transactions are now assigned to "{name}".',
+    },
     trigger: {
+      anlassAktion: 'create event, new event, assign to the event, transactions to the event',
       kategorieAktion: 'assign, categorise, categorize, remember that, file under, put into',
       warumKategorie: 'why is, why was, how come, why does it end up',
       schuldenDauer: 'how long will i be paying, debt free, to pay off, term of my debts, months until',
@@ -4528,6 +4533,11 @@ export const en = {
       budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
+      anlassAktionAnlegen: 'Create the event "{name}"?',
+      anlassAktionZuordnen: 'Assign {anzahl} suggested transactions to the event "{name}"?',
+      anlassAktionUnklar: 'For that I need what should happen: create an event or assign transactions.',
+      anlassAktionOhneName: 'What should the event be called?',
+      anlassAktionSchonDa: 'An event "{name}" already exists — a second one with the same name would make every later assignment ambiguous.',
       kategorieAktionZuordnen: 'Move {anzahl} transactions from {haendler} to "{kategorie}"?',
       kategorieAktionMerken: 'Always file {haendler} under "{kategorie}" from now on?',
       kategorieAktionUnklar: 'For that I need both: which merchant and which category.',

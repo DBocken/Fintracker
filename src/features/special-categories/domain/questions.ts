@@ -193,4 +193,107 @@ const anlassVorschlag: QuestionEntry = {
   },
 };
 
-export const questions: readonly QuestionEntry[] = [anlassKosten, anlassListe, anlassVorschlag];
+/**
+ * Anlass-Befehl (Welle 5) — macht ausführbar, was Welle 2 nur anzeigen konnte.
+ *
+ * `anlassAnlegen` legt den Anlass an; `anlassZuordnen` hängt die Buchungen
+ * daran, die `suggestTransactionsForEvent` vorschlägt — dieselbe Funktion,
+ * die der Lese-Eintrag `anlass.vorschlag` benutzt. Zwei Wege zur selben
+ * Vorschlagsmenge wären zwei Orte, an denen sie auseinanderlaufen kann.
+ *
+ * `antwort()` bleibt rein: Sie rechnet, WAS passieren würde, und legt den
+ * Rückweg gleich mit fest.
+ */
+const anlassAktion: QuestionEntry = {
+  id: 'anlass.aktion',
+  slots: { erforderlich: [], optional: ['anlass'] },
+  ausloeser: ['financeQuestions.trigger.anlassAktion'],
+  needs: ['specialCategories', 'transactions'],
+  aufwand: 'guenstig',
+  nimmtAnlassAktion: true,
+  antwort: (slots, daten): QuestionAnswer => {
+    const absicht = slots.anlassAktion;
+    if (!absicht) {
+      return { ...KEIN_ANLASS, aussage: { key: 'financeQuestions.answer.anlassAktionUnklar', params: {} } };
+    }
+
+    if (absicht.art === 'anlegen') {
+      const name = (absicht.anlassText ?? '').trim();
+      if (!name) {
+        return { ...KEIN_ANLASS, aussage: { key: 'financeQuestions.answer.anlassAktionOhneName', params: {} } };
+      }
+      // Ein Anlass mit gleichem Namen existiert bereits: Statt einen zweiten
+      // anzulegen — der jede spätere Zuordnung mehrdeutig machte — wird das
+      // gesagt.
+      if (anlaesse(daten).some((a) => a.name.toLowerCase() === name.toLowerCase())) {
+        return {
+          ...KEIN_ANLASS,
+          aussage: { key: 'financeQuestions.answer.anlassAktionSchonDa', params: { name } },
+        };
+      }
+      return {
+        art: 'aktion',
+        wert: null,
+        anzahl: 0,
+        aktion: { art: 'anlassAnlegen', name, buchungen: [] },
+        aussage: { key: 'financeQuestions.answer.anlassAktionAnlegen', params: { name } },
+        deepLink: '/special-categories',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    const anlass = anlaesse(daten).find((a) => a.id === slots.anlassId);
+    if (!anlass) {
+      return { ...KEIN_ANLASS, aussage: { key: 'financeQuestions.answer.anlassUnbekannt', params: {} } };
+    }
+    if (!anlass.start_date) {
+      return {
+        ...KEIN_ANLASS,
+        aussage: { key: 'financeQuestions.answer.anlassOhneZeitraum', params: { name: anlass.name } },
+      };
+    }
+
+    const vorschlaege = suggestTransactionsForEvent(
+      anlass,
+      [...(daten.transactions ?? [])],
+      [...(daten.specialCategoryAssignments ?? [])],
+      { today: daten.jetzt.toISOString().slice(0, 10) },
+    );
+
+    if (vorschlaege.length === 0) {
+      return {
+        ...KEIN_ANLASS,
+        aussage: { key: 'financeQuestions.answer.anlassKeinVorschlag', params: { name: anlass.name } },
+      };
+    }
+
+    return {
+      art: 'aktion',
+      wert: null,
+      anzahl: vorschlaege.length,
+      aktion: {
+        art: 'anlassZuordnen',
+        name: anlass.name,
+        anlassId: anlass.id,
+        buchungen: vorschlaege.map((t) => String(t.id)),
+      },
+      posten: vorschlaege.slice(0, 10).map((tx) => ({
+        label: tx.payee || tx.description || tx.original_text,
+        betrag: Math.abs(tx.amount),
+      })),
+      aussage: {
+        key: 'financeQuestions.answer.anlassAktionZuordnen',
+        params: { name: anlass.name, anzahl: vorschlaege.length },
+      },
+      deepLink: `/special-categories?event=${encodeURIComponent(anlass.id)}`,
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
+export const questions: readonly QuestionEntry[] = [
+  anlassKosten,
+  anlassListe,
+  anlassVorschlag,
+  anlassAktion,
+];

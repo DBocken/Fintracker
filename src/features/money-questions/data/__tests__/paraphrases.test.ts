@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { paraphrasenFuer } from '../paraphrases';
 import { questionCatalog } from '../question-catalog';
 import { LUECKE_KLASSE } from '@/lib/question-intent-model';
+import { istAktionsEintrag } from '@/lib/question-registry';
 import { EVAL_KORPUS } from './question-eval-corpus';
 
 /**
@@ -19,6 +20,14 @@ describe('Paraphrasen-Korpus', () => {
     for (const [locale, minimum] of Object.entries(MINDESTZAHL)) {
       const paraphrasen = paraphrasenFuer(locale);
       for (const entry of questionCatalog.entries) {
+        // Aktions-Einträge sind ausgenommen, und das ist keine Nachsicht,
+        // sondern die Folge einer Sperre: Sie sind für Stufe 2 gesperrt, weil
+        // die kein Imperativ-Gate hat (`istAktionsEintrag`). Paraphrasen für
+        // sie hätten also keinen Weg in eine Antwort — sie würden nur die
+        // übrigen Klassen verdünnen, und genau das war beim Bau der Welle 5
+        // messbar: Drei Aktions-Klassen kosteten zwei Bestandsratschen ihre
+        // 100 %.
+        if (istAktionsEintrag(entry)) continue;
         expect(
           paraphrasen[entry.id]?.length ?? 0,
           `${locale}: ${entry.id}`,
