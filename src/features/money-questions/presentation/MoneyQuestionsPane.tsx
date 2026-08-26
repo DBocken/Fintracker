@@ -335,6 +335,8 @@ function einsetzen(
       const anzeige =
         GELD_PLATZHALTER.has(name) && typeof wert === 'number'
           ? geld(wert)
+          : PROZENT_PLATZHALTER.has(name) && typeof wert === 'number'
+          ? new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(wert)
           : DATUM_PLATZHALTER.has(name) && typeof wert === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(wert)
             ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${wert}T12:00:00Z`))
             : // Ein roher Monat („2026-08") auf dem Bildschirm war hier schon
@@ -355,7 +357,17 @@ function einsetzen(
 }
 
 /** Platzhalter, deren Wert ein Geldbetrag ist — sie müssen maskiert werden. */
-const GELD_PLATZHALTER = new Set(['betrag', 'monatlich', 'rest']);
+const GELD_PLATZHALTER = new Set(['betrag', 'monatlich', 'rest', 'direkt']);
+
+/**
+ * Platzhalter, die einen PROZENTSATZ tragen (Welle 2).
+ *
+ * Ohne sie stünde „Das sind 19.999999999999996 Prozent." auf dem Bildschirm —
+ * dieselbe Sorte Fund wie der rohe Monat „2026-08" und das rohe „all" darüber.
+ * Das Register liefert die Zahl ungerundet, weil Runden eine Darstellungsfrage
+ * ist; hier wird sie beantwortet.
+ */
+const PROZENT_PLATZHALTER = new Set(['prozent']);
 
 /** Platzhalter, deren Wert ein ISO-Datum ist — formatiert wird je Sprache. */
 const DATUM_PLATZHALTER = new Set(['datum']);

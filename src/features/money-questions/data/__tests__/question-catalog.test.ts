@@ -131,8 +131,18 @@ describe('Abfrage-Register: Katalog', () => {
           const wert = leaf(translations[locale], key);
           if (typeof wert !== 'string') continue;
           for (const phrase of zerlegeAusloeser(wert)) {
-            if (phrase.includes(' ')) continue;
-            expect(istStoppwort(phrase), `${locale}: „${phrase}" (${key})`).toBe(false);
+            // Bis Welle 2 wurden MEHRWORT-Phrasen hier übersprungen — und
+            // damit war „noch für" als Auslöser von `budget.rest` unsichtbar,
+            // obwohl es aus zwei Funktionswörtern besteht und deshalb genauso
+            // wenig Absicht trägt wie ein einzelnes. Es fing gemessen die
+            // Frage „wie viel muss ich noch fürs finanzamt zurücklegen" ab.
+            // Geprüft wird deshalb die ganze Phrase: Besteht sie NUR aus
+            // Funktionswörtern, ist sie als Auslöser untauglich.
+            const teile = phrase.split(' ');
+            expect(
+              teile.every((teil) => istStoppwort(teil)),
+              `${locale}: „${phrase}" (${key}) besteht nur aus Funktionswörtern`,
+            ).toBe(false);
           }
         }
       }

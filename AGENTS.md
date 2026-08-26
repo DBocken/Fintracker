@@ -182,6 +182,31 @@ darf nie als Befehl gedeutet werden — eine falsch beantwortete Frage zeigt
 eine falsche Zahl, ein falsch gedeuteter Befehl schlägt eine Schreiboperation
 vor.
 
+**Ein Gate gehört an JEDE Stufe, die es umgehen könnte.** Das Szenario-Gate
+(hypothetische Fragen erreichen nur die Simulation) lag ab WP-F an der
+Wortebene — und der Klassifikator der Stufe 2 kannte es nicht. Gemessen bekam
+„was wenn ich Freizeit um 200 reduzier …" dadurch `budget.aktion` angeboten,
+also eine Schreib-Vorschau als Antwort auf ein Gedankenspiel. Wer eine zweite
+Stufe vor eine Entscheidung setzt, prüft deshalb jede Schranke der ersten
+darauf, ob sie auch dort gilt; ein Vokabel-Feinschliff hätte den Fund bloss
+verschoben.
+
+**Ein Auslöser aus lauter Funktionswörtern ist keiner — auch als Phrase
+nicht.** Die Regel galt bis Welle 2 nur für das einzelne Wort, und deshalb
+stand „noch für" als Auslöser eines Budget-Eintrags im Sprachbaum und fing
+„wie viel muss ich noch fürs Finanzamt zurücklegen" ab. Der Preis der Regel
+ist benannt: Das englische „what if i" trägt sehr wohl Absicht und ist
+stattdessen aus der Auslöser-Liste gestrichen, weil `SZENARIO_SIGNALE` es
+ohnehin erkennt.
+
+**Ein deklarierter Datenbedarf, den niemand erfüllt, ist schlimmer als
+keiner.** `allocations` stand ab WP-C in `DataNeed`, vier Budget-Einträge
+forderten es an, geladen hat es niemand — und weil die Einträge auf eine leere
+Menge zurückfielen, zählte eine gesplittete Buchung mit ihrem VOLLEN Betrag.
+Lautlos, ohne Fehler, kein Test rot. Seither gilt: `undefined` heisst „nicht
+geladen", nie „leer"; die `application`-Schicht füllt jeden Kanal, den ein
+Eintrag anmeldet, und eine Quelle, die nicht lesbar war, wird BENANNT.
+
 **Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
 gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche

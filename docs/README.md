@@ -36,6 +36,7 @@ Bericht bleibt als Beleg.
 |---|---|
 | [`coding-guide.md`](coding-guide.md) | Entwickler-Leitfaden, Schichten im Detail |
 | [`architecture/feature-structure.md`](architecture/feature-structure.md) | Kochrezept für Feature-Slices, Entscheidungsbaum Desktop/Mobile |
+| [`architecture/abfrage-register.md`](architecture/abfrage-register.md) | Wie eine getippte Frage zu einer Antwort kommt: Router-Stufen, Datenkanäle, Slots, Ratschen, benannte Grenzen |
 | [`domain-invariants.md`](domain-invariants.md) | Fachliche Invarianten, auf die sich Tests berufen |
 | [`design-principles.md`](design-principles.md) | 7 Kernprinzipien + Karten- und Animationsregel |
 | [`performance.md`](performance.md) | Performance-Ist-Zustand und geplante Phase B |

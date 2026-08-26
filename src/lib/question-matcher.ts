@@ -399,11 +399,18 @@ function extrahiereEintragsSlots(
     slotPunkte += 1;
   }
   if (kontext.anlass && !kontext.anlass.mehrdeutig && nutzt('anlass')) {
-    // Zwei Punkte wie Händler und Kategorie: Ein wörtlich getroffener
-    // Anlassname ist eine starke Aussage über die Absicht — „Urlaub Italien"
-    // steht in keiner Kategorie und in keinem Händlernamen.
+    // DREI Punkte — mehr als Händler und Kategorie (je zwei), und das ist
+    // kein Feintuning, sondern eine Asymmetrie in der Sache: Ein Anlassname
+    // ist ein vom Nutzer SELBST vergebener Eigenname („Urlaub Italien").
+    // Er kann nicht zufällig im Satz stehen. Ein Kategoriewort („Freizeit")
+    // und ein Händlername können das sehr wohl — sie kommen in der
+    // Alltagssprache vor, und genau deshalb wiegen sie weniger.
+    //
+    // Gemessen: „was hat der urlaub italien gekostet insgesamt" verlor sonst
+    // gegen `ausgaben.gesamt`, das über „gekostet" plus den Verstärker
+    // „insgesamt" auf sechs Punkte kam.
     slots.anlassId = kontext.anlass.wert;
-    slotPunkte += 2;
+    slotPunkte += 3;
   }
   if (kontext.betrag !== null && nutzt('betrag')) {
     slots.betrag = kontext.betrag;
@@ -451,7 +458,25 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
       const trifft = (wort: string): boolean => {
         const phrase = normalisiere(wort.trim());
         if (!phrase) return false;
-        if (phrase.includes(' ')) return normalisiert.includes(phrase);
+        if (phrase.includes(' ')) {
+          // Eine PHRASE aus lauter Funktionswörtern trägt so wenig Absicht wie
+          // ein einzelnes — die Regel darunter galt bis Welle 2 nur für das
+          // Einzelwort, und genau dort schlüpfte „noch für" durch: Es stand als
+          // Auslöser von `budget.rest` im Sprachbaum und fing damit „wie viel
+          // muss ich noch fürs finanzamt zurücklegen" ab, also eine
+          // Steuerfrage. Der Kurations-Test macht so eine Phrase jetzt
+          // zusätzlich laut, statt sie nur hier stillschweigend zu ignorieren.
+          //
+          // Die Regel hat einen Preis, und der ist bekannt: Das englische
+          // „what if i" besteht ebenfalls aus drei Funktionswörtern, trägt
+          // dort aber sehr wohl Absicht. Es ist deshalb aus der Auslöser-Liste
+          // gestrichen — nicht verloren: Die hypothetische Frage erkennt
+          // ohnehin `istSzenarioFrage` über `SZENARIO_SIGNALE` („what if"),
+          // und daneben steht „what would happen if". Ein Auslöser, der jede
+          // englische Frage mit „what" streift, wäre der teurere Fehler.
+          if (phrase.split(' ').every((teil) => STOPPWOERTER.has(teil))) return false;
+          return normalisiert.includes(phrase);
+        }
         if (STOPPWOERTER.has(phrase)) return false;
         // Einzelwörter treffen an WORTGRENZEN, nicht als Teilzeichenkette:
         // „Sparrate" enthält „rate", meint aber keine Ratenzahlung — der

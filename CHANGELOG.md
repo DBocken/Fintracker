@@ -24,6 +24,24 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Nachfragen kennt jetzt auch Konten, Vermögen, Depots, Anlässe, Überträge
+  und Steuer.** „Wie viel Geld habe ich auf meinem Girokonto?", „Wie hoch ist
+  mein Nettovermögen?", „Wie viel Gewinn habe ich in meinem Depot?", „Was hat
+  mich mein Urlaub Italien gekostet?", „Habe ich Umbuchungen, die nicht als
+  solche erkannt sind?", „Wie viel muss ich für Steuern zurücklegen?" — vierzehn
+  neue Fragefamilien. Die Rechnungen dahinter gab es alle schon; es fehlte nur
+  der Weg vom Chat zu ihnen.
+- **„Frei bis zum Gehalt" nennt jetzt eine Zahl statt eines Verweises.** Vorher
+  schickte die Antwort in den Coach; jetzt steht der Betrag da, mit den zwei
+  Summanden dahinter (verfügbares Guthaben, bis dahin fällige Abbuchungen).
+  Ohne erkennbaren Gehaltstermin sagt sie das — statt heimlich „bis Monatsende"
+  anzunehmen, was für jeden mit Gehalt am 15. die falsche Zahl wäre.
+- **Eine Frage nach einem Anlass wird als solche verstanden.** Anlässe sind
+  eine eigene Achse neben den Kategorien: Dieselbe Buchung liegt in
+  „Restaurants" und gehört zum Urlaub. Ein Elternanlass zählt seine
+  Unter-Anlässe mit; die Vorschlagsliste zeigt, was noch dazugehören könnte,
+  ohne etwas zuzuordnen.
+
 - **Nachfragen rechnet jetzt Kennzahlen, nicht nur Summen.** „Was kostet
   mich Lebensmittel im Durchschnitt pro Monat?", „Welchen Anteil meiner
   Ausgaben macht Wohnen aus?", „Wie hoch war mein durchschnittlicher
@@ -119,6 +137,18 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **Gesplittete Buchungen zählten im Chat mit dem vollen Betrag gegen ein
+  Budget.** Wer 100 € einkauft und 40 € davon als Lebensmittel abtrennt, sah
+  auf die Frage „Wie viel Budget habe ich noch übrig?" 100 € abgezogen statt
+  40 €. Die Rechnung war die ganze Zeit richtig — geladen wurde die Aufteilung
+  nie.
+- **Eine hypothetische Frage konnte einen Änderungsvorschlag auslösen.** „Was
+  wäre, wenn ich Freizeit um 200 kürze …" bekam unter Umständen „Budget ändern?"
+  angeboten. Gedankenspiele führen jetzt an keiner Stelle mehr zu einer
+  Schreib-Vorschau.
+- **„Wie viel muss ich noch fürs Finanzamt zurücklegen?" wurde mit dem
+  Restbudget beantwortet.** Ein Auslöser aus zwei Füllwörtern („noch für") fing
+  die Frage ab.
 - **Der Leistbarkeits-Verweis hält jetzt sein Versprechen.** Die Chat-Antwort
   „kann ich mir X leisten" behauptete seit jeher, die Simulation sei „dort
   mit deinem Betrag vorbelegt" — tatsächlich las die Zielseite die Parameter
@@ -140,6 +170,27 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Intern
 
+- **Der Chat lädt seine Datenquellen je BEDARF, nicht alles auf einmal.**
+  `needs` stand seit WP-C im Register und steuerte nichts; jetzt entscheidet es,
+  welche Quelle geprüft wird. Damit sperrt ein unlesbarer Steuersatz nicht mehr
+  die Frage nach den Rewe-Ausgaben, und eine Quelle, die nicht gelesen werden
+  konnte, wird BENANNT statt als leer ausgegeben.
+- **Szenario-Gate an beiden Router-Stufen.** Die Wortebene wandte es an, der
+  Klassifikator nicht — er konnte für eine hypothetische Frage einen Eintrag
+  vorschlagen, den die Wortebene ausgeschlossen hatte.
+- **Funktionswort-Regel gilt jetzt auch für PHRASEN.** Ein Auslöser aus lauter
+  Füllwörtern („noch für") trägt so wenig Absicht wie ein einzelnes; der
+  Kurations-Test macht so eine Phrase laut, statt sie zu überspringen.
+- Reine Funktionen aus Diensten nach unten gezogen, weil ein Registereintrag
+  `src/services/` nicht importieren darf und sie sonst hätte nachbauen müssen:
+  `buildRecurringFlows`/`buildForecastAccounts` (→ `lib/forecast-flows.ts`),
+  `findTransferCandidates` samt Toleranz und Zeitfenster
+  (→ `lib/transfer-detection.ts`), `summarizePortfolio` (→ Trading-Slice).
+  `NetWorthBreakdown` liegt als Form jetzt in `lib/net-worth-types.ts`.
+- Dritte Router-Ratsche (`wave2-ratchet.test.ts`): 100 % Muster, 100 %
+  Varianten, null zuversichtlich falsch — inklusive der benannten Grenzen
+  (Umsatzsteuer, Fremdwährung, Vermögens-Historie), bei denen gemessen wird,
+  dass der Chat sich ZURÜCKHÄLT.
 - Zweite, unbenutzte Vertragsableitung entfernt; ihre Abdeckung auf die
   tatsächlich benutzte Seite verlagert.
 - Der EU-Wächter sieht jetzt auch CDN-Vorgaben aus Abhängigkeiten — bis dahin

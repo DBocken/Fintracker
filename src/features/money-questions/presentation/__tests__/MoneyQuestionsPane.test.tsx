@@ -214,6 +214,30 @@ describe('Nachfragen-Fläche', () => {
     expect(await screen.findByText(/50,00/)).toBeInTheDocument();
   });
 
+  it('[REGRESSION] sollte einen Prozentsatz gerundet zeigen, nicht roh', async () => {
+    // Das Register liefert die Zahl UNGERUNDET — Runden ist eine
+    // Darstellungsfrage. Ohne die Formatierung stünde „Das sind
+    // 19.999999999999996 Prozent." auf dem Bildschirm; dieselbe Sorte Fund
+    // wie das rohe „2026-08" und das rohe „all" aus Welle 1.
+    getPortfolios.mockResolvedValue([{ id: 'p1', name: 'Depot', currency: 'EUR' }]);
+    getPositions.mockResolvedValue([
+      { id: 'x1', portfolio_id: 'p1', symbol: 'SAP', name: 'SAP SE', quantity: 10, entry_price: 100, last_price: 120, currency: 'EUR' },
+    ]);
+
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('Wie viel Gewinn habe ich in meinem Depot?');
+
+    // In dieser Fixture ohne Depot-Vokabular bietet der Router die Deutung
+    // zur Auswahl an — die Formatierung wird danach geprüft, sie ist der
+    // Gegenstand dieses Tests.
+    fireEvent.click(await screen.findByRole('button', { name: /Gewinn oder Verlust im Depot/i }));
+
+    expect(await screen.findByText(/20 Prozent/)).toBeInTheDocument();
+    expect(screen.queryByText(/19,999|19\.999/)).not.toBeInTheDocument();
+  });
+
   it('sollte eine Händlerfrage mit Zahl und Deep-Link beantworten', async () => {
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);

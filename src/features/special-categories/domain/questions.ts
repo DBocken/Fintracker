@@ -52,7 +52,13 @@ function totale(daten: QuestionData) {
 const anlassKosten: QuestionEntry = {
   id: 'anlass.kosten',
   slots: { erforderlich: ['anlass'], optional: [] },
-  ausloeser: ['financeQuestions.trigger.anlassKosten'],
+  // Bewusst DERSELBE Auslöser wie `ausgaben.gesamt`: „Was hat mich X
+  // gekostet?" ist wörtlich dieselbe Frage — unterschieden wird sie durch den
+  // erkannten ANLASS, nicht durch ein Zusatzwort. Ein eigenes Vokabular hätte
+  // hier bedeutet, jede Formulierung zweimal zu pflegen und trotzdem an der
+  // ersten ungewohnten zu scheitern; der Slot ist die belastbare Grenze
+  // (er wiegt zwei Punkte, siehe `extrahiereEintragsSlots`).
+  ausloeser: ['financeQuestions.trigger.ausgaben', 'financeQuestions.trigger.anlassKosten'],
   verstaerker: ['financeQuestions.trigger.anlass'],
   needs: ['specialCategories', 'transactions'],
   aufwand: 'guenstig',

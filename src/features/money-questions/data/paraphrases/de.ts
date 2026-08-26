@@ -467,6 +467,8 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel habe ich mit aktien verdient',
     'steht mein portfolio im minus',
     'gewinn oder verlust im depot',
+    'lohnt sich mein depot',
+    'hat sich das anlegen gelohnt',
   ],
   'depot.positionen': [
     'welche aktien habe ich',

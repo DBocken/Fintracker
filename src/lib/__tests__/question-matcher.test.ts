@@ -343,14 +343,36 @@ describe('Auslöser-Semantik (WP-F.2)', () => {
   });
 
   it('sollte eine Mehrwort-Phrase als Ganzes treffen', () => {
+    // Das Beispiel hiess bis Welle 2 „kann ich mir" — und war damit selbst
+    // ein Gegenbeispiel zur Regel, die es belegen sollte: eine Phrase aus
+    // lauter Funktionswörtern. Sie trifft seither nicht mehr (Test darunter);
+    // die Aussage dieses Tests — eine PHRASE wird als Ganzes gesucht, nicht
+    // in Token zerlegt — braucht dafür bloss ein Beispiel mit Inhaltswort,
+    // so wie es die echten Auslöser im Sprachbaum ohnehin haben.
     const treffer = lexicalQuestionMatcher.match(
       'kann ich mir das leisten?',
-      vok({ leistbarkeit: ['kann ich mir'] }),
+      vok({ leistbarkeit: ['mir das leisten'] }),
       [eintrag('leistbarkeit')],
       'de',
       new Date('2026-08-23'),
     );
     expect(treffer).toHaveLength(1);
+  });
+
+  it('[REGRESSION] sollte eine PHRASE aus lauter Funktionswörtern nie werten', () => {
+    // Der Fund der Welle 2: Die Funktionswort-Regel galt nur für das
+    // EINZELNE Wort. „noch für" stand deshalb als Auslöser von `budget.rest`
+    // im Sprachbaum und fing „wie viel muss ich noch fürs finanzamt
+    // zurücklegen" ab — eine Steuerfrage, beantwortet mit dem Restbudget.
+    // Zwei Funktionswörter tragen so wenig Absicht wie eines.
+    const treffer = lexicalQuestionMatcher.match(
+      'wie viel muss ich noch fürs finanzamt zurücklegen',
+      vok({ leistbarkeit: ['noch für'] }),
+      [eintrag('leistbarkeit')],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(treffer).toHaveLength(0);
   });
 
   it('[REGRESSION] sollte ein Einzelwort nur an Wortgrenzen treffen', () => {
