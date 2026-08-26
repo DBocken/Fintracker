@@ -4384,6 +4384,7 @@ export const en = {
         betrag: 'Which amount are we talking about?',
       },
     entryName: {
+      steuer: { gewinn: 'Profit by cash-basis accounts', ruecklage: 'Tax reserve' },
       anlass: { kosten: 'Cost of an event', liste: 'Your events', vorschlag: 'Transactions for an event' },
       transfer: { kandidaten: 'Possible internal transfers' },
       depot: { wert: 'Value of your portfolios', rendite: 'Gain or loss in your portfolio', positionen: 'Largest positions' },
@@ -4424,6 +4425,9 @@ export const en = {
       debts: 'Debts',
     },
     trigger: {
+      steuer: 'tax, taxes, tax office, profit and loss, self-employed, business',
+      steuerGewinn: 'how much profit, my profit, profit this year, surplus, how much did i earn self-employed',
+      steuerRuecklage: 'tax reserve, set aside for taxes, how much for the tax office, put aside for tax',
       anlass: 'event, events, occasion, project, trip',
       anlassKosten: 'what did cost me, cost of the, how expensive was, spent on the trip',
       anlassListe: 'which events, my events, most expensive event, overview of my events',
@@ -4482,6 +4486,12 @@ export const en = {
       budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
+      steuerGewinn: 'That is your profit for {jahr} by the cash-basis accounts.',
+      steuerVerlust: 'That is your loss for {jahr} by the cash-basis accounts.',
+      steuerRuecklageLuecke: 'That is what is still missing from your {jahr} tax reserve.',
+      steuerRuecklageVoll: 'Your tax reserve for {jahr} is already sufficient.',
+      steuerOhneEinnahmen: 'No business income is recorded for {jahr} yet — without it there is no reserve target.',
+      steuerOhneModus: 'That needs sole-trader mode switched on. Without it there is no business account, and every figure would be zero — not because you earned nothing, but because nobody said which account is the business one.',
       anlassKosten: 'That is what "{name}" cost.',
       anlassListe: 'Your events, sorted by cost.',
       anlassVorschlag: 'These transactions could belong to "{name}".',
@@ -4568,6 +4578,11 @@ export const en = {
       budgetAktionStattdessenAnlegen: 'There is no budget for {name} yet. Shall I create one?',
     },
     reason: {
+      euerEinnahmen: 'Business income: {betrag}',
+      euerAusgaben: 'Deductible business expenses: {betrag}',
+      euerParameterGeschaetzt: 'Computed with the tax values of {jahr} — this year\'s are not fixed yet.',
+      steuerZiel: 'Target: {betrag} ({prozent} % of business income)',
+      steuerZurueckgelegt: 'Already set aside: {betrag}',
       anlassTeilbaum: 'Assigned directly: {direkt} — the rest comes from sub-events.',
       anlassVorschlagNichtZugeordnet: 'These are suggestions. Nothing is assigned until you confirm it on the events screen.',
       transferNichtVerknuepft: 'As long as a transfer is not linked it counts as an expense AND as income — both totals are then too high.',

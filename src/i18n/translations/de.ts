@@ -4396,6 +4396,7 @@ export const de = {
         betrag: 'Um welchen Betrag geht es?',
       },
     entryName: {
+      steuer: { gewinn: 'Gewinn nach EÜR', ruecklage: 'Steuerrücklage' },
       anlass: { kosten: 'Kosten eines Anlasses', liste: 'Deine Anlässe', vorschlag: 'Buchungen für einen Anlass' },
       transfer: { kandidaten: 'Mögliche interne Überträge' },
       depot: { wert: 'Wert deiner Depots', rendite: 'Gewinn oder Verlust im Depot', positionen: 'Größte Positionen' },
@@ -4436,6 +4437,9 @@ export const de = {
       debts: 'Schulden',
     },
     trigger: {
+      steuer: 'steuer, steuern, finanzamt, eür, euer, selbständig, gewerbe',
+      steuerGewinn: 'wie viel gewinn, mein gewinn, gewinn dieses jahr, überschuss, wie viel habe ich verdient als selbständige',
+      steuerRuecklage: 'steuerrücklage, für steuern zurücklegen, wie viel für das finanzamt, steuern zurückgelegt, rücklage für steuern',
       anlass: 'anlass, anlässe, ereignis, event, projekt',
       anlassKosten: 'was hat mich gekostet, kosten für den, wie teuer war, gekostet hat mein, ausgaben für den urlaub',
       anlassListe: 'welche anlässe, meine anlässe, teuerster anlass, welche ereignisse, übersicht meiner anlässe',
@@ -4494,6 +4498,12 @@ export const de = {
       budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
+      steuerGewinn: 'So hoch ist dein Gewinn {jahr} nach der EÜR.',
+      steuerVerlust: 'So hoch ist dein Verlust {jahr} nach der EÜR.',
+      steuerRuecklageLuecke: 'So viel fehlt {jahr} noch in deiner Steuerrücklage.',
+      steuerRuecklageVoll: 'Deine Steuerrücklage für {jahr} reicht bereits.',
+      steuerOhneEinnahmen: 'Für {jahr} sind noch keine Betriebseinnahmen erfasst — ohne sie gibt es kein Rücklagenziel.',
+      steuerOhneModus: 'Dafür müsste der Einzelunternehmer-Modus an sein. Ohne ihn gibt es kein Geschäftskonto, und jede EÜR-Zahl wäre null — nicht weil du nichts verdient hast, sondern weil niemand gesagt hat, welches Konto geschäftlich ist.',
       anlassKosten: 'So viel hat „{name}“ gekostet.',
       anlassListe: 'Deine Anlässe, nach Kosten sortiert.',
       anlassVorschlag: 'Diese Buchungen könnten zu „{name}“ gehören.',
@@ -4580,6 +4590,11 @@ export const de = {
       budgetAktionStattdessenAnlegen: 'Für {name} gibt es noch kein Budget. Soll ich eines anlegen?',
     },
     reason: {
+      euerEinnahmen: 'Betriebseinnahmen: {betrag}',
+      euerAusgaben: 'Abziehbare Betriebsausgaben: {betrag}',
+      euerParameterGeschaetzt: 'Gerechnet mit den Steuerwerten von {jahr} — die des laufenden Jahres stehen noch nicht fest.',
+      steuerZiel: 'Ziel: {betrag} ({prozent} % der Betriebseinnahmen)',
+      steuerZurueckgelegt: 'Bereits zurückgelegt: {betrag}',
       anlassTeilbaum: 'Direkt zugeordnet: {direkt} — der Rest kommt aus den Unter-Anlässen.',
       anlassVorschlagNichtZugeordnet: 'Das sind Vorschläge. Zugeordnet wird nichts, bis du es auf der Anlass-Fläche bestätigst.',
       transferNichtVerknuepft: 'Solange ein Übertrag nicht verknüpft ist, zählt er als Ausgabe UND als Einnahme — beide Summen sind dann zu hoch.',
