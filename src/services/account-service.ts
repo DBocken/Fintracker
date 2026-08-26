@@ -112,7 +112,12 @@ export async function createAccount(account: Partial<Account>): Promise<Account>
     last_sync_at: account.last_sync_at || null,
     sync_enabled: account.sync_enabled ?? false,
     bank_connection_id: account.bank_connection_id || null,
-    opening_balance: account.opening_balance ?? 0,
+    // `null`, NICHT 0: „kein Startsaldo hinterlegt" und „Startsaldo ist 0 €"
+    // sind zwei verschiedene Aussagen. Die 0 hier hat zwei Prüfungen still
+    // ausgehebelt, die genau danach fragen — den Erststart-Vorbehalt im
+    // GoCardless-Sync (`!account.opening_balance` war immer wahr) und den
+    // Datenqualitäts-Hinweis „Startsaldo ergänzen", der nie erschien.
+    opening_balance: account.opening_balance ?? null,
     opening_balance_date: account.opening_balance_date || null,
   });
 }

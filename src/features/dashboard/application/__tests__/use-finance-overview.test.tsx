@@ -9,7 +9,6 @@ import {
   computeFlowTotals,
 } from '../../domain/overview-calculations';
 import {
-  computeLocalBalances,
   computeEffectiveBalances,
   computeTotalEffectiveBalance,
 } from '../../domain/balance-calculations';
@@ -123,8 +122,7 @@ describe('useFinanceOverview', () => {
       expect(result.current.stats.expenses).toBe(expectedFlow.expenses);
       expect(result.current.stats.balance).toBe(expectedFlow.balance);
 
-      const localBalances = computeLocalBalances(FIXTURE_TRANSACTIONS);
-      const effectiveBalances = computeEffectiveBalances(FIXTURE_ACCOUNTS, localBalances);
+      const effectiveBalances = computeEffectiveBalances(FIXTURE_ACCOUNTS, FIXTURE_TRANSACTIONS);
       const expectedTotal = computeTotalEffectiveBalance(FIXTURE_ACCOUNTS, effectiveBalances);
       expect(result.current.stats.currentBalance).toBe(expectedTotal);
     });
