@@ -109,34 +109,32 @@ export function pickCounterparty(
  * weitere ergänzt werden. `undefined` heißt „kenne ich nicht", nicht „gibt es
  * nicht": Der Rohwert bleibt in `bank_fields` erhalten.
  */
-const MERCHANT_CATEGORY_KEYS: Record<string, string> = {
-  '5411': 'supermarket',
-  '5412': 'supermarket',
-  '5499': 'supermarket',
-  '5541': 'fuel',
-  '5542': 'fuel',
-  '5812': 'restaurant',
-  '5814': 'fastFood',
-  '5912': 'pharmacy',
-  '5921': 'beverages',
-  '5651': 'clothing',
-  '5691': 'clothing',
-  '4111': 'publicTransport',
-  '4121': 'taxi',
-  '4131': 'publicTransport',
-  '4784': 'toll',
-  '7523': 'parking',
-  '7538': 'carRepair',
-  '8011': 'doctor',
-  '8021': 'dentist',
-  '8062': 'hospital',
+const MERCHANT_CATEGORY_LABELS: Record<string, () => string> = {
+  '5411': () => t('bankFields.merchantCategory.supermarket'),
+  '5412': () => t('bankFields.merchantCategory.supermarket'),
+  '5499': () => t('bankFields.merchantCategory.supermarket'),
+  '5541': () => t('bankFields.merchantCategory.fuel'),
+  '5542': () => t('bankFields.merchantCategory.fuel'),
+  '5812': () => t('bankFields.merchantCategory.restaurant'),
+  '5814': () => t('bankFields.merchantCategory.fastFood'),
+  '5912': () => t('bankFields.merchantCategory.pharmacy'),
+  '5921': () => t('bankFields.merchantCategory.beverages'),
+  '5651': () => t('bankFields.merchantCategory.clothing'),
+  '5691': () => t('bankFields.merchantCategory.clothing'),
+  '4111': () => t('bankFields.merchantCategory.publicTransport'),
+  '4121': () => t('bankFields.merchantCategory.taxi'),
+  '4131': () => t('bankFields.merchantCategory.publicTransport'),
+  '4784': () => t('bankFields.merchantCategory.toll'),
+  '7523': () => t('bankFields.merchantCategory.parking'),
+  '7538': () => t('bankFields.merchantCategory.carRepair'),
+  '8011': () => t('bankFields.merchantCategory.doctor'),
+  '8021': () => t('bankFields.merchantCategory.dentist'),
+  '8062': () => t('bankFields.merchantCategory.hospital'),
 };
 
 export function describeMerchantCategory(code: string | undefined | null): string | undefined {
   if (!code) return undefined;
-  const key = MERCHANT_CATEGORY_KEYS[code.trim()];
-  if (!key) return undefined;
-  return t(`bankFields.merchantCategory.${key}`);
+  return MERCHANT_CATEGORY_LABELS[code.trim()]?.();
 }
 
 /**
@@ -147,24 +145,22 @@ export function describeMerchantCategory(code: string | undefined | null): strin
  * und weggeworfen hat. Verglichen wird auf Großschreibung normalisiert;
  * unbekannte Schlüssel liefern `undefined`.
  */
-const TRANSACTION_CODE_KEYS: Record<string, string> = {
-  'PMNT-CCRD-POSD': 'cardPayment',
-  'PMNT-CCRD-POSP': 'cardPayment',
-  'PMNT-CCRD-CWDL': 'cashWithdrawal',
-  'PMNT-CCRD-CDPT': 'cashDeposit',
-  'PMNT-ICDT-ESCT': 'transferOut',
-  'PMNT-ICDT-STDO': 'standingOrder',
-  'PMNT-RCDT-ESCT': 'transferIn',
-  'PMNT-IDDT-ESDD': 'directDebit',
-  'PMNT-RDDT-ESDD': 'directDebitIn',
-  'PMNT-MCRD-POSD': 'cardPayment',
+const TRANSACTION_CODE_LABELS: Record<string, () => string> = {
+  'PMNT-CCRD-POSD': () => t('bankFields.transactionCode.cardPayment'),
+  'PMNT-CCRD-POSP': () => t('bankFields.transactionCode.cardPayment'),
+  'PMNT-CCRD-CWDL': () => t('bankFields.transactionCode.cashWithdrawal'),
+  'PMNT-CCRD-CDPT': () => t('bankFields.transactionCode.cashDeposit'),
+  'PMNT-ICDT-ESCT': () => t('bankFields.transactionCode.transferOut'),
+  'PMNT-ICDT-STDO': () => t('bankFields.transactionCode.standingOrder'),
+  'PMNT-RCDT-ESCT': () => t('bankFields.transactionCode.transferIn'),
+  'PMNT-IDDT-ESDD': () => t('bankFields.transactionCode.directDebit'),
+  'PMNT-RDDT-ESDD': () => t('bankFields.transactionCode.directDebitIn'),
+  'PMNT-MCRD-POSD': () => t('bankFields.transactionCode.cardPayment'),
 };
 
 export function describeTransactionCode(code: string | undefined | null): string | undefined {
   if (!code) return undefined;
-  const key = TRANSACTION_CODE_KEYS[code.trim().toUpperCase()];
-  if (!key) return undefined;
-  return t(`bankFields.transactionCode.${key}`);
+  return TRANSACTION_CODE_LABELS[code.trim().toUpperCase()]?.();
 }
 
 /**
