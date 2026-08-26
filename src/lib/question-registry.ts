@@ -52,7 +52,7 @@ import type { NetWorthBreakdown } from '@/lib/net-worth-types';
 import type { TaxReserveState } from '@/lib/tax-types';
 import type { UserSettings } from '@/lib/settings-types';
 
-export type SlotName = 'zeitraum' | 'kategorie' | 'haendler' | 'konto' | 'betrag';
+export type SlotName = 'zeitraum' | 'kategorie' | 'haendler' | 'konto' | 'betrag' | 'anlass';
 
 /** Ein aufgelöster Zeitraum — nie Rohtext, nie ein Feature-Typ. */
 export interface ZeitraumSlot {
@@ -96,6 +96,14 @@ export interface QuestionSlots {
   haendler?: string;
   kontoId?: string;
   betrag?: number;
+  /**
+   * Anlass („Urlaub Italien", „Hochzeit") — stabile ID, nie der Name
+   * (AGENTS.md §6). Ein eigener Slot und keine Kategorie: Ein Anlass ist
+   * zeitlich begrenzt und schneidet QUER durch die Kategorien; dieselbe
+   * Buchung kann in „Restaurants" liegen und zum Urlaub gehören. Sie in
+   * einen Kategorie-Slot zu zwängen hiesse, zwei Achsen zu einer zu machen.
+   */
+  anlassId?: string;
   /**
    * Der zweite Partner einer Vergleichsfrage (Welle 1).
    *
@@ -461,6 +469,7 @@ export function fehlendeSlots(entry: QuestionEntry, slots: QuestionSlots): SlotN
     haendler: slots.haendler !== undefined,
     konto: slots.kontoId !== undefined,
     betrag: slots.betrag !== undefined,
+    anlass: slots.anlassId !== undefined,
   };
   return entry.slots.erforderlich.filter((slot) => !vorhanden[slot]);
 }

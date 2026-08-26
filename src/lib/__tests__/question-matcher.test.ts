@@ -541,3 +541,62 @@ describe('Gelernte Formulierung im Allein-Fall (WP-F.5, Browser-Fund)', () => {
     if (vermutet.art === 'kandidaten') expect(vermutet.nurVermutung).toBe(true);
   });
 });
+
+describe('Szenario-Gate an BEIDEN Router-Stufen', () => {
+  /**
+   * Der Fund der Welle 2: `match()` (Wortebene) wendete das Szenario-Gate an,
+   * Stufe 2 (Klassifikator) nicht. Damit konnte das Modell für eine
+   * HYPOTHETISCHE Frage einen Eintrag vorschlagen, den die Wortebene
+   * ausdrücklich ausgeschlossen hatte — gemessen am Korpus bekam „was wen ich
+   * freizeit um 200 reduzier …" den Eintrag `budget.aktion` angeboten, also
+   * eine SCHREIBOPERATION als Antwort auf ein Gedankenspiel.
+   *
+   * Das wiegt schwerer als eine falsche Zahl: Die falsche Zahl verwirrt, der
+   * falsch gedeutete Befehl schlägt eine Änderung an den Daten vor.
+   */
+  const nichtSzenariofaehig: QuestionEntry = {
+    id: 'budget.aktion',
+    slots: { erforderlich: [], optional: [] },
+    ausloeser: ['k.nie'],
+    needs: [],
+    aufwand: 'guenstig',
+    antwort: () => { throw new Error('nicht gefragt'); },
+  };
+  const szenariofaehig: QuestionEntry = {
+    ...nichtSzenariofaehig,
+    id: 'leistbarkeit.anschaffung',
+    beantwortetSzenarien: true,
+  };
+  const vok: QuestionVocabulary = {
+    kategorien: [], konten: [], haendler: [],
+    // Bewusst LEER: Die Wortebene findet nichts, damit allein Stufe 2 entscheidet.
+    ausloeser: new Map(),
+  };
+  const JETZT = new Date('2026-08-23');
+
+  it('[REGRESSION] sollte einem nicht-szenariofähigen Eintrag die hypothetische Frage verweigern', () => {
+    const routing = routeFrage('was wenn ich freizeit um 200 reduziere', vok, [nichtSzenariofaehig], 'de', JETZT, {
+      klasse: 'budget.aktion',
+      marge: 0.9,
+    });
+    expect(routing.art).toBe('unverstanden');
+  });
+
+  it('sollte den szenariofähigen Eintrag weiterhin durchlassen', () => {
+    const routing = routeFrage('was wenn ich freizeit um 200 reduziere', vok, [szenariofaehig], 'de', JETZT, {
+      klasse: 'leistbarkeit.anschaffung',
+      marge: 0.9,
+    });
+    expect(routing.art).toBe('aufloesen');
+  });
+
+  it('sollte denselben Eintrag ohne Hypothese normal vorschlagen', () => {
+    // Gegenprobe: Das Gate darf nur bei einer HYPOTHETISCHEN Frage greifen —
+    // sonst wäre es keine Schranke, sondern eine Abschaltung.
+    const routing = routeFrage('erhöhe mein freizeitbudget um 200', vok, [nichtSzenariofaehig], 'de', JETZT, {
+      klasse: 'budget.aktion',
+      marge: 0.9,
+    });
+    expect(routing.art).toBe('aufloesen');
+  });
+});

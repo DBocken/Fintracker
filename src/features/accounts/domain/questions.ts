@@ -21,6 +21,7 @@ import { computeContracts } from '@/lib/contract-derivation';
 import { buildForecastAccounts, buildRecurringFlows } from '@/lib/forecast-flows';
 import { computeDisposableUntilPayday } from '@/lib/disposable-budget';
 import { detectSalarySeries } from '@/lib/salary-detection';
+import { findTransferCandidates } from '@/lib/transfer-detection';
 
 const ISO = 'yyyy-MM-dd';
 
@@ -106,7 +107,7 @@ const verfuegbarBisGehalt: QuestionEntry = {
   // bleiben damit unverändert gültig.
   id: 'verfuegbar.bisGehalt',
   slots: { erforderlich: [], optional: [] },
-  ausloeser: ['financeQuestions.trigger.gehalt', 'financeQuestions.trigger.freiVerfuegbar'],
+  ausloeser: ['financeQuestions.trigger.gehalt'],
   verstaerker: ['financeQuestions.trigger.bisGehalt'],
   needs: ['accounts', 'netWorth', 'transactions', 'categories', 'contractDecisions'],
   aufwand: 'guenstig',
@@ -253,10 +254,59 @@ const vermoegenAufteilung: QuestionEntry = {
   },
 };
 
+/**
+ * „Habe ich Umbuchungen, die nicht als solche erkannt sind?"
+ *
+ * Ein unerkannter interner Übertrag ist der Fehler, der jede Auswertung
+ * verzerrt und dabei völlig unauffällig aussieht: Die Abbuchung zählt als
+ * Ausgabe, die Gutschrift als Einnahme, und beide Seiten stimmen für sich
+ * genommen. Erst zusammen sind sie eine Verschiebung zwischen eigenen Konten
+ * und gehören in keine der beiden Summen.
+ *
+ * Der Chat ZEIGT die Kandidaten und verlinkt sie; verknüpft wird auf der
+ * Konten-Fläche mit einem Klick. Ein Übertrag, den der Chat aus eigener
+ * Deutung markierte, veränderte jede Monatssumme rückwirkend — das ist eine
+ * Schreiboperation und gehört hinter eine Bestätigung (Welle 5).
+ */
+const transferKandidaten: QuestionEntry = {
+  id: 'transfer.kandidaten',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.transfer'],
+  needs: ['transactions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const kandidaten = findTransferCandidates([...(daten.transactions ?? [])]);
+    if (kandidaten.length === 0) {
+      return {
+        art: 'anzahl',
+        wert: 0,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.transferKeine', params: {} },
+        deepLink: '/accounts',
+        deepLinkArt: 'kontext',
+      };
+    }
+    return {
+      art: 'liste',
+      wert: null,
+      anzahl: kandidaten.length,
+      posten: kandidaten.slice(0, 10).map((k) => ({
+        label: `${k.outgoing.payee || k.outgoing.description} → ${k.incoming.payee || k.incoming.description}`,
+        betrag: Math.abs(k.outgoing.amount),
+      })),
+      aussage: { key: 'financeQuestions.answer.transferKandidaten', params: {} },
+      begruendung: [{ key: 'financeQuestions.reason.transferNichtVerknuepft', params: {} }],
+      deepLink: '/accounts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
   kontoSaldo,
   kontoGesamt,
   verfuegbarBisGehalt,
   vermoegenGesamt,
   vermoegenAufteilung,
+  transferKandidaten,
 ];

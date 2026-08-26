@@ -56,6 +56,12 @@ export interface QuestionVocabulary {
   kategorien: readonly VokabelEintrag[];
   konten: readonly VokabelEintrag[];
   haendler: readonly VokabelEintrag[];
+  /**
+   * Anlässe aus dem EIGENEN Bestand (Welle 2). Optional: Ohne sie verhält
+   * sich der Matcher wie zuvor — eine Anlass-Frage findet dann keinen Slot
+   * und wird zur Rückfrage statt zu einer erfundenen Zuordnung.
+   */
+  anlaesse?: readonly VokabelEintrag[];
   /** Eintrags-ID → aufgelöste Auslösewörter (aus dem Sprachbaum geholt). */
   ausloeser: ReadonlyMap<string, readonly string[]>;
   /** Eintrags-ID → aufgelöste Verstärker (zählen nur NACH einem Auslöser-Treffer). */
@@ -276,6 +282,7 @@ interface FrageKontext {
   haendler: ReturnType<typeof findeLaengsten>;
   kategorie: ReturnType<typeof findeLaengsten>;
   konto: ReturnType<typeof findeLaengsten>;
+  anlass: ReturnType<typeof findeLaengsten>;
   betrag: number | null;
 }
 
@@ -311,6 +318,7 @@ function analysiereFrage(
     haendler: findeLaengsten(ohneZeit, vokabular.haendler),
     kategorie: findeLaengsten(ohneZeit, vokabular.kategorien),
     konto: findeLaengsten(ohneZeit, vokabular.konten),
+    anlass: findeLaengsten(ohneZeit, vokabular.anlaesse ?? []),
     betrag,
   };
 }
@@ -389,6 +397,13 @@ function extrahiereEintragsSlots(
   if (kontext.konto && !kontext.konto.mehrdeutig && nutzt('konto')) {
     slots.kontoId = kontext.konto.wert;
     slotPunkte += 1;
+  }
+  if (kontext.anlass && !kontext.anlass.mehrdeutig && nutzt('anlass')) {
+    // Zwei Punkte wie Händler und Kategorie: Ein wörtlich getroffener
+    // Anlassname ist eine starke Aussage über die Absicht — „Urlaub Italien"
+    // steht in keiner Kategorie und in keinem Händlernamen.
+    slots.anlassId = kontext.anlass.wert;
+    slotPunkte += 2;
   }
   if (kontext.betrag !== null && nutzt('betrag')) {
     slots.betrag = kontext.betrag;
@@ -778,6 +793,25 @@ export function routeFrage(
   // Diese Einträge erreichen die Fläche deshalb ausschliesslich über Stufe
   // 0c, weder über die Wort- noch über die Subword-Ebene.
   const ohneVergleiche = entries.filter((e) => !e.nimmtVergleich);
+  /**
+   * Dieselbe Menge, zusätzlich um das SZENARIO-GATE beschnitten (Welle 2).
+   *
+   * `match()` wendet das Gate an — Stufe 2 tat es nicht. Damit konnte der
+   * Klassifikator für eine hypothetische Frage einen Eintrag vorschlagen, den
+   * die Wortebene ausdrücklich ausgeschlossen hatte. Gemessen am Korpus:
+   * „was wen ich freizeit um 200 reduzier wann kann ich dan in urlaub" bekam
+   * `budget.aktion` angeboten — also eine SCHREIBOPERATION als Antwort auf ein
+   * Gedankenspiel. Das ist schlimmer als eine falsche Zahl: Die falsche Zahl
+   * verwirrt, der falsch gedeutete Befehl schlägt eine Änderung an den Daten
+   * vor.
+   *
+   * Das Gate gehört also an BEIDE Stufen, nicht an eine. Ein Vokabel-Feinschliff
+   * hätte den Fund nur verschoben — dieselbe Lehre wie bei `normiertAufMonat`.
+   */
+  const szenarioFrage = istSzenarioFrage(text);
+  const stufe2Faehig = szenarioFrage
+    ? ohneVergleiche.filter((e) => e.beantwortetSzenarien)
+    : ohneVergleiche;
 
   const kandidaten = lexicalQuestionMatcher.match(text, vokabular, ohneVergleiche, locale, jetzt);
   const lexikalisch = entscheideRouting(kandidaten);
@@ -808,7 +842,7 @@ export function routeFrage(
     // nicht, verdrängen auch nicht (vorn eingefügt hätte sie beim
     // Drei-Kandidaten-Schnitt genau die Option herausgeschoben, die der
     // Nutzer brauchte — so gemessen im Pane-Test).
-    const zusatz = ohneVergleiche.find((e) => e.id === intent.klasse);
+    const zusatz = stufe2Faehig.find((e) => e.id === intent.klasse);
     if (zusatz) {
       return {
         art: 'kandidaten',
@@ -822,7 +856,7 @@ export function routeFrage(
   // schlimmstes Ergebnis ist ein unpassender Button, deshalb die niedrige
   // Schwelle.
   if (!istLuecke && intent.marge >= MIN_INTENT_MARGE_ALLEIN) {
-    const entry = ohneVergleiche.find((e) => e.id === intent.klasse);
+    const entry = stufe2Faehig.find((e) => e.id === intent.klasse);
     if (entry) {
       const kandidat = kandidatFuer(text, vokabular, entry, locale, jetzt);
       // Eine gelernte Formulierung trägt die Antwort allein — sonst bleibt

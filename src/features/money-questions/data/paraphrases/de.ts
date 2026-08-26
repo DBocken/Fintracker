@@ -249,6 +249,12 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'kann ich mir nächstes jahr ein rad für 4000 zulegen',
     'schaffe ich eine anschaffung ohne mein sparziel zu verfehlen',
     'verzögert eine grosse ausgabe jetzt meine ziele',
+    // Welle 2, gleiche Ursache: Die Form „wenn ich A kürze, wann geht dann
+    // B?" ist eine Leistbarkeits-Frage über eine veränderte Welt — sie
+    // verlor ihre Marge an die neuen Klassen.
+    'wenn ich beim essen spare wann ist die reise drin',
+    'wie lange dauert es bis zur anschaffung wenn ich weniger ausgebe',
+    'ab wann reicht es fürs auto wenn ich monatlich kürze',
   ],
   'budget.aktion': [
     'leg mir einen topf für lebensmittel an',
@@ -384,6 +390,13 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel ist noch drin im budget',
     'was hab ich noch übrig für lebensmittel',
     'verbleibendes budget anzeigen',
+    // Welle 2: Elf neue Klassen (Konten, Vermögen, Depots, Anlässe,
+    // Transfers) haben die Masse verschoben — die umgangssprachliche Form
+    // „kann ich diesen monat noch X für Y" verlor ihre Marge. Nachgeschärft
+    // wird die FORM, nicht der Korpussatz (die Disjunktheit ist geprüft).
+    'kann ich diesen monat noch was für kleidung ausgeben',
+    'sind diesen monat noch 50 euro für hobbys drin',
+    'darf ich diesen monat noch was fürs essen ausgeben',
   ],
   'budget.tagesrate': [
     'wie viel darf ich pro tag ausgeben',
@@ -484,6 +497,46 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'aufteilung zwischen konten und depots',
     'wie verteilt sich mein geld',
     'was macht mein nettovermögen aus',
+  ],
+  'anlass.kosten': [
+    'was hat mich mein urlaub gekostet',
+    'wie teuer war die hochzeit',
+    'kosten für meinen umzug',
+    'wie viel hat das projekt gekostet',
+    'was hat die reise insgesamt gekostet',
+    'summe für mein event',
+    'wie viel geld ist in den urlaub geflossen',
+    'gesamtkosten meiner hochzeit',
+  ],
+  'anlass.liste': [
+    'welche anlässe habe ich',
+    'zeig mir meine ereignisse',
+    'welcher anlass war am teuersten',
+    'übersicht über meine projekte',
+    'was für events habe ich angelegt',
+    'meine anlässe mit kosten',
+    'liste meiner ereignisse',
+    'welche projekte kosten mich am meisten',
+  ],
+  'anlass.vorschlag': [
+    'welche buchungen gehören noch zum urlaub',
+    'was fehlt noch bei meiner hochzeit',
+    'gibt es noch buchungen für den umzug',
+    'passende buchungen zum projekt finden',
+    'was könnte noch zum event gehören',
+    'welche ausgaben sind dem urlaub noch nicht zugeordnet',
+    'buchungsvorschläge für meine reise',
+    'was ist beim anlass noch offen',
+  ],
+  'transfer.kandidaten': [
+    'habe ich umbuchungen die nicht erkannt sind',
+    'gibt es überträge zwischen meinen konten',
+    'welche buchungen sind eigentlich eigenüberträge',
+    'unerkannte umbuchungen finden',
+    'zeig mir mögliche interne überweisungen',
+    'welche paare sind wohl überträge',
+    'wurden überträge falsch als ausgabe gezählt',
+    'suche nach nicht verknüpften umbuchungen',
   ],
   'verfuegbar.bisGehalt': [
     'was kann ich bis zum gehalt noch ausgeben',

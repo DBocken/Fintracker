@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { questionCatalog } from '../question-catalog';
+import { ERFRAGBARE_SLOTS } from '@/features/money-questions/application/use-money-questions';
 import { fehlendeSlots } from '@/lib/question-registry';
 import type { QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { decodeDashboardFilters, filterTransactions } from '@/features/shared/domain/dashboard-filtering';
@@ -193,7 +194,12 @@ describe('Abfrage-Register: Katalog', () => {
   it('sollte keinen Slot verlangen, für den es keine Rückfrage gibt', () => {
     // Gegenrichtung: Ein Eintrag darf keinen Pflicht-Slot deklarieren, den die
     // Fläche nicht erfragen kann — sonst stünde die Rückfrage leer da.
-    const erfragbar = new Set<string>(['zeitraum', 'kategorie', 'haendler', 'konto', 'betrag']);
+    // Die Liste kommt aus der FLÄCHE (`ERFRAGBARE_SLOTS`), nicht aus diesem
+    // Test: Eine zweite Handliste hier hätte beim nächsten Slot gefehlt und
+    // den Fehler durchgelassen, den sie fangen soll. `zeitraum` und `betrag`
+    // stehen zusätzlich darin — sie werden aus dem Text gelesen statt
+    // ausgewählt und brauchen deshalb keine Kandidatenliste.
+    const erfragbar = new Set<string>([...ERFRAGBARE_SLOTS, 'zeitraum', 'betrag']);
     for (const entry of questionCatalog.entries) {
       for (const slot of [...entry.slots.erforderlich, ...entry.slots.optional]) {
         expect(erfragbar.has(slot), `${entry.id}: ${slot}`).toBe(true);

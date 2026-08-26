@@ -53,6 +53,22 @@ const MIN_HAENDLER_VORKOMMEN = 2;
  */
 const MAX_VORSCHLAEGE = 8;
 
+/**
+ * Slots, für die die Fläche echte Kandidaten aus dem EIGENEN Bestand anbieten
+ * kann.
+ *
+ * Steht hier und nicht im Test: Ein Registereintrag darf keinen Pflicht-Slot
+ * verlangen, den niemand erfragen kann — sonst stünde die Rückfrage leer da.
+ * Der Katalog-Test prüft genau das und liest DIESE Liste, statt eine eigene zu
+ * führen. Zwei Handlisten für eine Regel wären zwei Orte, an denen sie
+ * auseinanderlaufen; die zweite hätte beim nächsten Slot gefehlt.
+ *
+ * `zeitraum` und `betrag` stehen bewusst nicht darin: Sie kommen aus dem
+ * Text, nicht aus einer Auswahl — eine Liste aller denkbaren Zeiträume wäre
+ * keine Hilfe.
+ */
+export const ERFRAGBARE_SLOTS = ['kategorie', 'konto', 'haendler', 'anlass'] as const;
+
 /** Ein anklickbarer Kandidat für einen offenen Slot. */
 export interface SlotVorschlag {
   slot: SlotName;
@@ -399,6 +415,12 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
         wert: a.id,
         label: a.name,
       })),
+      // Anlässe aus dem eigenen Bestand (Welle 2). Archivierte bleiben
+      // draußen: Wer einen abgeschlossenen Anlass archiviert hat, meint mit
+      // „Urlaub" den nächsten, nicht den von vorletztem Jahr.
+      anlaesse: (anlaesse.data ?? [])
+        .filter((a) => !a.archived)
+        .map((a) => ({ wort: a.name.toLowerCase(), wert: a.id, label: a.name })),
       haendler,
       // Auslösewörter stehen als i18n-Keys im Eintrag; die WÖRTER holt erst
       // die Anwendungsschicht aus dem Sprachbaum — sonst wäre jeder Eintrag
@@ -416,7 +438,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // AGENTS.md §6). Seit WP-G braucht `konzeptAusText` `locale` ohnehin
     // ausdrücklich, weshalb die Regel es jetzt von selbst sieht — die frühere
     // `exhaustive-deps`-Ausnahme ist damit entfallen.
-  }, [transaktionen.data, kategorien.data, konten.data, regeln.data, modellKontext, locale, t]);
+  }, [transaktionen.data, kategorien.data, konten.data, anlaesse.data, regeln.data, modellKontext, locale, t]);
 
   // Stufe 2 des Routers: kuratierte Paraphrasen der aktiven Sprache PLUS die
   // eigenen bestätigten Zuordnungen — mit Gewicht 3, dieselbe Abstufung wie
@@ -451,14 +473,17 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
    * Beides wird weiterhin als reine Frage gestellt.
    */
   const vorschlaegeFuer = (slot: SlotName): SlotVorschlag[] => {
-    const quelle =
-      slot === 'kategorie'
-        ? vokabular.kategorien
-        : slot === 'konto'
-          ? vokabular.konten
-          : slot === 'haendler'
-            ? vokabular.haendler
-            : [];
+    // Ein `Record` über {@link ERFRAGBARE_SLOTS} statt einer Kette von
+    // `if`s: Nimmt jemand einen Slot in die Liste auf, ohne hier eine Quelle
+    // zu nennen, ist das ein Compilerfehler — vorher wäre es eine leere
+    // Rückfrage gewesen, also eine Sackgasse ohne jede Fehlermeldung.
+    const quellen: Record<(typeof ERFRAGBARE_SLOTS)[number], readonly VokabelEintrag[]> = {
+      kategorie: vokabular.kategorien,
+      konto: vokabular.konten,
+      haendler: vokabular.haendler,
+      anlass: vokabular.anlaesse ?? [],
+    };
+    const quelle = (quellen as Record<string, readonly VokabelEintrag[] | undefined>)[slot] ?? [];
     return quelle
       .slice(0, MAX_VORSCHLAEGE)
       .map((v) => ({ slot, label: v.label ?? v.wort, wert: v.wert }));

@@ -184,3 +184,56 @@ describe('vermoegen.gesamt und vermoegen.aufteilung', () => {
     expect(gesamt.antwort({}, daten({ netWorth: null })).art).toBe('keine');
   });
 });
+
+describe('transfer.kandidaten', () => {
+  const eintrag = questionCatalog.byId('transfer.kandidaten')!;
+
+  let n = 0;
+  function buchung(betrag: number, konto: string, datum: string): Transaction {
+    n += 1;
+    return {
+      id: asTransactionId(`tr-${n}`),
+      date: datum,
+      amount: betrag,
+      account_id: konto,
+      payee: betrag < 0 ? 'Abbuchung' : 'Gutschrift',
+      description: '',
+      original_text: '',
+      auto_mapped: false,
+      confirmed: true,
+    } as Transaction;
+  }
+
+  it('sollte ein Gegenpaar auf zwei Konten als möglichen Übertrag melden', () => {
+    const antwort = eintrag.antwort(
+      {},
+      daten({
+        transactions: [buchung(-500, 'giro', '2026-08-01'), buchung(500, 'spar', '2026-08-02')],
+      }),
+    );
+    expect(antwort.art).toBe('liste');
+    expect(antwort.anzahl).toBe(1);
+    expect(antwort.begruendung?.[0]?.key).toBe('financeQuestions.reason.transferNichtVerknuepft');
+  });
+
+  it('sollte ein Paar auf DEMSELBEN Konto nicht melden', () => {
+    // Zwei Buchungen auf einem Konto sind kein Übertrag zwischen Konten —
+    // sie als solchen zu melden entfernte echte Ausgaben aus der Statistik.
+    const antwort = eintrag.antwort(
+      {},
+      daten({
+        transactions: [buchung(-500, 'giro', '2026-08-01'), buchung(500, 'giro', '2026-08-02')],
+      }),
+    );
+    expect(antwort.art).toBe('anzahl');
+    expect(antwort.wert).toBe(0);
+  });
+
+  it('sollte ohne Fund eine ZAHL nennen statt zu schweigen', () => {
+    // „Ich habe nichts gefunden" ist eine Antwort; Schweigen sähe aus wie
+    // „nicht verstanden".
+    const antwort = eintrag.antwort({}, daten({ transactions: [] }));
+    expect(antwort.art).toBe('anzahl');
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.transferKeine');
+  });
+});
