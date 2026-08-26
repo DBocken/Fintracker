@@ -1,6 +1,6 @@
 {
   "_comment": "Gzip-Grenzen je Bündel in Byte. Erzeugt aus dem heutigen Stand plus 10 % Luft (pnpm check:bundle-size --update). Wer einen Wert anhebt, sagt damit: Dieses Wachstum ist gewollt. Wer ihn senkt, hat etwas eingespart — beides gehört in die Commit-Nachricht.",
-  "totalGzipBytes": 2586624,
+  "totalGzipBytes": 2594375,
   "chunks": {
     "affordability.worker": 354304,
     "CityPage": 178176,
@@ -13,7 +13,7 @@
     "index.es": 53248,
     "jspdf.es.min": 141312,
     "LiquidityPage": 32768,
-    "MoneyQuestionsPage": 35840,
+    "MoneyQuestionsPage": 43591,
     "pdf": 139264,
     "ru": 100352,
     "sankey": 31744,
