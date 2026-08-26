@@ -11,6 +11,8 @@ import { durchschnittlichesMonatsEinkommen } from '@/lib/income-stats';
 import { isActiveForTotals } from '@/lib/contract-derivation';
 import { computeContracts, yearlyEquivalent, monthlyEquivalent } from '@/lib/contract-derivation';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
+import { getUpcomingCharges } from '@/lib/upcoming-charges';
+import { buildRecurringFlows } from '@/lib/forecast-flows';
 
 const vertragJahreskosten: QuestionEntry = {
   id: 'vertrag.jahreskosten',
@@ -281,6 +283,62 @@ const fixkostenAnteil: QuestionEntry = {
   },
 };
 
+/**
+ * „Was wird demnächst abgebucht?" — die Fälligkeiten der nächsten 30 Tage.
+ *
+ * Gerechnet mit `getUpcomingCharges` über die abgeleiteten Verträge, also mit
+ * derselben Liste, die auch der Coach und die Liquiditätsfläche zeigen.
+ *
+ * Nur AUSGABEN: Gefragt ist, was vom Konto geht. Eingänge dazwischen zu
+ * mischen machte die Liste länger und die Antwort unklarer — und die Frage
+ * nach dem nächsten Geldeingang hat mit `verfuegbar.bisGehalt` ihre eigene
+ * Familie.
+ */
+const abbuchungNaechste: QuestionEntry = {
+  id: 'abbuchung.naechste',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.naechsteAbbuchung'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const heute = daten.jetzt.toISOString().slice(0, 10);
+    const zeilen = computeContracts(
+      [...(daten.transactions ?? [])],
+      new Map((daten.categories ?? []).map((c) => [c.id, c])),
+      'Ausgabe',
+      { decisions: new Map(daten.contractDecisions ?? []), now: daten.jetzt },
+    );
+    const faellig = getUpcomingCharges(buildRecurringFlows(zeilen), {
+      fromISO: heute,
+      horizonDays: 30,
+    }).filter((c) => c.direction === 'expense');
+
+    if (faellig.length === 0) {
+      return {
+        art: 'anzahl',
+        wert: 0,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.abbuchungKeine', params: {} },
+        deepLink: '/contracts',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    return {
+      art: 'liste',
+      wert: faellig.reduce((summe, c) => summe + Math.abs(c.amount), 0),
+      anzahl: faellig.length,
+      posten: faellig.slice(0, 10).map((c) => ({ label: c.name, betrag: Math.abs(c.amount) })),
+      aussage: {
+        key: 'financeQuestions.answer.abbuchungNaechste',
+        params: { datum: faellig[0].dateISO },
+      },
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
   vertragJahreskosten,
   abosListe,
@@ -288,4 +346,5 @@ export const questions: readonly QuestionEntry[] = [
   vertraegeTeurer,
   fixkostenMonatlich,
   fixkostenAnteil,
+  abbuchungNaechste,
 ];

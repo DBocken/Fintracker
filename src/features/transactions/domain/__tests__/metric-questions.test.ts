@@ -141,3 +141,71 @@ describe('Vergleichs-Einträge', () => {
     expect(antwort.vergleich?.quote).toBeNull();
   });
 });
+
+/**
+ * Welle 3: letzte Buchung und Einkommensarten.
+ */
+function mit(transactions: Transaction[]): QuestionData {
+  return { ...daten, transactions };
+}
+
+describe('abbuchung.letzte', () => {
+  const e = eintrag('abbuchung.letzte');
+
+  it('sollte die JÜNGSTE Buchung nennen, nicht irgendeine', () => {
+    const antwort = e.antwort(
+      { haendler: 'rewe' },
+      mit([
+        tx('2026-07-02', -30, 'REWE'),
+        tx('2026-08-11', -55, 'REWE'),
+        tx('2026-06-01', -20, 'REWE'),
+      ]),
+    );
+    expect(antwort.art).toBe('datum');
+    expect(antwort.aussage.params.datum).toBe('2026-08-11');
+    expect(antwort.wert).toBe(55);
+  });
+
+  it('sollte den Link als KONTEXT ausweisen, nicht als Quelle', () => {
+    // Der Link zeigt alle Buchungen des Händlers, die Zahl stammt aus genau
+    // einer. Diese Entfernung zu benennen ist ehrlicher, als die Zahl passend
+    // zu biegen — der Katalog-Test hat das eingefordert (Anzahl 3 gegen 1).
+    const antwort = e.antwort({ haendler: 'rewe' }, mit([tx('2026-07-02', -30, 'REWE')]));
+    expect(antwort.deepLinkArt).toBe('kontext');
+  });
+
+  it('sollte ohne Treffer „keine Buchung" sagen statt ein Datum zu erfinden', () => {
+    const antwort = e.antwort({ haendler: 'gibtsnicht' }, mit([tx('2026-07-02', -30, 'REWE')]));
+    expect(antwort.art).toBe('keine');
+  });
+});
+
+describe('einkommen.arten', () => {
+  const e = eintrag('einkommen.arten');
+
+  it('sollte Eingänge nach Kategorie aufschlüsseln und Ausgaben auslassen', () => {
+    const antwort = e.antwort(
+      {},
+      mit([
+        tx('2026-07-01', 2000, 'Muster GmbH', 'c-lebensmittel'),
+        tx('2026-07-05', 300, 'Kunde', 'c-freizeit'),
+        tx('2026-07-06', -50, 'REWE', 'c-lebensmittel'),
+      ]),
+    );
+    expect(antwort.art).toBe('liste');
+    expect(antwort.wert).toBe(2300);
+    expect(antwort.posten?.map((p) => p.betrag)).toEqual([2000, 300]);
+  });
+
+  it('[REGRESSION] sollte unkategorisierte Eingänge als eigene Zeile führen, nicht verschlucken', () => {
+    // Eine Liste, die sich nicht auf die Gesamtsumme addiert, ist eine
+    // Behauptung über das Fehlende.
+    const antwort = e.antwort(
+      {},
+      mit([tx('2026-07-01', 2000, 'Muster GmbH', 'c-lebensmittel'), tx('2026-07-09', 120, 'Unbekannt')]),
+    );
+    const summe = (antwort.posten ?? []).reduce((s, p) => s + p.betrag, 0);
+    expect(summe).toBe(antwort.wert);
+    expect(antwort.posten?.some((p) => p.labelKey === 'financeQuestions.ohneKategorie')).toBe(true);
+  });
+});

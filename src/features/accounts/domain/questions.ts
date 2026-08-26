@@ -22,6 +22,7 @@ import { buildForecastAccounts, buildRecurringFlows } from '@/lib/forecast-flows
 import { computeDisposableUntilPayday } from '@/lib/disposable-budget';
 import { detectSalarySeries } from '@/lib/salary-detection';
 import { findTransferCandidates } from '@/lib/transfer-detection';
+import { monatsDurchschnitt } from '@/lib/spending-metrics';
 
 const ISO = 'yyyy-MM-dd';
 
@@ -302,6 +303,68 @@ const transferKandidaten: QuestionEntry = {
   },
 };
 
+/**
+ * „Wie lange reicht mein Geld?" — operatives Guthaben geteilt durch die
+ * durchschnittlichen Monatsausgaben.
+ *
+ * Bewusst OHNE Prognose: Das ist eine Division, keine Simulation. Wer wissen
+ * will, wie sich der Kontostand mit allen Fälligkeiten entwickelt, bekommt
+ * den Link auf die Liquiditätsfläche — hier steht die schlichte Reichweite,
+ * und sie steht ehrlich als solche da.
+ *
+ * Das Sparkonto zählt NICHT mit: `netWorth.cash` enthält es, gefragt ist aber
+ * das Geld, von dem gelebt wird. Ein Notgroschen, der die Reichweite
+ * verlängert, verwischt genau die Zahl, wegen der jemand fragt.
+ */
+const liquiditaetReichweite: QuestionEntry = {
+  id: 'liquiditaet.reichweite',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.reichweite'],
+  needs: ['accounts', 'netWorth', 'transactions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const aufstellung = daten.netWorth;
+    const konten = daten.accounts ?? [];
+    if (!aufstellung || konten.length === 0) {
+      return { ...KEIN_KONTO, aussage: { key: 'financeQuestions.answer.kontoKeines', params: {} } };
+    }
+
+    const operativ = buildForecastAccounts([...konten], aufstellung.accountBalances)
+      .filter((k) => k.kind === 'checking' || k.kind === 'cash' || k.kind === 'wallet')
+      .reduce((summe, k) => summe + k.openingBalance, 0);
+
+    const proMonat = monatsDurchschnitt([...(daten.transactions ?? [])]);
+    if (proMonat === null || proMonat <= 0) {
+      return {
+        ...KEIN_KONTO,
+        deepLink: '/liquidity',
+        aussage: { key: 'financeQuestions.answer.reichweiteOhneAusgaben', params: {} },
+      };
+    }
+    if (operativ <= 0) {
+      return {
+        ...KEIN_KONTO,
+        deepLink: '/liquidity',
+        aussage: { key: 'financeQuestions.answer.reichweiteOhneGuthaben', params: {} },
+      };
+    }
+
+    const monate = operativ / proMonat;
+    return {
+      art: 'anzahl',
+      wert: Math.round(monate * 10) / 10,
+      anzahl: 0,
+      aussage: { key: 'financeQuestions.answer.reichweite', params: {} },
+      begruendung: [
+        { key: 'financeQuestions.reason.reichweiteGuthaben', params: { betrag: operativ } },
+        { key: 'financeQuestions.reason.reichweiteAusgaben', params: { betrag: proMonat } },
+      ],
+      deepLink: '/liquidity',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
   kontoSaldo,
   kontoGesamt,
@@ -309,4 +372,5 @@ export const questions: readonly QuestionEntry[] = [
   vermoegenGesamt,
   vermoegenAufteilung,
   transferKandidaten,
+  liquiditaetReichweite,
 ];

@@ -237,3 +237,50 @@ describe('transfer.kandidaten', () => {
     expect(antwort.aussage.key).toBe('financeQuestions.answer.transferKeine');
   });
 });
+
+describe('liquiditaet.reichweite', () => {
+  const eintrag = questionCatalog.byId('liquiditaet.reichweite')!;
+
+  let z = 0;
+  function ausgabe(betrag: number, datum: string): Transaction {
+    z += 1;
+    return {
+      id: asTransactionId(`rw-${z}`),
+      date: datum,
+      amount: -betrag,
+      payee: 'Supermarkt',
+      description: '',
+      original_text: '',
+      auto_mapped: false,
+      confirmed: true,
+    } as Transaction;
+  }
+
+  it('sollte Guthaben durch Monatsverbrauch teilen und beides belegen', () => {
+    // Giro 500 €; 400 € über vier Kalendermonate = 100 €/Monat → 5 Monate.
+    const antwort = eintrag.antwort(
+      {},
+      daten({
+        transactions: [ausgabe(300, '2026-05-15'), ausgabe(100, '2026-08-15')],
+      }),
+    );
+    expect(antwort.art).toBe('anzahl');
+    expect(antwort.wert).toBeCloseTo(5, 1);
+    expect(antwort.begruendung?.[0]?.params.betrag).toBe(500);
+    expect(antwort.begruendung?.[1]?.params.betrag).toBe(100);
+  });
+
+  it('[REGRESSION] sollte das SPARKONTO nicht mitzählen', () => {
+    // `netWorth.cash` enthält es (1800 €), gefragt ist aber das Geld, von dem
+    // gelebt wird. Ein Notgroschen, der die Reichweite verlängert, verwischt
+    // genau die Zahl, wegen der jemand fragt: 500/100 = 5, nicht 18.
+    const antwort = eintrag.antwort({}, daten({ transactions: [ausgabe(100, '2026-08-15')] }));
+    expect(antwort.wert).toBeCloseTo(5, 1);
+  });
+
+  it('sollte ohne erfasste Ausgaben nicht durch null teilen', () => {
+    const antwort = eintrag.antwort({}, daten({ transactions: [] }));
+    expect(antwort.art).toBe('keine');
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.reichweiteOhneAusgaben');
+  });
+});

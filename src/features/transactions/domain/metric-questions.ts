@@ -20,6 +20,7 @@
  * Menge hinter `wert` ist exakt die Menge hinter `deepLink`.
  */
 import type {
+  ListenPosten,
   QuestionAnswer,
   QuestionData,
   QuestionEntry,
@@ -341,6 +342,118 @@ function vergleichsEintrag(
   return entry;
 }
 
+/**
+ * „Wann habe ich bei X zuletzt bezahlt?" — Datum der jüngsten Buchung.
+ *
+ * Die erste Antwort der Familie `datum`, die aus DATEN kommt und nicht aus
+ * einem Vertragszyklus: Gefragt ist eine Tatsache, keine Vorhersage.
+ */
+const abbuchungLetzte: QuestionEntry = {
+  id: 'abbuchung.letzte',
+  slots: { erforderlich: ['haendler'], optional: [] },
+  ausloeser: ['financeQuestions.trigger.letzteBuchung'],
+  needs: ['transactions', 'categories', 'accounts'],
+  aufwand: 'guenstig',
+  antwort(slots, daten): QuestionAnswer {
+    const { transactions: menge, deepLink } = mengeFuer(this, slots, daten);
+    const juengste = [...menge]
+      .filter((t) => !t.is_transfer)
+      .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+    if (!juengste) {
+      return {
+        art: 'keine',
+        wert: null,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.noMatch', params: { zeitraum: 'all' } },
+        deepLink,
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    return {
+      art: 'datum',
+      // `wert` trägt den BETRAG der Buchung, nicht das Datum: Das Datum steht
+      // im Satz (`params.datum`), und ein Datum als Zahl wäre für den Sanften
+      // Modus ein Betrag — er würde es maskieren.
+      wert: Math.abs(juengste.amount),
+      anzahl: 1,
+      aussage: {
+        key: 'financeQuestions.answer.letzteBuchung',
+        params: { datum: juengste.date, haendler: slots.haendler ?? '' },
+      },
+      deepLink,
+      // `kontext`, nicht `quelle`: Der Link zeigt ALLE Buchungen des Händlers,
+      // die Zahl stammt aber aus genau EINER — der jüngsten. Diese Entfernung
+      // zu benennen ist ehrlicher, als die Zahl passend zu biegen; dieselbe
+      // Entscheidung wie bei `raten.offen`, und der Katalog-Test hat sie hier
+      // eingefordert (Anzahl 3 gegen behauptete 1).
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
+/**
+ * „Woher kommt mein Geld?" — Einnahmen nach Kategorie.
+ *
+ * Die Gegenrichtung zu `ausgaben.topKategorien`. Ohne Kategorie erfasste
+ * Eingänge erscheinen als eigene Zeile statt zu verschwinden: Eine Liste, die
+ * sich nicht auf die Gesamtsumme addiert, ist eine Behauptung über das
+ * Fehlende.
+ */
+const einkommenArten: QuestionEntry = {
+  id: 'einkommen.arten',
+  slots: { erforderlich: [], optional: ['zeitraum', 'konto'] },
+  ausloeser: ['financeQuestions.trigger.einkommensArten'],
+  verstaerker: ['financeQuestions.trigger.einnahmen'],
+  needs: ['transactions', 'categories', 'accounts'],
+  aufwand: 'guenstig',
+  antwort(slots, daten): QuestionAnswer {
+    const { transactions: alle, deepLink } = mengeFuer(this, slots, daten);
+    const menge = alle.filter((t) => !t.is_transfer && t.amount > 0);
+    const namen = new Map((daten.categories ?? []).map((c) => [c.id, c.name]));
+    const summen = new Map<string, number>();
+    for (const t of menge) {
+      const schluessel = t.category_id ?? '';
+      summen.set(schluessel, (summen.get(schluessel) ?? 0) + t.amount);
+    }
+
+    const posten: ListenPosten[] = [...summen.entries()]
+      .map(([id, betrag]) => ({
+        label: namen.get(id) ?? '',
+        labelKey: namen.get(id) ? undefined : 'financeQuestions.ohneKategorie',
+        betrag,
+      }))
+      .sort((a, b) => b.betrag - a.betrag);
+
+    if (posten.length === 0) {
+      return {
+        art: 'keine',
+        wert: null,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.einkommenArtenKeine', params: {} },
+        deepLink,
+        deepLinkArt: 'quelle',
+      };
+    }
+
+    return {
+      art: 'liste',
+      wert: posten.reduce((summe, p) => summe + p.betrag, 0),
+      // `alle.length`, nicht `menge.length`: Der Quell-Link zeigt den ganzen
+      // gefilterten Bestand, und die Register-Invariante verlangt, dass
+      // `anzahl` GENAU die verlinkte Menge beschreibt. Dieselbe Wahl wie bei
+      // `einnahmen.zeitraum` — die Summe ist die der Eingänge, die Anzahl die
+      // der verlinkten Buchungen. Der Katalog-Test hat das eingefordert.
+      anzahl: alle.length,
+      posten: posten.slice(0, 10),
+      aussage: { key: 'financeQuestions.answer.einkommenArten', params: {} },
+      deepLink,
+      deepLinkArt: 'quelle',
+    };
+  },
+};
+
 export const metricQuestions: readonly QuestionEntry[] = [
   ausgabenDurchschnitt,
   ausgabenAnteil,
@@ -350,4 +463,6 @@ export const metricQuestions: readonly QuestionEntry[] = [
   vergleichsEintrag('vergleich.haendler', 'haendler', 'financeQuestions.trigger.vergleichHaendler'),
   vergleichsEintrag('vergleich.kategorie', 'kategorie', 'financeQuestions.trigger.vergleichKategorie'),
   vergleichsEintrag('vergleich.zeitraum', 'zeitraum', 'financeQuestions.trigger.vergleichZeitraum'),
+  abbuchungLetzte,
+  einkommenArten,
 ];
