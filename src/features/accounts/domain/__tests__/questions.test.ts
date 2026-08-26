@@ -3,6 +3,13 @@ import { questionCatalog } from '@/features/money-questions/data/question-catalo
 import { asTransactionId } from '@/lib/ids';
 import type { QuestionData } from '@/lib/question-registry';
 import type { Transaction } from '@/types';
+import { SUPPORTED_LOCALES } from '@/i18n/locale';
+import { translations } from '@/i18n/translations';
+
+/** Punktpfad in einem Sprachbaum auflösen. */
+function blatt(baum: unknown, pfad: string): unknown {
+  return pfad.split('.').reduce<unknown>((k, teil) => (k as Record<string, unknown>)?.[teil], baum);
+}
 
 /**
  * Konten-Einträge (Welle 2).
@@ -119,5 +126,61 @@ describe('verfuegbar.bisGehalt', () => {
     const antwort = eintrag.antwort({}, daten());
     expect(antwort.art).toBe('keine');
     expect(antwort.aussage.key).toBe('financeQuestions.answer.freiVerfuegbarOhneGehalt');
+  });
+});
+
+describe('vermoegen.gesamt und vermoegen.aufteilung', () => {
+  const gesamt = questionCatalog.byId('vermoegen.gesamt')!;
+  const aufteilung = questionCatalog.byId('vermoegen.aufteilung')!;
+
+  const MIT_VERMOEGEN = () =>
+    daten({
+      netWorth: {
+        cash: 1800,
+        investments: 5000,
+        receivables: 200,
+        debts: 3000,
+        netWorth: 4000,
+        accountBalances: { giro: 500, spar: 1300 },
+        accountSources: [],
+        portfolioSources: [],
+        unconvertedInvestments: [],
+        debtSources: [],
+        receivableSources: [],
+      },
+    });
+
+  it('sollte das Nettovermögen aus der Aufstellung nehmen', () => {
+    expect(gesamt.antwort({}, MIT_VERMOEGEN()).wert).toBe(4000);
+  });
+
+  it('sollte Schulden als NEGATIVE Zeile führen, nicht weglassen', () => {
+    // Schulden wegzulassen wäre die Beschönigung, gegen die der Sanfte Modus
+    // antritt (`docs/debt-avoidance-recovery.md`): Die Zahl sähe besser aus,
+    // und die Aufteilung summierte sich nicht mehr auf das Nettovermögen.
+    const antwort = aufteilung.antwort({}, MIT_VERMOEGEN());
+    const schulden = antwort.posten?.find((p) => p.labelKey?.endsWith('debts'));
+    expect(schulden?.betrag).toBe(-3000);
+    const summe = (antwort.posten ?? []).reduce((s, p) => s + p.betrag, 0);
+    expect(summe).toBe(antwort.wert);
+  });
+
+  it('sollte für jede Rubrik einen Text in ALLEN Sprachen haben', () => {
+    // `labelKey` ist ein dynamisch durchgereichter Key — die Aufrufstelle
+    // kann ihn nicht prüfen. Deshalb hier: Ein Tippfehler stünde sonst roh
+    // auf dem Bildschirm.
+    const antwort = aufteilung.antwort({}, MIT_VERMOEGEN());
+    for (const posten of antwort.posten ?? []) {
+      expect(posten.labelKey, 'jede Rubrik trägt einen Key').toBeTruthy();
+      for (const locale of SUPPORTED_LOCALES) {
+        expect(typeof blatt(translations[locale], posten.labelKey!), `${locale}: ${posten.labelKey}`).toBe(
+          'string',
+        );
+      }
+    }
+  });
+
+  it('sollte ohne Aufstellung „nichts erfasst" sagen statt 0 €', () => {
+    expect(gesamt.antwort({}, daten({ netWorth: null })).art).toBe('keine');
   });
 });

@@ -121,11 +121,21 @@ describe('i18n-Aufrufstellen', () => {
     // durchgereichte Bauform wie die übrigen Register-Keys. Der Fleck ist
     // vollständig ausgeleuchtet: `question-catalog.test.ts` prüft für JEDEN
     // Eintrag, dass sein `entryName` in ALLEN Sprachen auflöst.
+    // Angehoben auf 83 mit der Vermögens-Aufteilung (Welle 2): Eine Zeile
+    // einer Listen-Antwort kann statt eines Nutzerdatums eine feste RUBRIK
+    // tragen („Bar und Konten", „Depots", „Ausgeliehen", „Schulden"). Die ist
+    // Bildschirmtext und gehört übersetzt, also führt `ListenPosten` dafür
+    // `labelKey`, und die Fläche reicht ihn durch (`t(p.labelKey)`) — genau
+    // die Bauform der übrigen Register-Keys. Der Alternativweg, den Text im
+    // Eintrag zu formulieren, verstößt gegen die erste Register-Regel (das
+    // Register liefert nie fertigen Text). Der Fleck ist ausgeleuchtet:
+    // `features/accounts/domain/__tests__/questions.test.ts` prüft für JEDE
+    // gelieferte Zeile, dass ihr `labelKey` in ALLEN Sprachen auflöst.
     let dynamic = 0;
     for (const file of files) {
       const source = readFileSync(`${process.cwd()}/${file}`, 'utf8');
       dynamic += [...source.matchAll(DYNAMIC_CALL)].length;
     }
-    expect(dynamic).toBeLessThanOrEqual(82);
+    expect(dynamic).toBeLessThanOrEqual(83);
   });
 });

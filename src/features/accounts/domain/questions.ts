@@ -174,4 +174,89 @@ function naechsterGehaltsTag(daten: QuestionData, heuteIso: string): string | nu
   return termine[0] ?? null;
 }
 
-export const questions: readonly QuestionEntry[] = [kontoSaldo, kontoGesamt, verfuegbarBisGehalt];
+/**
+ * Nettovermögen: Bar + Depots + Forderungen − Schulden.
+ *
+ * Die Zahl wird aus der Aufstellung GENOMMEN, nicht hier gebildet — sonst
+ * gäbe es zwei Definitionen von „Vermögen", und die zweite wäre die, die
+ * niemand pflegt. Was NICHT drinsteckt, sagt der Eintrag dazu: Bestände in
+ * fremder Währung fehlen bewusst (VE-1), und ein Vermögen, das seine Lücke
+ * verschweigt, behauptet mehr, als es weiß.
+ */
+const vermoegenGesamt: QuestionEntry = {
+  id: 'vermoegen.gesamt',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.vermoegen'],
+  needs: ['netWorth'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const aufstellung = daten.netWorth;
+    if (!aufstellung) {
+      return { ...KEIN_KONTO, aussage: { key: 'financeQuestions.answer.vermoegenKeines', params: {} } };
+    }
+    const offen = aufstellung.unconvertedInvestments.length;
+    return {
+      art: 'geld',
+      wert: aufstellung.netWorth,
+      anzahl: aufstellung.accountSources.length + aufstellung.portfolioSources.length,
+      aussage: { key: 'financeQuestions.answer.vermoegenGesamt', params: {} },
+      begruendung: offen
+        ? [{ key: 'financeQuestions.reason.fremdwaehrungNichtSummiert', params: { anzahl: offen } }]
+        : [],
+      deepLink: '/accounts',
+      deepLinkArt: 'quelle',
+    };
+  },
+};
+
+/**
+ * Woraus das Vermögen besteht — als Liste, weil eine einzelne Zahl die Frage
+ * „woraus?" nicht beantwortet. Schulden erscheinen als NEGATIVE Zeile statt
+ * als eigene Rubrik: Sie sind Teil derselben Rechnung, und sie wegzulassen
+ * wäre die Beschönigung, gegen die der Sanfte Modus antritt
+ * (`docs/debt-avoidance-recovery.md`).
+ */
+const vermoegenAufteilung: QuestionEntry = {
+  id: 'vermoegen.aufteilung',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.vermoegenAufteilung'],
+  verstaerker: ['financeQuestions.trigger.vermoegen'],
+  needs: ['netWorth'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const aufstellung = daten.netWorth;
+    if (!aufstellung) {
+      return { ...KEIN_KONTO, aussage: { key: 'financeQuestions.answer.vermoegenKeines', params: {} } };
+    }
+    const posten = [
+      { label: '', labelKey: 'financeQuestions.vermoegen.cash', betrag: aufstellung.cash },
+      { label: '', labelKey: 'financeQuestions.vermoegen.investments', betrag: aufstellung.investments },
+      { label: '', labelKey: 'financeQuestions.vermoegen.receivables', betrag: aufstellung.receivables },
+      { label: '', labelKey: 'financeQuestions.vermoegen.debts', betrag: -aufstellung.debts },
+    ].filter((p) => p.betrag !== 0);
+
+    if (posten.length === 0) {
+      return { ...KEIN_KONTO, aussage: { key: 'financeQuestions.answer.vermoegenKeines', params: {} } };
+    }
+
+    return {
+      art: 'liste',
+      wert: aufstellung.netWorth,
+      anzahl: posten.length,
+      // Die Rubriken sind Bildschirmtext, kein Nutzerdatum — deshalb
+      // `labelKey` statt `label` (§6). Die Präsentation löst ihn auf.
+      posten,
+      aussage: { key: 'financeQuestions.answer.vermoegenAufteilung', params: {} },
+      deepLink: '/accounts',
+      deepLinkArt: 'quelle',
+    };
+  },
+};
+
+export const questions: readonly QuestionEntry[] = [
+  kontoSaldo,
+  kontoGesamt,
+  verfuegbarBisGehalt,
+  vermoegenGesamt,
+  vermoegenAufteilung,
+];

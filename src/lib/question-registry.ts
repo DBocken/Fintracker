@@ -243,6 +243,15 @@ export type AnswerKind =
  */
 export interface ListenPosten {
   label: string;
+  /**
+   * i18n-Key STATT `label`, wenn die Zeile keinen Nutzertext trägt, sondern
+   * eine feste Rubrik („Bar", „Depots", „Forderungen", „Schulden" in der
+   * Vermögensaufteilung). Ohne dieses Feld hätte die Präsentation raten
+   * müssen, ob ein `label` zu übersetzen ist — und eine Konvention, die man
+   * nur durch Lesen des Kommentars erfährt, hält keine zwei Änderungen durch.
+   * Ist `labelKey` gesetzt, gewinnt er; `label` bleibt der Rückfall.
+   */
+  labelKey?: string;
   betrag: number;
   /**
    * Monat (yyyy-mm), auf den sich die Zeile bezieht — ROH, formatiert wird in

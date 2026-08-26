@@ -475,7 +475,7 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
           {antwort.posten.map((p, i) => (
             <li key={i} className="flex items-baseline justify-between gap-4 text-sm">
               <span className="truncate">
-                {p.label}
+                {p.labelKey ? t(p.labelKey) : p.label}
                 {p.monatIso && (
                   <span className="text-muted-foreground"> · {formatMonat(p.monatIso, locale)}</span>
                 )}
