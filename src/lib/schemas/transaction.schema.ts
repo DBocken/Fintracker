@@ -42,6 +42,11 @@ export const transactionSchema = z
     is_transfer: z.boolean().optional(),
     transfer_pair_id: z.string().nullable().optional(),
     counterparty_iban: z.string().nullable().optional(),
+    value_date: z.string().nullable().optional(),
+    // Absichtlich `z.record(z.string())` statt einer Feldliste: Das Bündel
+    // wächst mit dem, was Banken liefern, und ein unbekannter Schlüssel darf
+    // eine Buchung nie ungültig machen.
+    bank_fields: z.record(z.string(), z.string()).nullable().optional(),
     is_contract: z.boolean().optional(),
     contract_cycle: transactionCycleSchema.nullable().optional(),
     tax_category_id: z.string().nullable().optional(),

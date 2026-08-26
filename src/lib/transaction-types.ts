@@ -8,6 +8,7 @@
  */
 
 import type { TransactionId } from "./ids";
+import type { BankFields } from "./bank-transaction-fields";
 
 export interface Transaction {
   id?: TransactionId;
@@ -30,6 +31,18 @@ export interface Transaction {
   transfer_pair_id?: string | null;
   /** IBAN des Gegenübers (Sender/Empfänger) – Basis für die automatische Transfer-Erkennung */
   counterparty_iban?: string | null;
+  /** Wertstellungsdatum der Bank, sofern geliefert (`bookingDate` steht in `date`). */
+  value_date?: string | null;
+  /**
+   * Alles, was die Bank zu dieser Buchung geliefert hat und keine eigene
+   * Spalte bekommt — Branchenschlüssel des Händlers, Buchungsschlüssel,
+   * Mandats- und End-to-End-Referenz, beide Namen und beide IBANs.
+   *
+   * Bis hierher wurde das beim Import verworfen, obwohl der Typ es kannte.
+   * Was gar nicht erst ankommt, kann später niemand auswerten, und niemand
+   * sieht je, dass es da war.
+   */
+  bank_fields?: BankFields | null;
   /** Ob diese Transaktion ein erkannter oder manueller Vertrag ist */
   is_contract?: boolean;
   /** Zyklus des Vertrags (weekly, monthly, etc.) */
