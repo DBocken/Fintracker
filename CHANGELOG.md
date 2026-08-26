@@ -22,6 +22,8 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+## 2026.8.3 — 2026-08-26
+
 ### Behoben
 
 - **Der Kontostand stimmt nach einem Import, ohne manuelle Korrektur.** Ein
