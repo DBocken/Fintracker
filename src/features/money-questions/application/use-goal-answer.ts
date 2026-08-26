@@ -18,15 +18,26 @@
  * selbst. Der Zuschnitt der Läufe hält sie in derselben Grössenordnung wie
  * die Chat-Simulation.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
-import {
-  evaluateAffordability,
-  hoechsterTragbarerBetrag,
-  type AffordabilityOption,
-} from '@/lib/finrisk/affordability';
+import type { AffordabilityOption } from '@/lib/finrisk/affordability';
 import type { Zielfrage } from '@/lib/question-registry';
+
+/**
+ * Die Leistbarkeits-Rechnung wird DYNAMISCH geladen.
+ *
+ * Sie zieht die Monte-Carlo-Engine mit sich, und ein statischer Import legte
+ * die damit in das Bündel der Chat-Seite — jeder, der „wie viel habe ich bei
+ * Rewe ausgegeben" fragt, lüde die Simulation mit. Gemessen waren das rund
+ * 6 kB gzip auf einer Seite von 39; `check:bundle-size` hat es gemeldet, und
+ * seine Meldung nennt genau diesen Fall („ein statischer Import zieht das
+ * ganze Modul in dieses Bündel").
+ *
+ * Das ist dieselbe Trennung, die `aufwand: 'teuer'` im Register vornimmt —
+ * hier nur auf der Ebene des Auslieferungspakets statt der Rechenzeit.
+ */
+const ladeAffordability = () => import('@/lib/finrisk/affordability');
 
 /**
  * Zuschnitt der Suche. Bewusst kleiner als die Chat-Simulation (300): Hier
@@ -83,11 +94,25 @@ export function useGoalAnswer(ziel: Zielfrage | null): GoalAnswerModel {
     [overrides.months, overrides.safetyBuffer, overrides.bufferBasis],
   );
 
+  // Das Modul wird beim ersten Zielfrage-Aufruf geholt und danach vom Bundler
+  // zwischengespeichert; `null` heisst „noch nicht da", nicht „gibt es nicht".
+  const [engine, setEngine] = useState<Awaited<ReturnType<typeof ladeAffordability>> | null>(null);
+  useEffect(() => {
+    if (!ziel || engine) return;
+    let aktuell = true;
+    void ladeAffordability().then((m) => {
+      if (aktuell) setEngine(m);
+    });
+    return () => {
+      aktuell = false;
+    };
+  }, [ziel, engine]);
+
   const ergebnis = useMemo(() => {
-    if (!ziel || !input) return LEER;
+    if (!ziel || !input || !engine) return LEER;
 
     if (ziel.art === 'obergrenze') {
-      const gefunden = hoechsterTragbarerBetrag(input, config, ziel.inTagen, {
+      const gefunden = engine.hoechsterTragbarerBetrag(input, config, ziel.inTagen, {
         monteCarlo: ZIEL_MONTE_CARLO,
       });
       return {
@@ -100,7 +125,7 @@ export function useGoalAnswer(ziel: Zielfrage | null): GoalAnswerModel {
 
     if (ziel.betrag === undefined) return LEER;
 
-    const menu = evaluateAffordability(
+    const menu = engine.evaluateAffordability(
       input,
       config,
       { amount: ziel.betrag, dayIndex: ziel.inTagen },
@@ -112,19 +137,19 @@ export function useGoalAnswer(ziel: Zielfrage | null): GoalAnswerModel {
     // Der `earn`-Hebel IST die gesuchte Sparrate: das kleinste monatliche
     // Plus, das die Zielsicherheit erreicht. Ihn nachzubauen hiesse, dieselbe
     // Binärsuche ein zweites Mal zu schreiben.
-    const sparen = menu.options.find(
-      (o: AffordabilityOption) => o.detail.kind === 'earn',
-    );
+    const sparen = menu.options.find((o: AffordabilityOption) => o.detail.kind === 'earn');
     return {
       ...LEER,
       sparrate: sparen?.detail.kind === 'earn' ? sparen.detail.perMonth : null,
       sicherheit: sparen?.successProbability ?? menu.baseSuccess,
     };
-  }, [ziel, input, config]);
+  }, [ziel, input, config, engine]);
 
   return {
     ...ergebnis,
-    isCalculating: ziel !== null && isLoading,
+    // Solange die Engine noch geladen wird, RECHNET die Fläche — der
+    // Zustand ist derselbe wie beim Laden der Datengrundlage.
+    isCalculating: ziel !== null && (isLoading || engine === null),
     isError,
     refetch,
   };
