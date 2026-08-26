@@ -18,7 +18,13 @@
  *    vorbelegten Deep-Link zurück. Das hält `antwort()` ausnahmslos rein —
  *    die Eigenschaft, an der die Testbarkeit des ganzen Registers hängt.
  */
-import type { QuestionAnswer, QuestionEntry, QuestionSlots } from '@/lib/question-registry';
+import type {
+  QuestionAnswer,
+  QuestionData,
+  QuestionEntry,
+  QuestionSlots,
+} from '@/lib/question-registry';
+import { calculatePayoffPlan, MAX_TILGUNGS_MONATE } from '@/lib/debt-payoff';
 import { totalOutstandingDebt, totalMinimumPayment } from '@/lib/debt-totals';
 import { offeneRatenJeHaendler } from '@/lib/installments';
 import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
@@ -217,10 +223,187 @@ function tageBis(slots: QuestionSlots, jetzt: Date, vorgabe: number): number {
   return tage > 0 ? tage : vorgabe;
 }
 
+/**
+ * Tilgungsfragen (Welle 3) — gerechnet mit `calculatePayoffPlan`, derselben
+ * Simulation, die `/debts` zeigt.
+ *
+ * **Das Budget ist die Mindestrate, nicht ein erfundener Betrag.** Wer fragt
+ * „Wie lange zahle ich noch?", meint den Lauf, der ohne weitere Entscheidung
+ * eintritt. Eine grosszügigere Annahme machte die Antwort schöner und
+ * unbrauchbar; wer mehr zahlen kann, fragt danach ausdrücklich — dafür gibt
+ * es `schulden.sondertilgung`.
+ *
+ * Sanfter Modus: Alle drei liefern rohe Zahlen, maskiert wird in der
+ * Präsentation. Ein Schuldenstand ist genau die Zahl, für die
+ * `docs/debt-avoidance-recovery.md` das Maskieren vorsieht.
+ */
+const KEINE_SCHULD: Omit<QuestionAnswer, 'aussage'> = {
+  art: 'keine',
+  wert: null,
+  anzahl: 0,
+  deepLink: '/debts',
+  deepLinkArt: 'kontext',
+};
+
+/**
+ * Trägt der Plan nicht?
+ *
+ * Zwei Fälle, und der zweite ist der gefährliche: `insufficientBudget` meldet
+ * ein Budget UNTER der Summe der Mindestraten — hier rechnen wir aber mit
+ * genau dieser Summe, das kann also nie eintreten. Was eintritt, ist die
+ * Abbruchgrenze der Simulation: Decken die Raten die Zinsen nicht, läuft die
+ * Schleife bis {@link MAX_TILGUNGS_MONATE} und liefert Zahlen ohne
+ * Aussagekraft (gemessen: 600 Monate, 399.575.500 € Zinsen). Ohne diese
+ * Prüfung antwortete der Chat „in 50 Jahren bist du fertig".
+ */
+function traegtNicht(plan: { insufficientBudget: boolean; totalMonths: number }): boolean {
+  return plan.insufficientBudget || plan.totalMonths >= MAX_TILGUNGS_MONATE;
+}
+
+/** Der Plan, der ohne weitere Entscheidung eintritt: Budget = Summe der Mindestraten. */
+function planBeiMindestraten(daten: QuestionData) {
+  const schulden = [...(daten.debts ?? [])].filter((d) => !d.is_paid_off && d.balance > 0);
+  if (schulden.length === 0) return null;
+  const budget = totalMinimumPayment(schulden);
+  if (budget <= 0) return null;
+  return { schulden, budget, plan: calculatePayoffPlan(schulden, budget, 'avalanche') };
+}
+
+const schuldenDauer: QuestionEntry = {
+  id: 'schulden.dauer',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.schuldenDauer'],
+  verstaerker: ['financeQuestions.trigger.schulden'],
+  needs: ['debts'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const stand = planBeiMindestraten(daten);
+    if (!stand) {
+      return { ...KEINE_SCHULD, aussage: { key: 'financeQuestions.answer.schuldenKeine', params: {} } };
+    }
+    if (traegtNicht(stand.plan)) {
+      // Ehrlicher als eine Zahl: Decken die Raten die Zinsen nicht, gibt es
+      // keine Laufzeit — die Schuld wächst.
+      return {
+        ...KEINE_SCHULD,
+        aussage: { key: 'financeQuestions.answer.schuldenBudgetReichtNicht', params: {} },
+      };
+    }
+    return {
+      art: 'anzahl',
+      wert: stand.plan.totalMonths,
+      anzahl: stand.schulden.length,
+      aussage: { key: 'financeQuestions.answer.schuldenDauer', params: {} },
+      begruendung: [
+        { key: 'financeQuestions.reason.schuldenBudget', params: { betrag: stand.budget } },
+        { key: 'financeQuestions.reason.schuldenZinsenGesamt', params: { betrag: stand.plan.totalInterestPaid } },
+      ],
+      deepLink: '/debts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
+const schuldenZinsen: QuestionEntry = {
+  id: 'schulden.zinsen',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.schuldenZinsen'],
+  verstaerker: ['financeQuestions.trigger.schulden'],
+  needs: ['debts'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const stand = planBeiMindestraten(daten);
+    if (!stand) {
+      return { ...KEINE_SCHULD, aussage: { key: 'financeQuestions.answer.schuldenKeine', params: {} } };
+    }
+    if (traegtNicht(stand.plan)) {
+      return {
+        ...KEINE_SCHULD,
+        aussage: { key: 'financeQuestions.answer.schuldenBudgetReichtNicht', params: {} },
+      };
+    }
+    return {
+      art: 'geld',
+      wert: stand.plan.totalInterestPaid,
+      anzahl: stand.schulden.length,
+      aussage: { key: 'financeQuestions.answer.schuldenZinsen', params: {} },
+      begruendung: [
+        { key: 'financeQuestions.reason.schuldenLaufzeit', params: { monate: stand.plan.totalMonths } },
+      ],
+      deepLink: '/debts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
+/**
+ * „Was bringt es, wenn ich monatlich X mehr zahle?"
+ *
+ * Der Vergleich zweier Läufe derselben Simulation — deshalb `art: 'vergleich'`
+ * und nicht zwei Zahlen nebeneinander: Es IST die Rechnung, für die diese
+ * Antwortart in Welle 1 entstanden ist.
+ *
+ * Verglichen werden die ZINSEN, nicht die Monate: Die gesparten Zinsen sind
+ * das Geld, das jemand behält. Die kürzere Laufzeit steht als Begründung
+ * daneben, weil sie die Frage „wie lange noch" mitbeantwortet.
+ */
+const schuldenSondertilgung: QuestionEntry = {
+  id: 'schulden.sondertilgung',
+  slots: { erforderlich: ['betrag'], optional: [] },
+  ausloeser: ['financeQuestions.trigger.sondertilgung'],
+  verstaerker: ['financeQuestions.trigger.schulden'],
+  needs: ['debts'],
+  aufwand: 'guenstig',
+  antwort: (slots, daten): QuestionAnswer => {
+    const stand = planBeiMindestraten(daten);
+    if (!stand || slots.betrag === undefined) {
+      return { ...KEINE_SCHULD, aussage: { key: 'financeQuestions.answer.schuldenKeine', params: {} } };
+    }
+    if (traegtNicht(stand.plan)) {
+      return {
+        ...KEINE_SCHULD,
+        aussage: { key: 'financeQuestions.answer.schuldenBudgetReichtNicht', params: {} },
+      };
+    }
+
+    const mitExtra = calculatePayoffPlan(stand.schulden, stand.budget + slots.betrag, 'avalanche');
+    const gespart = stand.plan.totalInterestPaid - mitExtra.totalInterestPaid;
+    const monateKuerzer = stand.plan.totalMonths - mitExtra.totalMonths;
+
+    return {
+      art: 'vergleich',
+      wert: mitExtra.totalInterestPaid,
+      anzahl: stand.schulden.length,
+      vergleich: {
+        labelWert: '',
+        labelReferenz: '',
+        referenz: stand.plan.totalInterestPaid,
+        differenz: -gespart,
+        quote:
+          stand.plan.totalInterestPaid > 0
+            ? -gespart / stand.plan.totalInterestPaid
+            : null,
+      },
+      aussage: {
+        key: 'financeQuestions.answer.schuldenSondertilgung',
+        params: { betrag: slots.betrag, gespart },
+      },
+      begruendung: [
+        { key: 'financeQuestions.reason.schuldenKuerzer', params: { monate: monateKuerzer } },
+      ],
+      deepLink: '/debts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
   schuldenRestschuld,
   leistbarkeitAnschaffung,
   ratenOffen,
   zielObergrenze,
   zielSparrate,
+  schuldenDauer,
+  schuldenZinsen,
+  schuldenSondertilgung,
 ];

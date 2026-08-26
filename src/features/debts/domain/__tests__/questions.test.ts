@@ -3,6 +3,7 @@ import { questionCatalog } from '@/features/money-questions/data/question-catalo
 import { asTransactionId } from '@/lib/ids';
 import type { QuestionData } from '@/lib/question-registry';
 import type { Transaction } from '@/types';
+import type { Debt } from '@/lib/debt-types';
 
 /**
  * Der Eintrag `raten.offen` ist der Beleg dafür, dass die Bauform aus WP-C
@@ -79,5 +80,69 @@ describe('raten.offen', () => {
       'financeQuestions.reason.ratenBeleg',
     ]);
     expect(antwort.begruendung![1].params.beleg).toBe('3/12');
+  });
+});
+
+/**
+ * Tilgungsfragen (Welle 3) — gerechnet mit `calculatePayoffPlan`, derselben
+ * Simulation, die `/debts` zeigt.
+ */
+describe('Tilgungsfragen', () => {
+  const schuld = (over: Partial<Debt>): Debt =>
+    ({
+      id: over.id ?? 'd1',
+      user_id: 'local',
+      name: over.name ?? 'Kredit',
+      balance: over.balance ?? 5000,
+      interest_rate: over.interest_rate ?? 12,
+      min_payment: over.min_payment ?? 200,
+      is_paid_off: false,
+      ...over,
+    }) as Debt;
+
+  const mit = (debts: Debt[]): QuestionData => ({ debts, jetzt: new Date('2026-08-20T12:00:00Z') });
+
+  it('schulden.dauer sollte die Laufzeit bei den Mindestraten nennen', () => {
+    // Das Budget IST die Mindestrate: Wer fragt „wie lange noch", meint den
+    // Lauf, der ohne weitere Entscheidung eintritt. Eine grosszügigere
+    // Annahme machte die Antwort schöner und unbrauchbar.
+    const antwort = questionCatalog.byId('schulden.dauer')!.antwort({}, mit([schuld({})]));
+    expect(antwort.art).toBe('anzahl');
+    expect(antwort.wert).toBeGreaterThan(0);
+    expect(antwort.begruendung?.[0]?.params.betrag).toBe(200);
+  });
+
+  it('[REGRESSION] sollte bei zu kleinen Mindestraten KEINE Laufzeit nennen', () => {
+    // Decken die Raten die Zinsen nicht, gibt es keine Laufzeit — die Schuld
+    // wächst. Eine Zahl wäre hier die schädlichste Form von Zuversicht.
+    const antwort = questionCatalog
+      .byId('schulden.dauer')!
+      .antwort({}, mit([schuld({ balance: 20000, interest_rate: 20, min_payment: 5 })]));
+    expect(antwort.art).toBe('keine');
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.schuldenBudgetReichtNicht');
+  });
+
+  it('schulden.zinsen sollte die Zinssumme samt Laufzeit belegen', () => {
+    const antwort = questionCatalog.byId('schulden.zinsen')!.antwort({}, mit([schuld({})]));
+    expect(antwort.art).toBe('geld');
+    expect(antwort.wert).toBeGreaterThan(0);
+    expect(antwort.begruendung?.[0]?.params.monate).toBeGreaterThan(0);
+  });
+
+  it('schulden.sondertilgung sollte gesparte Zinsen als VERGLEICH liefern', () => {
+    // Verglichen werden die Zinsen, nicht die Monate: Die gesparten Zinsen
+    // sind das Geld, das jemand behält. Die kürzere Laufzeit steht daneben.
+    const antwort = questionCatalog
+      .byId('schulden.sondertilgung')!
+      .antwort({ betrag: 100 }, mit([schuld({})]));
+    expect(antwort.art).toBe('vergleich');
+    expect(antwort.vergleich!.referenz).toBeGreaterThan(antwort.wert!);
+    expect(antwort.aussage.params.gespart).toBeGreaterThan(0);
+    expect(antwort.begruendung?.[0]?.params.monate).toBeGreaterThan(0);
+  });
+
+  it('sollte ohne offene Schuld „keine" sagen statt 0 Monate', () => {
+    const antwort = questionCatalog.byId('schulden.dauer')!.antwort({}, mit([]));
+    expect(antwort.art).toBe('keine');
   });
 });
