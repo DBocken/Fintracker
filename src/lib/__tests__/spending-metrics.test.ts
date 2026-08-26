@@ -5,6 +5,7 @@ import {
   extremwertMonat,
   extremwertVorgang,
   monateImBestand,
+  monateZwischen,
   monatsDurchschnitt,
   monatsReihe,
   trendRichtung,
@@ -46,12 +47,30 @@ describe('monateImBestand', () => {
   });
 });
 
+describe('monateZwischen', () => {
+  it('sollte beide Monate einschliessen', () => {
+    expect(monateZwischen('2026-06-01', '2026-08-31')).toBe(3);
+    expect(monateZwischen('2026-07-01', '2026-07-31')).toBe(1);
+    expect(monateZwischen('2025-11-01', '2026-02-28')).toBe(4);
+  });
+});
+
 describe('monatsDurchschnitt', () => {
   it('sollte die Summe auf die abgedeckten Monate verteilen', () => {
     // 400 € über vier Kalendermonate = 100 €/Monat, obwohl nur zwei
     // Buchungen existieren.
     const menge = [tx('2026-01-15', -300), tx('2026-04-15', -100)];
     expect(monatsDurchschnitt(menge)).toBe(100);
+  });
+
+  it('[REGRESSION] sollte den Nenner von aussen nehmen — den BEOBACHTUNGSZEITRAUM', () => {
+    // Der Fund: Wer nur im Juni und Juli bei einem Händler war, den Bestand
+    // aber von Juni bis August führt, belastet seinen Haushalt über DREI
+    // Monate. Über die eigenen zwei gerechnet kommt eine systematisch zu
+    // hohe Zahl heraus — je seltener die Ausgabe, desto grösser der Fehler.
+    const menge = [tx('2026-06-05', -100), tx('2026-07-05', -200)];
+    expect(monatsDurchschnitt(menge)).toBe(150); // ohne Kontext: eigene Spanne
+    expect(monatsDurchschnitt(menge, 3)).toBe(100); // mit Beobachtungszeitraum
   });
 
   it('sollte bei leerer Menge null liefern statt 0 € zu behaupten', () => {

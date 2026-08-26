@@ -4492,7 +4492,7 @@ export const de = {
       anteilKeiner: 'Ohne erfasste Ausgaben lässt sich kein Anteil bilden.',
       jeVorgang: 'So viel gibst du bei {bezug} im Schnitt pro Einkauf aus.',
       jeVorgangKeiner: 'Dazu ist keine einzige Ausgabe erfasst.',
-      extremwertMonat: 'Das war dein teuerster Monat für {bezug}.',
+      extremwertMonat: 'Das war dein teuerster Monat für {bezug}: {monat}.',
       extremwertKeiner: 'Dazu ist noch kein Monat mit Ausgaben erfasst.',
       trendSteigend: 'Deine Ausgaben für {bezug} steigen über die letzten {anzahl} Monate — rund {prozent} % mehr.',
       trendFallend: 'Deine Ausgaben für {bezug} sinken über die letzten {anzahl} Monate — rund {prozent} % weniger.',

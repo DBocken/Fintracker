@@ -47,15 +47,43 @@ export function monateImBestand(transactions: readonly Transaction[]): number {
 }
 
 /**
- * Durchschnittliche Ausgabe pro Monat über den abgedeckten Zeitraum.
+ * Durchschnittliche Ausgabe pro Monat.
+ *
+ * **Der Nenner ist der BEOBACHTUNGSZEITRAUM, nicht die Spanne der eigenen
+ * Buchungen** — und das ist der ganze Unterschied: Wer nur im Juni und Juli
+ * bei einem Händler war, den Bestand aber von Juni bis August führt,
+ * belastet seinen Haushalt über drei Monate. Rechnet man nur über die
+ * eigenen zwei, kommt eine systematisch zu hohe Zahl heraus, und je
+ * seltener die Ausgabe, desto grösser der Fehler.
+ *
+ * Deshalb kommt `monateImZeitraum` von aussen: Die Menge selbst kann nicht
+ * wissen, worüber gefragt wurde. Ohne Angabe fällt die Rechnung auf die
+ * eigene Spanne zurück — das ist die schlechtere, aber einzige Auskunft,
+ * die eine Menge ohne Kontext geben kann.
+ *
  * `null`, wenn die Menge leer ist — „0 € im Monat" und „dazu liegt mir
  * nichts vor" sind verschiedene Aussagen (dieselbe Trennung wie beim
  * Leer- gegen Fehlerzustand, AGENTS.md §9.1).
  */
-export function monatsDurchschnitt(transactions: readonly Transaction[]): number | null {
-  const monate = monateImBestand(transactions);
-  if (monate === 0) return null;
-  return sumExpenses([...transactions]) / monate;
+export function monatsDurchschnitt(
+  transactions: readonly Transaction[],
+  monateImZeitraum?: number,
+): number | null {
+  const eigene = monateImBestand(transactions);
+  if (eigene === 0) return null;
+  const nenner = monateImZeitraum && monateImZeitraum > 0 ? monateImZeitraum : eigene;
+  return sumExpenses([...transactions]) / nenner;
+}
+
+/**
+ * Monate zwischen zwei ISO-Daten, beide einschliesslich — der Nenner für
+ * {@link monatsDurchschnitt}, wenn die Frage einen Zeitraum nennt.
+ */
+export function monateZwischen(vonIso: string, bisIso: string): number {
+  const [vonJahr, vonMonat] = vonIso.slice(0, 7).split('-').map(Number);
+  const [bisJahr, bisMonat] = bisIso.slice(0, 7).split('-').map(Number);
+  if (!vonJahr || !vonMonat || !bisJahr || !bisMonat) return 0;
+  return Math.max(0, (bisJahr - vonJahr) * 12 + (bisMonat - vonMonat) + 1);
 }
 
 /**

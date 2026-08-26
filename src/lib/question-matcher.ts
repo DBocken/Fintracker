@@ -230,8 +230,12 @@ function findeAlleTreffer(
       gefunden.set(eintrag.wert, eintrag);
     }
   }
+  // Sortiert nach POSITION im Satz, nicht nach Wortlänge: „Gebe ich mehr bei
+  // Rewe oder bei Edeka aus?" soll Rewe zuerst zeigen. Die Leserichtung der
+  // Frage ist die Leserichtung der Antwort — nach Länge sortiert stand sonst
+  // die zweitgenannte Größe vorn (im Browser so gemessen).
   return [...gefunden.values()].sort(
-    (a, b) => normalisiere(b.wort).length - normalisiere(a.wort).length,
+    (a, b) => text.indexOf(normalisiere(a.wort)) - text.indexOf(normalisiere(b.wort)),
   );
 }
 
@@ -632,14 +636,32 @@ export function extrahiereVergleich(
   // auskommt, und „im Vorjahr" darf nicht als zweite Kategorie verrutschen.
   const bezug = erkenneVergleichsBezug(text, locale);
   if (bezug) {
-    const zeitraum = parseZeitraum(text, locale, jetzt);
-    if (zeitraum) {
-      const referenz = referenzZeitraum(zeitraum.slot, bezug, locale);
+    // Ohne genannten Zeitraum ist der IMPLIZITE gemeint: „Sind meine Kosten
+    // höher als im Vorjahr?" vergleicht dieses Jahr mit dem letzten,
+    // „teurer als im Vormonat?" diesen Monat mit dem davor. Ohne diese
+    // Annahme blieb die häufigste Vergleichsform unbeantwortet — sie nennt
+    // ihren Hauptzeitraum nie, weil er selbstverständlich ist.
+    const genannt = parseZeitraum(text, locale, jetzt);
+    // Der implizite Zeitraum gilt nur, wenn die Frage eine BEZUGSGRÖSSE
+    // nennt. „Welche Verträge sind teurer geworden?" fragt nach einer Liste
+    // von Verträgen, nicht nach dem Zeitvergleich einer Summe — ohne diese
+    // Bedingung zog das Gate genau diese Bestandsfrage an sich.
+    const hatBezugsgroesse =
+      findeLaengsten(n, vokabular.kategorien) !== null ||
+      findeLaengsten(n, vokabular.haendler) !== null ||
+      (vokabular.konzeptAusText?.(text)?.length ?? 0) > 0;
+    const haupt =
+      genannt?.slot ??
+      (hatBezugsgroesse
+        ? parseZeitraum(bezug === 'vorjahr' ? 'dieses jahr' : 'diesen monat', 'de', jetzt)?.slot
+        : undefined);
+    if (haupt) {
+      const referenz = referenzZeitraum(haupt, bezug, locale);
       if (referenz) {
         return {
           achse: 'zeitraum',
           slots: {
-            zeitraum: zeitraum.slot,
+            zeitraum: haupt,
             vergleich: { art: 'zeitraum', zeitraum: referenz },
           },
         };
@@ -750,7 +772,14 @@ export function routeFrage(
     }
   }
 
-  const kandidaten = lexicalQuestionMatcher.match(text, vokabular, entries, locale, jetzt);
+  // Ohne erkannten Partner ist ein Vergleichs-Eintrag NIE richtig: Seine
+  // Referenzmenge wäre die Hauptmenge, und die Antwort läse sich als
+  // „Rewe gegen Rewe, Unterschied 0 €" — im Browser genau so gemessen.
+  // Diese Einträge erreichen die Fläche deshalb ausschliesslich über Stufe
+  // 0c, weder über die Wort- noch über die Subword-Ebene.
+  const ohneVergleiche = entries.filter((e) => !e.nimmtVergleich);
+
+  const kandidaten = lexicalQuestionMatcher.match(text, vokabular, ohneVergleiche, locale, jetzt);
   const lexikalisch = entscheideRouting(kandidaten);
   if (!intent) return lexikalisch;
 
@@ -779,7 +808,7 @@ export function routeFrage(
     // nicht, verdrängen auch nicht (vorn eingefügt hätte sie beim
     // Drei-Kandidaten-Schnitt genau die Option herausgeschoben, die der
     // Nutzer brauchte — so gemessen im Pane-Test).
-    const zusatz = entries.find((e) => e.id === intent.klasse);
+    const zusatz = ohneVergleiche.find((e) => e.id === intent.klasse);
     if (zusatz) {
       return {
         art: 'kandidaten',
@@ -793,7 +822,7 @@ export function routeFrage(
   // schlimmstes Ergebnis ist ein unpassender Button, deshalb die niedrige
   // Schwelle.
   if (!istLuecke && intent.marge >= MIN_INTENT_MARGE_ALLEIN) {
-    const entry = entries.find((e) => e.id === intent.klasse);
+    const entry = ohneVergleiche.find((e) => e.id === intent.klasse);
     if (entry) {
       const kandidat = kandidatFuer(text, vokabular, entry, locale, jetzt);
       // Eine gelernte Formulierung trägt die Antwort allein — sonst bleibt

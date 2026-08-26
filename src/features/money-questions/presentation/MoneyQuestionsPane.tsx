@@ -287,7 +287,17 @@ function einsetzen(
           ? geld(wert)
           : DATUM_PLATZHALTER.has(name) && typeof wert === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(wert)
             ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${wert}T12:00:00Z`))
-            : String(wert);
+            : // Ein roher Monat („2026-08") auf dem Bildschirm war hier schon
+              // einmal ein Browser-Fund — das Register liefert Daten, die
+              // Präsentation macht daraus Sprache.
+              MONATS_PLATZHALTER.has(name) && typeof wert === 'string' && /^\d{4}-\d{2}$/.test(wert)
+              ? formatMonat(wert, locale)
+              : // `all` ist die Kennung des Gesamtzeitraums, kein Wort. Roh
+                // stand „entfällt auf Wohnen, all." auf dem Bildschirm —
+                // dieselbe Sorte Fund wie der rohe Monat darüber.
+                wert === 'all'
+                ? t('financeQuestions.zeitraumGesamt')
+                : String(wert);
       return text.split(`{${name}}`).join(anzeige);
     },
     t(aussage.key),
@@ -299,6 +309,9 @@ const GELD_PLATZHALTER = new Set(['betrag', 'monatlich', 'rest']);
 
 /** Platzhalter, deren Wert ein ISO-Datum ist — formatiert wird je Sprache. */
 const DATUM_PLATZHALTER = new Set(['datum']);
+
+/** Platzhalter, deren Wert ein Monat (`yyyy-mm`) ist. */
+const MONATS_PLATZHALTER = new Set(['monat']);
 
 /**
  * yyyy-mm → sprachrichtiger Monatsname. Das Register liefert den Monat roh

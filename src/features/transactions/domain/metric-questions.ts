@@ -32,6 +32,8 @@ import {
   durchschnittJeVorgang,
   extremwertMonat,
   extremwertVorgang,
+  monateImBestand,
+  monateZwischen,
   monatsDurchschnitt,
   monatsReihe,
   trendRichtung,
@@ -101,7 +103,14 @@ const ausgabenDurchschnitt: QuestionEntry = {
   aufwand: 'guenstig',
   antwort: (slots, daten): QuestionAnswer => {
     const menge = mengeFuer(ausgabenDurchschnitt, slots, daten);
-    const wert = monatsDurchschnitt(menge.transactions);
+    // Der Nenner ist der BEOBACHTUNGSZEITRAUM: der gefragte Zeitraum, sonst
+    // die Spanne des ganzen Bestands. Über die eigenen Buchungen gerechnet
+    // käme eine zu hohe Zahl heraus — wer selten tankt, tankt trotzdem über
+    // das ganze Jahr verteilt.
+    const monate = slots.zeitraum
+      ? monateZwischen(slots.zeitraum.von, slots.zeitraum.bis)
+      : monateImBestand(daten.transactions ?? []);
+    const wert = monatsDurchschnitt(menge.transactions, monate);
     return {
       art: 'geld',
       wert,

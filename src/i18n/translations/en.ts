@@ -4480,7 +4480,7 @@ export const en = {
       anteilKeiner: 'Without recorded spending there is no share to work out.',
       jeVorgang: 'That is your average purchase at {bezug}.',
       jeVorgangKeiner: 'Not a single expense is recorded for this.',
-      extremwertMonat: 'That was your most expensive month for {bezug}.',
+      extremwertMonat: 'That was your most expensive month for {bezug}: {monat}.',
       extremwertKeiner: 'No month with spending is recorded for this yet.',
       trendSteigend: 'Your spending on {bezug} is rising across the last {anzahl} months — roughly {prozent} % more.',
       trendFallend: 'Your spending on {bezug} is falling across the last {anzahl} months — roughly {prozent} % less.',

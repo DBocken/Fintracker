@@ -4480,7 +4480,7 @@ export const ru = {
       anteilKeiner: 'Без учтённых расходов долю посчитать не из чего.',
       jeVorgang: 'Столько в среднем вы тратите за одну покупку в {bezug}.',
       jeVorgangKeiner: 'По этому не записано ни одного расхода.',
-      extremwertMonat: 'Это был ваш самый дорогой месяц по {bezug}.',
+      extremwertMonat: 'Это был ваш самый дорогой месяц по {bezug}: {monat}.',
       extremwertKeiner: 'По этому пока нет ни одного месяца с расходами.',
       trendSteigend: 'Ваши расходы на {bezug} растут за последние {anzahl} месяцев — примерно на {prozent} % больше.',
       trendFallend: 'Ваши расходы на {bezug} снижаются за последние {anzahl} месяцев — примерно на {prozent} % меньше.',
