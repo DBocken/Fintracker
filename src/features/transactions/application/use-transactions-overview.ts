@@ -26,7 +26,7 @@ import {
 import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import type { Transaction } from '@/types';
 import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
-import { computeLocalBalances, computeEffectiveBalances } from '@/features/shared/domain/balance-calculations';
+import { computeEffectiveBalances } from '@/features/shared/domain/balance-calculations';
 import {
   computeScopedBalance,
   computeEndingBalanceAnchor,
@@ -157,10 +157,9 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
 
-  const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
   const effectiveBalances = useMemo(
-    () => computeEffectiveBalances(accounts, localBalances),
-    [accounts, localBalances],
+    () => computeEffectiveBalances(accounts, txs),
+    [accounts, txs],
   );
 
   const scopedCurrentBalance = useMemo(

@@ -132,6 +132,70 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 - `AGENTS.md` §3 hält die Regel „Rechnen, schließen, prüfen" fest: wo Inferenz
   sitzen darf und warum kein Modellgewicht ausgeliefert wird.
 
+## 2026.8.3 — 2026-08-26
+
+### Behoben
+
+- **Der Kontostand stimmt nach einem Import, ohne manuelle Korrektur.** Ein
+  Saldo ist ab jetzt ein *Anker*: ein Betrag **mit Stichtag**, auf den nur die
+  Buchungen **nach** diesem Tag addiert werden. Vorher rechnete Fintracker
+  `Startsaldo + Summe ALLER Buchungen` — das Feld `opening_balance_date` wurde
+  zwar gespeichert und im Formular angezeigt, aber von keiner Rechnung gelesen.
+  Wer Historie nachimportierte, die älter war als sein Startsaldo, bekam sie
+  doppelt gezählt.
+- **Ein Bank-Saldo friert nicht mehr ein.** `live_balance_amount` schlug bisher
+  jede spätere Buchung — eine einmal eingetragene manuelle Korrektur war damit
+  ab dem nächsten Einkauf wieder falsch. Jetzt ist auch sie ein Anker und wächst
+  mit.
+- **Der Bank-Sync übernimmt den echten Kontostand der Bank** (`closingBooked`,
+  der Wert aus der Bank-App) samt deren Stichtag. Bisher wurde der Saldo aus der
+  ersten Buchung des Sync-Fensters *zurückgerechnet*, und weil der Sync
+  inkrementell läuft, war dieses Fenster bei jedem Lauf ein anderes. Der Abruf
+  existierte bereits (`live-balance-service`), war aber an kein Konto
+  angeschlossen.
+- **„Kein Startsaldo" ist nicht mehr dasselbe wie „Startsaldo 0 €".** Neue
+  Konten bekamen bisher zwangsweise die 0; das hat zwei Prüfungen still
+  ausgehebelt — den Erststart-Vorbehalt im Sync und den Hinweis „Startsaldo
+  ergänzen" in der Datenqualität, der deshalb nie erschien.
+
+### Behoben (Import-Felder)
+
+- **Bei einer Kartenzahlung steht wieder der Händler als Empfänger da**, nicht
+  die abwickelnde Bank. Die Auswertung lautete `debtorName || creditorName`
+  und `debtorAccount || creditorAccount` — dieselbe Reihenfolge für beide
+  Richtungen. Bei einer Ausgabe ist das Gegenüber aber der Creditor. Betroffen
+  war auch die Gegenkonto-IBAN, und die speist die Erkennung interner
+  Überträge.
+- **Kein Bankfeld geht beim Import mehr verloren.** Branchenschlüssel des
+  Händlers (MCC), Buchungsschlüssel (ISO 20022), Wertstellungsdatum, Mandats-
+  und End-to-End-Referenz, beide Namen und beide IBANs waren im Typ
+  deklariert und wurden verworfen. Sie stehen jetzt in `bank_fields` an der
+  Buchung.
+- **Die Art der Buchung in Klartext.** MCC 7523 heißt „Parken", `PMNT-CCRD-POSD`
+  heißt „Kartenzahlung" — unabhängig davon, ob der Verwendungszweck nur aus
+  Terminal-Kennungen besteht. Wird als Beschreibung genommen, wenn die Bank
+  keinen Verwendungszweck liefert.
+
+### Intern
+
+- `computeEffectiveBalances` nimmt die Buchungen **roh** entgegen statt
+  vorsummiert. Die alte Signatur (`Record<accountId, number>`) hatte die
+  Datumsangaben bereits weggeworfen, bevor die Funktion sie sehen konnte — sie
+  machte die richtige Rechnung unmöglich und keinen Test rot.
+- `net-worth-service` rechnet nicht mehr selbst: Die zweite Kopie derselben
+  Saldo-Formel (mit demselben Fehler) ist durch einen Aufruf der kanonischen
+  Fassung ersetzt.
+- 14 neue Tests zur Anker-Logik, 4 zum Sync — darunter der gemeldete Fall
+  (Startsaldo zum Stichtag, Historie danach nachimportiert) als `[REGRESSION]`.
+- **Eigenschaftsbasierte Tests (`fast-check`) für die Rechenkerne.** Der
+  Saldo-Fehler hatte 15 gründliche Beispieltests neben sich, alle grün — sie
+  prüften die Fälle, die sich jemand vorgestellt hat. Zwölf Eigenschaften
+  prüfen jetzt Aussagen statt Beispiele („eine Buchung vor dem Stichtag ändert
+  den Saldo nicht", „ein Transferpaar verändert Einnahmen und Ausgaben nicht",
+  „`sumMinor` ist reihenfolgeunabhängig"). Gegenprobe: Gegen die alte Rechnung
+  fallen genau die zwei Eigenschaften, die den Fehler beschreiben — mit einem
+  auf eine Buchung und einen Cent geschrumpften Gegenbeispiel.
+
 ## 2026.8.2 — 2026-08-12
 
 ### Neu
