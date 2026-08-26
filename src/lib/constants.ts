@@ -13,7 +13,13 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const LOCAL_STORAGE_QUOTE_BYTES = 5 * 1024 * 1024; // ~5MB
-export const MAX_TRANSACTIONS_LOCAL = 10000;
+// `MAX_TRANSACTIONS_LOCAL = 10000` stand hier bis zur O-Notations-Durchsicht
+// und wurde NIRGENDS gelesen — nicht in `src/`, nicht in `api/`, nicht in einem
+// Test. Eine Grenzkonstante ohne Prüfstelle ist schlimmer als keine: Sie
+// beruhigt beim Lesen („n ist ja gedeckelt") und schützt beim Laufen nicht,
+// und genau auf diese Beruhigung stützt sich sonst jede Laufzeit-Überlegung.
+// Der Bestand ist unbegrenzt; was ihn tatsächlich trägt, steht in
+// `docs/performance.md`.
 
 // ============================================
 // API / Pagination

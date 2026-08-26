@@ -18,7 +18,7 @@ import {
 import { backfillAusgabenklasse } from '@/lib/category-migrations';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getMerchantRules, upsertMerchantRule } from './merchant-rules-service';
-import { categorizeTransaction, categorizeTransactionConfident } from '@/lib/categorization';
+import { createCategorizer } from '@/lib/categorization';
 import { parseGermanNumber, isCentPrecise } from '../lib/money';
 import { t } from '@/i18n/serviceT';
 
@@ -414,6 +414,7 @@ export async function recategorizeTransactions(): Promise<{
   let changed = 0;
   const total = transactions.length;
   const undo: CategorizationSnapshotEntry[] = [];
+  const categorizer = createCategorizer(categories, learnedRules);
 
   for (const tx of transactions) {
     // Vom Nutzer bestätigte Kategorien sind manuelle Arbeit und werden vom
@@ -424,7 +425,7 @@ export async function recategorizeTransactions(): Promise<{
       continue;
     }
 
-    const newCat = categorizeTransactionConfident(tx, categories, learnedRules);
+    const newCat = categorizer.categorizeConfident(tx);
     const prevCat = tx.category_id || null;
 
     if (newCat) assigned += 1;
@@ -470,8 +471,9 @@ export async function restoreCategorization(entries: CategorizationSnapshotEntry
 export async function applyAutoCategorization(transactions: Transaction[]): Promise<Transaction[]> {
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
+  const categorizer = createCategorizer(categories, learnedRules);
   return transactions.map((t) => {
-    const newCat = categorizeTransactionConfident(t, categories, learnedRules);
+    const newCat = categorizer.categorizeConfident(t);
     return {
       ...t,
       category_id: newCat,
@@ -487,8 +489,9 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
 
   const learnedRules = await getMerchantRules();
   const all = await getTransactions(2000);
+  const categorizer = createCategorizer(categories, learnedRules);
   const affected = all.filter((t) => {
-    const newCat = categorizeTransaction(t, categories, learnedRules);
+    const newCat = categorizer.categorize(t);
     return t.category_id !== categoryId && newCat === categoryId;
   });
 
@@ -503,9 +506,10 @@ export async function getTopCategorySuggestion(): Promise<CategorySuggestion | n
   if (!all.length || !categories.length) return null;
 
   const counts: Record<string, number> = {};
+  const categorizer = createCategorizer(categories, learnedRules);
 
   for (const t of all) {
-    const newCat = categorizeTransaction(t, categories, learnedRules);
+    const newCat = categorizer.categorize(t);
     if (!newCat) continue;
     if (t.category_id === newCat) continue;
     counts[newCat] = (counts[newCat] || 0) + 1;
