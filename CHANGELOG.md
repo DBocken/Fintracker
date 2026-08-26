@@ -22,6 +22,42 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Behoben
+
+- **Der Kontostand stimmt nach einem Import, ohne manuelle Korrektur.** Ein
+  Saldo ist ab jetzt ein *Anker*: ein Betrag **mit Stichtag**, auf den nur die
+  Buchungen **nach** diesem Tag addiert werden. Vorher rechnete Fintracker
+  `Startsaldo + Summe ALLER Buchungen` — das Feld `opening_balance_date` wurde
+  zwar gespeichert und im Formular angezeigt, aber von keiner Rechnung gelesen.
+  Wer Historie nachimportierte, die älter war als sein Startsaldo, bekam sie
+  doppelt gezählt.
+- **Ein Bank-Saldo friert nicht mehr ein.** `live_balance_amount` schlug bisher
+  jede spätere Buchung — eine einmal eingetragene manuelle Korrektur war damit
+  ab dem nächsten Einkauf wieder falsch. Jetzt ist auch sie ein Anker und wächst
+  mit.
+- **Der Bank-Sync übernimmt den echten Kontostand der Bank** (`closingBooked`,
+  der Wert aus der Bank-App) samt deren Stichtag. Bisher wurde der Saldo aus der
+  ersten Buchung des Sync-Fensters *zurückgerechnet*, und weil der Sync
+  inkrementell läuft, war dieses Fenster bei jedem Lauf ein anderes. Der Abruf
+  existierte bereits (`live-balance-service`), war aber an kein Konto
+  angeschlossen.
+- **„Kein Startsaldo" ist nicht mehr dasselbe wie „Startsaldo 0 €".** Neue
+  Konten bekamen bisher zwangsweise die 0; das hat zwei Prüfungen still
+  ausgehebelt — den Erststart-Vorbehalt im Sync und den Hinweis „Startsaldo
+  ergänzen" in der Datenqualität, der deshalb nie erschien.
+
+### Intern
+
+- `computeEffectiveBalances` nimmt die Buchungen **roh** entgegen statt
+  vorsummiert. Die alte Signatur (`Record<accountId, number>`) hatte die
+  Datumsangaben bereits weggeworfen, bevor die Funktion sie sehen konnte — sie
+  machte die richtige Rechnung unmöglich und keinen Test rot.
+- `net-worth-service` rechnet nicht mehr selbst: Die zweite Kopie derselben
+  Saldo-Formel (mit demselben Fehler) ist durch einen Aufruf der kanonischen
+  Fassung ersetzt.
+- 14 neue Tests zur Anker-Logik, 4 zum Sync — darunter der gemeldete Fall
+  (Startsaldo zum Stichtag, Historie danach nachimportiert) als `[REGRESSION]`.
+
 ## 2026.8.2 — 2026-08-12
 
 ### Neu

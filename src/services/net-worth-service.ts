@@ -1,4 +1,5 @@
-import type { Account, Transaction } from "../types";
+import { computeAnchoredBalance, pickBalanceAnchor } from "@/features/shared/domain/balance-calculations";
+import type { Account } from "../types";
 import { getAccounts } from "./account-service";
 import { getTransactions } from "./transaction-service";
 import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
@@ -82,17 +83,17 @@ export interface NetWorthBreakdown {
 }
 
 /**
- * Compute the local balance of an account: opening balance (if set) plus
- * the sum of its transactions. Without an opening balance, the result only
- * reflects the imported history and may not match the real bank balance.
+ * Kontosaldo aus dem Anker (Bank-Saldo oder Startsaldo) plus den Buchungen
+ * NACH dessen Stichtag.
+ *
+ * Hier stand bis zur Anker-Korrektur eine zweite, eigene Implementierung
+ * derselben Rechnung — mit demselben Fehler wie die im Dashboard: Sie
+ * summierte ALLE Buchungen auf den Startsaldo, auch die, die bereits in ihm
+ * steckten. Zwei Kopien einer Rechnung sind zwei Orte, an denen sie falsch
+ * sein kann; deshalb ruft diese Datei jetzt die kanonische Fassung auf,
+ * statt sie nachzubauen.
  */
-function computeLocalBalance(account: Account, transactions: Transaction[]): number {
-  let sum = Number(account.opening_balance) || 0;
-  for (const t of transactions) {
-    if (t.account_id === account.id) sum += t.amount;
-  }
-  return sum;
-}
+const computeLocalBalance = computeAnchoredBalance;
 
 /**
  * Aggregate net worth across accounts (cash), portfolios (investments) and debts.
@@ -112,17 +113,19 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
   const accountSources: AccountSource[] = [];
   let cash = 0;
   for (const acc of accounts as Account[]) {
-    const hasLiveBalance = acc.live_balance_amount !== null && acc.live_balance_amount !== undefined;
-    const balance = hasLiveBalance
-      ? Number(acc.live_balance_amount) || 0
-      : computeLocalBalance(acc, transactions);
+    // Ein Bank-Saldo ist ein Anker, kein Endergebnis: Er wird nicht mehr
+    // ungefiltert übernommen, sondern von `computeLocalBalance` mit den
+    // Buchungen NACH seinem Stichtag fortgeschrieben. Vorher fror er ein —
+    // jede spätere Buchung war im Nettovermögen unsichtbar.
+    const anchor = pickBalanceAnchor(acc);
+    const balance = computeLocalBalance(acc, transactions);
     accountBalances[acc.id] = balance;
     cash += balance;
     accountSources.push({
       id: acc.id,
       name: acc.name,
       balance,
-      source: hasLiveBalance ? "live" : "local",
+      source: anchor?.source === "bank" ? "live" : "local",
       lastSyncAt: acc.live_balance_updated_at ?? null,
     });
   }

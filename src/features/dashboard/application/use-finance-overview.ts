@@ -26,7 +26,7 @@ import { buildSankeyData } from '@/lib/chart-data/sankey';
 import { buildSpendingSunburst, buildSunburstTree } from '@/lib/chart-data/sunburst';
 import type { Transaction } from '@/types';
 import { dashboardKeys, DASHBOARD_TRANSACTION_LIMIT } from '../data/dashboard-query-keys';
-import { computeLocalBalances, computeEffectiveBalances, computeTotalEffectiveBalance } from '../domain/balance-calculations';
+import { computeEffectiveBalances, computeTotalEffectiveBalance } from '../domain/balance-calculations';
 import { computeFlowTotals, buildIncomeExpenseSeries } from '../domain/overview-calculations';
 import type { FinanceOverviewViewModel, DashboardFilterValues, SortConfig } from './finance-overview-view-model';
 
@@ -87,10 +87,11 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   // waere ein Wiederholversuch fuer ein Fuenftel der Ursachen.
   const { allocations, isError: allocError } = useAllocationMap();
 
-  const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
+  // Die Buchungen gehen ROH hinein, nicht vorsummiert: Der Saldo braucht ihre
+  // Datumsangaben, um Historie vor dem Anker-Stichtag nicht doppelt zu zählen.
   const effectiveBalances = useMemo(
-    () => computeEffectiveBalances(accounts, localBalances),
-    [accounts, localBalances],
+    () => computeEffectiveBalances(accounts, txs),
+    [accounts, txs],
   );
   const totalEffectiveBalance = useMemo(
     () => computeTotalEffectiveBalance(accounts, effectiveBalances),

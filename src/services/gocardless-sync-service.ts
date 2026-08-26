@@ -1,4 +1,5 @@
 import { gocardlessService } from './gocardless-service';
+import { getBankBalanceForAccount } from './live-balance-service';
 import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
 import { categorizeTransactionConfident } from '@/lib/categorization';
@@ -196,6 +197,42 @@ export async function reconcileAllInternalTransfers(): Promise<void> {
 }
 
 /**
+ * Holt den echten Kontostand der Bank (`closingBooked` — der Wert, den auch
+ * die Bank-App zeigt) und schreibt ihn samt Stichtag als Saldo-Anker fort.
+ *
+ * **Warum das der eigentliche Kern des Imports ist.** Vorher wurde der Anker
+ * aus der ERSTEN Buchung des Sync-Fensters zurückgerechnet
+ * (`balanceAfterTransaction - amount`). Das ergibt einen Anker am ANFANG des
+ * Fensters, und weil der Sync inkrementell läuft (`dateFrom = last_sync_at`),
+ * war dieser Anfang bei jedem Lauf ein anderer — während zugleich weiterhin
+ * die gesamte Buchungshistorie daraufaddiert wurde. Der Bank-Saldo selbst,
+ * den GoCardless mitliefert, landete nie im lokalen Konto; er wurde nur
+ * ungespeichert in der Kontenliste angezeigt. Deshalb musste der Kontostand
+ * nach jedem Import von Hand nachgezogen werden.
+ *
+ * Fehler beim Abruf sind hier nicht tödlich: Der Saldo bleibt dann auf dem
+ * letzten bekannten Anker stehen, und der Buchungs-Import läuft weiter.
+ */
+async function refreshBalanceAnchor(account: Account): Promise<void> {
+  try {
+    const live = await getBankBalanceForAccount(account);
+    if (!live || !Number.isFinite(live.amount)) return;
+
+    await updateAccount({
+      id: account.id,
+      live_balance_amount: live.amount,
+      live_balance_currency: live.currency || account.currency || 'EUR',
+      live_balance_type: live.balanceType || null,
+      // Der Stichtag der BANK, nicht der Zeitpunkt des Abrufs: Er entscheidet,
+      // welche Buchungen noch auf den Anker draufgerechnet werden.
+      live_balance_updated_at: live.referenceDate || new Date().toISOString(),
+    });
+  } catch (error: unknown) {
+    console.warn('[gocardless-sync] Balance anchor refresh failed:', { message: (error as Error).message });
+  }
+}
+
+/**
  * Sync transactions for a single GoCardless-connected account
  */
 export async function syncAccountTransactions(account: Account): Promise<SyncResult> {
@@ -249,6 +286,10 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
     if (!transactions || transactions.length === 0) {
       console.log('[gocardless-sync] Account sync completed with no new transactions');
+      // Keine neue Buchung heisst NICHT „Saldo unveraendert": Zinsen, Gebuehren
+      // und Buchungen, die die Bank erst spaeter nachliefert, bewegen ihn auch
+      // dann. Der Anker wird deshalb auch auf diesem Weg nachgezogen.
+      await refreshBalanceAnchor(account);
       await updateAccount({
         id: account.id,
         last_sync_at: new Date().toISOString(),
@@ -267,7 +308,15 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
     const learnedRules = await getMerchantRules();
     const userSettings = await getUserSettings();
 
-    // Extract opening balance from earliest transaction's balance
+    // Startsaldo aus der ersten Buchung des Fensters zurueckrechnen — als
+    // Rueckfallebene fuer den Fall, dass die Bank keinen Saldo herausgibt.
+    //
+    // Das ist NUR beim allerersten Sync eines Kontos zulaessig: Nur dann ist
+    // das Fenster die volle Historie und der lokale Bestand leer. Bei jedem
+    // weiteren (inkrementellen) Lauf waere das Ergebnis der Saldo vor einem
+    // beliebigen Zwischenstand — und genau der wurde bisher gesetzt, weil die
+    // Bedingung `!account.opening_balance` bei dem von `createAccount`
+    // vergebenen Wert 0 IMMER wahr war.
     let openingBalance: number | null = null;
     let openingBalanceDate: string | null = null;
 
@@ -359,13 +408,20 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       last_sync_at: new Date().toISOString(),
     };
 
-    // Only update opening_balance if we don't already have one
-    if (!account.opening_balance && openingBalance !== null) {
+    // Erststart-Rueckfallebene: nur ohne jeden vorhandenen Anker und nur beim
+    // ersten Sync dieses Kontos (`last_sync_at === null`).
+    const hasAnchor =
+      account.opening_balance != null || account.live_balance_amount != null;
+    if (!hasAnchor && !account.last_sync_at && openingBalance !== null) {
       accountUpdate.opening_balance = openingBalance;
       accountUpdate.opening_balance_date = openingBalanceDate;
     }
 
     await updateAccount(accountUpdate);
+
+    // Der echte Bankstand zuletzt: Er ist die beste verfuegbare Auskunft und
+    // ueberschreibt als juengerer Anker alles Zurueckgerechnete.
+    await refreshBalanceAnchor(account);
 
     // Apply contract detection to all transactions (existing and newly synced)
     if (result.importedCount > 0) {

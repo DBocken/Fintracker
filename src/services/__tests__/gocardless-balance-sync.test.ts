@@ -18,9 +18,10 @@ let mockGoCardlessTransactions: unknown[] = [];
 let mockAccounts: Account[] = [];
 let mockStoredTransactions: Transaction[] = [];
 
-const { updateAccountMock, createTransactionMock } = vi.hoisted(() => ({
+const { updateAccountMock, createTransactionMock, getBankBalanceMock } = vi.hoisted(() => ({
   updateAccountMock: vi.fn(),
   createTransactionMock: vi.fn(),
+  getBankBalanceMock: vi.fn(),
 }));
 
 updateAccountMock.mockImplementation(async (update: Partial<Account> & { id: string }) => {
@@ -58,6 +59,10 @@ vi.mock('../transaction-service', () => ({
   markTransferPair: vi.fn(() => Promise.resolve()),
 }));
 
+vi.mock('../live-balance-service', () => ({
+  getBankBalanceForAccount: getBankBalanceMock,
+}));
+
 vi.mock('../merchant-rules-service', () => ({
   getMerchantRules: vi.fn(() => Promise.resolve([])),
 }));
@@ -67,6 +72,20 @@ vi.mock('../contract-detection-service', () => ({
 }));
 
 import { syncAccountTransactions } from '../gocardless-sync-service';
+
+/** Der Aufruf, der `last_sync_at` fortschreibt — die Konto-Aktualisierung des Imports. */
+function accountUpdateCall(): (Partial<Account> & { id: string }) | undefined {
+  return updateAccountMock.mock.calls
+    .map((c) => c[0] as Partial<Account> & { id: string })
+    .find((c) => c.last_sync_at !== undefined);
+}
+
+/** Der Aufruf, der den Saldo-Anker schreibt. */
+function anchorUpdateCall(): (Partial<Account> & { id: string }) | undefined {
+  return updateAccountMock.mock.calls
+    .map((c) => c[0] as Partial<Account> & { id: string })
+    .find((c) => c.live_balance_amount !== undefined);
+}
 
 function makeAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -92,6 +111,10 @@ describe('syncAccountTransactions — opening balance capture', () => {
     mockStoredTransactions = [];
     updateAccountMock.mockClear();
     createTransactionMock.mockClear();
+    // Voreinstellung: Die Bank gibt keinen Saldo heraus. Die Tests, die den
+    // Anker prüfen, setzen ihn ausdrücklich.
+    getBankBalanceMock.mockReset();
+    getBankBalanceMock.mockResolvedValue(null);
   });
 
   it('erfasst opening_balance aus der einzigen Transaktion (balanceAfter - amount)', async () => {
@@ -145,7 +168,7 @@ describe('syncAccountTransactions — opening balance capture', () => {
 
     await syncAccountTransactions(acc);
 
-    const call = updateAccountMock.mock.calls.at(-1)?.[0] as Partial<Account> | undefined;
+    const call = accountUpdateCall();
     expect(call?.opening_balance).toBeUndefined();
     expect(call?.opening_balance_date).toBeUndefined();
   });
@@ -159,7 +182,7 @@ describe('syncAccountTransactions — opening balance capture', () => {
 
     await syncAccountTransactions(acc);
 
-    const call = updateAccountMock.mock.calls.at(-1)?.[0] as Partial<Account> | undefined;
+    const call = accountUpdateCall();
     expect(call?.opening_balance).toBeUndefined();
   });
 
@@ -196,5 +219,78 @@ describe('syncAccountTransactions — opening balance capture', () => {
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.importedCount).toBe(0);
     expect(updateAccountMock).not.toHaveBeenCalled();
+  });
+  it('[REGRESSION] setzt beim INKREMENTELLEN Sync kein opening_balance mehr', async () => {
+    // Der Kern des gemeldeten Fehlers: `!account.opening_balance` war bei dem
+    // von `createAccount` vergebenen Wert 0 immer wahr, und das Sync-Fenster
+    // beginnt ab dem zweiten Lauf bei `last_sync_at`. Der zurueckgerechnete
+    // Wert war damit der Saldo vor einem beliebigen Zwischenstand — waehrend
+    // die gesamte Historie weiter daraufaddiert wurde.
+    const acc = makeAccount({ opening_balance: 0, last_sync_at: '2024-06-01T00:00:00.000Z' });
+    mockAccounts = [acc];
+    mockGoCardlessTransactions = [
+      { transactionId: 't1', bookingDate: '2024-06-10', transactionAmount: { amount: '-100', currency: 'EUR' }, balanceAfterTransaction: { balanceAmount: { amount: '900', currency: 'EUR' }, balanceType: 'CLBD' } },
+    ];
+
+    await syncAccountTransactions(acc);
+
+    const call = accountUpdateCall();
+    expect(call?.opening_balance).toBeUndefined();
+    expect(call?.opening_balance_date).toBeUndefined();
+  });
+
+  it('[REGRESSION] schreibt den echten Bankstand mit dem Stichtag der Bank als Anker', async () => {
+    const acc = makeAccount();
+    mockAccounts = [acc];
+    getBankBalanceMock.mockResolvedValue({
+      amount: 1234.56,
+      currency: 'EUR',
+      balanceType: 'closingBooked',
+      referenceDate: '2024-06-20',
+    });
+    mockGoCardlessTransactions = [
+      { transactionId: 't1', bookingDate: '2024-06-10', transactionAmount: { amount: '-100', currency: 'EUR' } },
+    ];
+
+    await syncAccountTransactions(acc);
+
+    expect(anchorUpdateCall()).toEqual({
+      id: 'acc-1',
+      live_balance_amount: 1234.56,
+      live_balance_currency: 'EUR',
+      live_balance_type: 'closingBooked',
+      live_balance_updated_at: '2024-06-20',
+    });
+  });
+
+  it('zieht den Saldo-Anker auch dann nach, wenn die Bank keine neue Buchung liefert', async () => {
+    const acc = makeAccount();
+    mockAccounts = [acc];
+    getBankBalanceMock.mockResolvedValue({
+      amount: 42,
+      currency: 'EUR',
+      balanceType: 'closingBooked',
+      referenceDate: '2024-06-21',
+    });
+    mockGoCardlessTransactions = [];
+
+    await syncAccountTransactions(acc);
+
+    expect(anchorUpdateCall()?.live_balance_amount).toBe(42);
+  });
+
+  it('bricht den Import nicht ab, wenn der Saldo-Abruf scheitert', async () => {
+    const acc = makeAccount();
+    mockAccounts = [acc];
+    getBankBalanceMock.mockRejectedValue(new Error('Bank nicht erreichbar'));
+    mockGoCardlessTransactions = [
+      { transactionId: 't1', bookingDate: '2024-06-10', transactionAmount: { amount: '-100', currency: 'EUR' } },
+    ];
+
+    const result = await syncAccountTransactions(acc);
+
+    expect(result.errors).toEqual([]);
+    expect(result.importedCount).toBe(1);
+    expect(anchorUpdateCall()).toBeUndefined();
   });
 });

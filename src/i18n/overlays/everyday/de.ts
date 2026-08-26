@@ -478,8 +478,8 @@ export const everydayDe: TranslationOverlay = {
     formDialog: {
       balanceDateLabel: 'Kontostand-Stichtag',
       openingBalanceLabel: 'Kontostand am Anfang (optional)',
-      balanceHint: 'Kontostand vor der ersten importierten/erfassten Transaktion. Wird zur Summe der Transaktionen addiert, damit der berechnete Stand dem echten Kontostand entspricht.',
-      manualBalanceHint: 'Überschreibt den berechneten/synchronisierten Kontostand direkt – z.B. um nach einem CSV-Import den echten Stand laut Kontoauszug einzutragen.',
+      balanceHint: 'Kontostand am Ende des Stichtags. Nur Buchungen NACH diesem Tag kommen drauf – ältere kannst du gefahrlos nachimportieren, sie zählen nicht doppelt.',
+      manualBalanceHint: 'Setzt den Kontostand auf das, was heute auf deinem Kontoauszug steht. Spätere Buchungen kommen ab morgen wieder drauf – der Stand bleibt nicht stehen.',
     },
     cards: {
       totalBalance: 'Gesamter Kontostand',
