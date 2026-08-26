@@ -4,6 +4,7 @@ import { asTransactionId } from '@/lib/ids';
 import type { QuestionData } from '@/lib/question-registry';
 import type { Transaction } from '@/types';
 import { SUPPORTED_LOCALES } from '@/i18n/locale';
+import { istTransferAktion } from '@/lib/question-registry';
 import { translations } from '@/i18n/translations';
 
 /** Punktpfad in einem Sprachbaum auflösen. */
@@ -282,5 +283,56 @@ describe('liquiditaet.reichweite', () => {
     const antwort = eintrag.antwort({}, daten({ transactions: [] }));
     expect(antwort.art).toBe('keine');
     expect(antwort.aussage.key).toBe('financeQuestions.answer.reichweiteOhneAusgaben');
+  });
+});
+
+describe('transfer.aktion', () => {
+  const eintrag = questionCatalog.byId('transfer.aktion')!;
+
+  let m = 0;
+  function b(betrag: number, konto: string, datum: string): Transaction {
+    m += 1;
+    return {
+      id: asTransactionId(`ta-${m}`),
+      date: datum,
+      amount: betrag,
+      account_id: konto,
+      payee: betrag < 0 ? 'Abbuchung' : 'Gutschrift',
+      description: '',
+      original_text: '',
+      auto_mapped: false,
+      confirmed: true,
+    } as Transaction;
+  }
+
+  it('sollte die WIRKUNG nennen, nicht nur die Paare', () => {
+    // Ein markierter Übertrag verschwindet aus jeder Auswertung. „3 Paare
+    // markieren?" lässt niemanden abschätzen, was er auslöst — die Summe,
+    // die aus Einnahmen UND Ausgaben fällt, tut es.
+    const antwort = eintrag.antwort(
+      {},
+      daten({ transactions: [b(-500, 'giro', '2026-08-01'), b(500, 'spar', '2026-08-02')] }),
+    );
+    expect(antwort.art).toBe('aktion');
+    const vorschau = antwort.aktion;
+    expect(vorschau && istTransferAktion(vorschau) ? vorschau.summe : null).toBe(500);
+  });
+
+  it('sollte dieselbe Kandidatenmenge finden wie der Lese-Eintrag', () => {
+    // Zwei Wege zur selben Menge wären zwei Orte, an denen Toleranz und
+    // Zeitfenster auseinanderlaufen können.
+    const zustand = daten({
+      transactions: [b(-500, 'giro', '2026-08-01'), b(500, 'spar', '2026-08-02')],
+    });
+    const lesen = questionCatalog.byId('transfer.kandidaten')!.antwort({}, zustand);
+    expect(eintrag.antwort({}, zustand).anzahl).toBe(lesen.anzahl);
+  });
+
+  it('sollte ohne Fund eine ZAHL nennen statt eine leere Vorschau', () => {
+    // Einen Bestätigen-Knopf anzubieten, der nichts ändert, wäre eine leere
+    // Zusage.
+    const antwort = eintrag.antwort({}, daten({ transactions: [] }));
+    expect(antwort.art).toBe('anzahl');
+    expect(antwort.wert).toBe(0);
   });
 });

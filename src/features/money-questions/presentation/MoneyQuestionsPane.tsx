@@ -8,12 +8,17 @@ import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState'
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import type { Aussage, DataNeed, QuestionAnswer } from '@/lib/question-registry';
-import { istAnlassAktion, istKategorieAktion } from '@/lib/question-registry';
+import {
+  istAnlassAktion,
+  istKategorieAktion,
+  istTransferAktion,
+} from '@/lib/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
 import { SzenarioAntwort } from './SzenarioAntwort';
 import { ZielAntwort } from './ZielAntwort';
 import { KategorieAktionAntwort } from './KategorieAktionAntwort';
 import { AnlassAktionAntwort } from './AnlassAktionAntwort';
+import { TransferAktionAntwort } from './TransferAktionAntwort';
 import { BudgetAktionAntwort } from './BudgetAktionAntwort';
 
 /**
@@ -255,6 +260,9 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
     }
     if (istAnlassAktion(vorschlag)) {
       return <AnlassAktionAntwort vorschlag={vorschlag} aussage={aussage} />;
+    }
+    if (istTransferAktion(vorschlag)) {
+      return <TransferAktionAntwort vorschlag={vorschlag} aussage={aussage} />;
     }
     return (
       <BudgetAktionAntwort

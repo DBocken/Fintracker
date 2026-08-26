@@ -48,6 +48,7 @@ import type { SzenarioAbsicht } from '@/lib/scenario-intent';
 import type { BudgetAktionsAbsicht } from '@/lib/budget-action-intent';
 import type { KategorieAktionsAbsicht } from '@/lib/categorize-action-intent';
 import type { AnlassAktionsAbsicht } from '@/lib/anlass-action-intent';
+import type { TransferAktionsAbsicht } from '@/lib/transfer-action-intent';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
 import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';
@@ -142,6 +143,8 @@ export interface QuestionSlots {
   kategorieAktion?: KategorieAktionsAbsicht;
   /** Erkannte Anlass-Absicht (Welle 5). */
   anlassAktion?: AnlassAktionsAbsicht;
+  /** Erkannte Übertrags-Absicht (Welle 5). */
+  transferAktion?: TransferAktionsAbsicht;
 }
 
 /**
@@ -211,11 +214,33 @@ export interface AnlassAktionsVorschlag {
   buchungen: readonly string[];
 }
 
+/**
+ * Vorschau einer Übertrags-Markierung (Welle 5).
+ *
+ * Die folgenreichste der drei Aktionen: Ein markierter Übertrag verschwindet
+ * aus JEDER Auswertung. Die Vorschau nennt deshalb nicht nur die Paare,
+ * sondern auch die SUMME, die aus Einnahmen und Ausgaben verschwindet — die
+ * Wirkung, nicht bloss den Vorgang.
+ */
+export interface TransferAktionsVorschlag {
+  art: 'transferMarkieren';
+  /** Paare aus abgehender und eingehender Buchung. */
+  paare: readonly { ausId: string; einId: string; label: string; betrag: number }[];
+  /** Summe, die durch die Markierung aus beiden Richtungen fällt. */
+  summe: number;
+}
+
 /** Jede Vorschau einer schreibenden Chat-Aktion. */
 export type AktionsVorschlag =
   | BudgetAktionsVorschlag
   | KategorieAktionsVorschlag
-  | AnlassAktionsVorschlag;
+  | AnlassAktionsVorschlag
+  | TransferAktionsVorschlag;
+
+/** Ist der Vorschlag eine Übertrags-Markierung? */
+export function istTransferAktion(v: AktionsVorschlag): v is TransferAktionsVorschlag {
+  return v.art === 'transferMarkieren';
+}
 
 /**
  * Ist dieser Eintrag ein SCHREIBENDER — einer, den nur seine eigene
@@ -234,7 +259,12 @@ export type AktionsVorschlag =
  * das war beim Bau messbar.
  */
 export function istAktionsEintrag(entry: QuestionEntry): boolean {
-  return Boolean(entry.nimmtBudgetAktion || entry.nimmtKategorieAktion || entry.nimmtAnlassAktion);
+  return Boolean(
+    entry.nimmtBudgetAktion ||
+      entry.nimmtKategorieAktion ||
+      entry.nimmtAnlassAktion ||
+      entry.nimmtTransferAktion,
+  );
 }
 
 /** Ist der Vorschlag eine Anlass-Aktion? */
@@ -552,6 +582,8 @@ export interface QuestionEntry {
   nimmtKategorieAktion?: boolean;
   /** Nimmt dieser Eintrag die erkannte {@link AnlassAktionsAbsicht} entgegen? */
   nimmtAnlassAktion?: boolean;
+  /** Nimmt dieser Eintrag die erkannte {@link TransferAktionsAbsicht} entgegen? */
+  nimmtTransferAktion?: boolean;
   /** REIN und SYNCHRON. Ruft keinen Service — auch ein Aktions-Eintrag nicht. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }

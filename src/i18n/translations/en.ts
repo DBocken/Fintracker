@@ -4391,7 +4391,7 @@ export const en = {
       ziel: { obergrenze: 'Highest amount that still holds', sparrate: 'Monthly rate needed' },
       steuer: { gewinn: 'Profit by cash-basis accounts', ruecklage: 'Tax reserve' },
       anlass: { kosten: 'Cost of an event', liste: 'Your events', vorschlag: 'Transactions for an event', aktion: 'Create an event or assign' },
-      transfer: { kandidaten: 'Possible internal transfers' },
+      transfer: { kandidaten: 'Possible internal transfers', aktion: 'Mark transfers' },
       depot: { wert: 'Value of your portfolios', rendite: 'Gain or loss in your portfolio', positionen: 'Largest positions' },
       vermoegen: { gesamt: 'Net worth', aufteilung: 'What your net worth consists of' },
       konto: { saldo: 'Balance of one account', gesamt: 'Money across all accounts' },
@@ -4459,7 +4459,12 @@ export const en = {
       erledigtAnlegen: 'The event "{name}" has been created.',
       erledigtZuordnen: '{anzahl} transactions are now assigned to "{name}".',
     },
+    transferAktion: {
+      wirkung: '{summe} then drop out of income AND expenses — every monthly total changes retroactively.',
+      erledigt: '{anzahl} pairs are now linked as transfers.',
+    },
     trigger: {
+      transferAktion: 'mark the transfers, mark as transfer, link the transfers',
       anlassAktion: 'create event, new event, assign to the event, transactions to the event',
       kategorieAktion: 'assign, categorise, categorize, remember that, file under, put into',
       warumKategorie: 'why is, why was, how come, why does it end up',
@@ -4533,6 +4538,7 @@ export const en = {
       budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
+      transferAktion: 'Mark {anzahl} pairs as internal transfers?',
       anlassAktionAnlegen: 'Create the event "{name}"?',
       anlassAktionZuordnen: 'Assign {anzahl} suggested transactions to the event "{name}"?',
       anlassAktionUnklar: 'For that I need what should happen: create an event or assign transactions.',

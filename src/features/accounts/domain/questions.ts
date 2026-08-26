@@ -365,6 +365,64 @@ const liquiditaetReichweite: QuestionEntry = {
   },
 };
 
+/**
+ * Übertrags-Befehl (Welle 5) — die folgenreichste der schreibenden Aktionen.
+ *
+ * Ein markierter Übertrag verschwindet aus JEDER Auswertung: Monatssummen,
+ * Kategorie-Anteile, Durchschnitte und Trends ändern sich rückwirkend. Die
+ * Vorschau nennt deshalb die SUMME, die aus Einnahmen und Ausgaben fällt —
+ * die Wirkung, nicht bloss den Vorgang. Wer nur „3 Paare markieren?" liest,
+ * kann nicht abschätzen, was er auslöst.
+ */
+const transferAktion: QuestionEntry = {
+  id: 'transfer.aktion',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.transferAktion'],
+  needs: ['transactions'],
+  aufwand: 'guenstig',
+  nimmtTransferAktion: true,
+  antwort: (_slots, daten): QuestionAnswer => {
+    // Dieselbe Erkennung wie beim Lese-Eintrag `transfer.kandidaten`: Zwei
+    // Wege zur selben Kandidatenmenge wären zwei Orte, an denen Toleranz und
+    // Zeitfenster auseinanderlaufen können.
+    const kandidaten = findTransferCandidates([...(daten.transactions ?? [])]);
+    if (kandidaten.length === 0) {
+      return {
+        art: 'anzahl',
+        wert: 0,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.transferKeine', params: {} },
+        deepLink: '/accounts',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    const paare = kandidaten.map((k) => ({
+      ausId: String(k.outgoing.id),
+      einId: String(k.incoming.id),
+      label: `${k.outgoing.payee || k.outgoing.description} → ${k.incoming.payee || k.incoming.description}`,
+      betrag: Math.abs(k.outgoing.amount),
+    }));
+
+    return {
+      art: 'aktion',
+      wert: null,
+      anzahl: paare.length,
+      aktion: {
+        art: 'transferMarkieren',
+        paare,
+        summe: paare.reduce((s, p) => s + p.betrag, 0),
+      },
+      aussage: {
+        key: 'financeQuestions.answer.transferAktion',
+        params: { anzahl: paare.length },
+      },
+      deepLink: '/accounts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
   kontoSaldo,
   kontoGesamt,
@@ -373,4 +431,5 @@ export const questions: readonly QuestionEntry[] = [
   vermoegenAufteilung,
   transferKandidaten,
   liquiditaetReichweite,
+  transferAktion,
 ];

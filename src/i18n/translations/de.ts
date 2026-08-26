@@ -4403,7 +4403,7 @@ export const de = {
       ziel: { obergrenze: 'Höchstbetrag, der noch trägt', sparrate: 'Nötige monatliche Rate' },
       steuer: { gewinn: 'Gewinn nach EÜR', ruecklage: 'Steuerrücklage' },
       anlass: { kosten: 'Kosten eines Anlasses', liste: 'Deine Anlässe', vorschlag: 'Buchungen für einen Anlass', aktion: 'Anlass anlegen oder zuordnen' },
-      transfer: { kandidaten: 'Mögliche interne Überträge' },
+      transfer: { kandidaten: 'Mögliche interne Überträge', aktion: 'Überträge markieren' },
       depot: { wert: 'Wert deiner Depots', rendite: 'Gewinn oder Verlust im Depot', positionen: 'Größte Positionen' },
       vermoegen: { gesamt: 'Nettovermögen', aufteilung: 'Woraus dein Vermögen besteht' },
       konto: { saldo: 'Kontostand eines Kontos', gesamt: 'Geld auf allen Konten' },
@@ -4471,7 +4471,12 @@ export const de = {
       erledigtAnlegen: 'Anlass „{name}“ ist angelegt.',
       erledigtZuordnen: '{anzahl} Buchungen sind jetzt „{name}“ zugeordnet.',
     },
+    transferAktion: {
+      wirkung: '{summe} fallen damit aus Einnahmen UND Ausgaben — jede Monatssumme ändert sich rückwirkend.',
+      erledigt: '{anzahl} Paare sind jetzt als Überträge verknüpft.',
+    },
     trigger: {
+      transferAktion: 'markiere die umbuchungen, als übertrag markieren, überträge markieren, umbuchungen verknüpfen',
       anlassAktion: 'anlass anlegen, neuen anlass, ordne dem anlass, buchungen dem anlass, anlass zuordnen',
       kategorieAktion: 'ordne, zuordnen, weise zu, merk dir, kategorisiere, buche auf',
       warumKategorie: 'warum ist, wieso ist, warum wurde, wieso wurde, wie kommt es dass, warum landet',
@@ -4545,6 +4550,7 @@ export const de = {
       budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
+      transferAktion: '{anzahl} Buchungspaare als interne Überträge markieren?',
       anlassAktionAnlegen: 'Anlass „{name}“ anlegen?',
       anlassAktionZuordnen: '{anzahl} vorgeschlagene Buchungen dem Anlass „{name}“ zuordnen?',
       anlassAktionUnklar: 'Dafür brauche ich, was passieren soll: einen Anlass anlegen oder Buchungen zuordnen.',

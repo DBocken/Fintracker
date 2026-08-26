@@ -39,6 +39,7 @@ import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-
 import { extrahiereBudgetAktion } from '@/lib/budget-action-intent';
 import { extrahiereKategorieAktion } from '@/lib/categorize-action-intent';
 import { extrahiereAnlassAktion } from '@/lib/anlass-action-intent';
+import { extrahiereTransferAktion } from '@/lib/transfer-action-intent';
 
 export interface VokabelEintrag {
   /** Wonach gesucht wird — kleingeschrieben. */
@@ -803,6 +804,23 @@ export function routeFrage(
       return {
         art: 'aufloesen',
         kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(aktionsEintrag, slots) },
+      };
+    }
+  }
+
+  // Stufe 0a''' (Welle 5): Der Übertrags-Befehl ganz vorn unter den
+  // Aktionen — sein Gate verlangt das Übertrags-Wort UND ein Markier-Verb
+  // und ist damit das engste. Er wiegt zugleich am schwersten: Ein
+  // markierter Übertrag verschwindet aus jeder Auswertung.
+  const transferAktion = extrahiereTransferAktion(text);
+  if (transferAktion) {
+    const eintrag = entries.find((e) => e.nimmtTransferAktion);
+    if (eintrag) {
+      const kandidat = kandidatFuer(text, vokabular, eintrag, locale, jetzt);
+      const slots = { ...kandidat.slots, transferAktion };
+      return {
+        art: 'aufloesen',
+        kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(eintrag, slots) },
       };
     }
   }
