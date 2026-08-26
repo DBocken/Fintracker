@@ -7,80 +7,26 @@ import { getDebts } from "./debt-service";
 import { totalOutstandingDebt } from "@/lib/debt-totals";
 import { getReceivables, getTotalReceivables } from "./receivable-service";
 import { eurContribution } from "@/lib/portfolio-currency";
+import type {
+  AccountSource,
+  DebtSource,
+  NetWorthBreakdown,
+  PortfolioSource,
+  ReceivableSource,
+  UnconvertedInvestmentSource,
+} from "@/lib/net-worth-types";
 
-export interface AccountSource {
-  id: string;
-  name: string;
-  balance: number;
-  /** "live" = Saldo direkt von der Bank, "local" = aus lokalen Transaktionen summiert */
-  source: "live" | "local";
-  lastSyncAt?: string | null;
-}
-
-export interface PortfolioSource {
-  id: string;
-  name: string;
-  /** Euro-Anteil des Depots — Fremdwährung ist hier bewusst nicht enthalten. */
-  value: number;
-  /** Anzahl der Positionen hinter `value` (ohne die nicht verrechneten). */
-  positionsCount: number;
-}
-
-/**
- * Ein Bestand, der BEWUSST nicht ins Nettovermögen einfließt, weil er nicht in
- * Euro notiert (VE-1, `docs/architecture/currency-eur-only.md`). Je Depot und
- * Währung ein Eintrag.
- */
-export interface UnconvertedInvestmentSource {
-  /** `<portfolioId>:<currency>` — ein Depot kann mehrere Fremdwährungen halten. */
-  id: string;
-  /** Name des Depots, aus dem der Bestand stammt. */
-  name: string;
-  currency: string;
-  /** Marktwert in `currency` — Anzeige, nie Summand. */
-  value: number;
-  positionsCount: number;
-}
-
-export interface DebtSource {
-  id: string;
-  name: string;
-  balance: number;
-}
-
-export interface ReceivableSource {
-  id: string;
-  name: string;
-  amount: number;
-}
-
-export interface NetWorthBreakdown {
-  /** Sum of all account balances (cash) */
-  cash: number;
-  /** Total value of all portfolios */
-  investments: number;
-  /** Total outstanding money lent out (receivables) */
-  receivables: number;
-  /** Total outstanding debt */
-  debts: number;
-  /** cash + investments + receivables - debts */
-  netWorth: number;
-  /** Per-account balances */
-  accountBalances: Record<string, number>;
-  /** Details on how each account's balance was determined */
-  accountSources: AccountSource[];
-  /** Details on each portfolio's contribution to investments */
-  portfolioSources: PortfolioSource[];
-  /**
-   * Fremdwährungsbestände, die NICHT in `investments` und damit nicht in
-   * `netWorth` stecken (VE-1). Leer, solange alles in Euro notiert.
-   */
-  unconvertedInvestments: UnconvertedInvestmentSource[];
-  /** Details on each debt's contribution to total debt */
-  debtSources: DebtSource[];
-  /** Details on each receivable's contribution to total receivables */
-  receivableSources: ReceivableSource[];
-}
+// Die Form liegt in `lib`, der Wert entsteht hier. Der Re-Export haelt jede
+// bestehende Importstelle gueltig — ein Umzug, der 40 Dateien anfasst, ist
+// nicht derselbe Vorgang wie ein Umzug, der eine anfasst.
+export type {
+  AccountSource,
+  DebtSource,
+  NetWorthBreakdown,
+  PortfolioSource,
+  ReceivableSource,
+  UnconvertedInvestmentSource,
+};
 
 /**
  * Kontosaldo aus dem Anker (Bank-Saldo oder Startsaldo) plus den Buchungen

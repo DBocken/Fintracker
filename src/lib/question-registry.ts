@@ -46,6 +46,11 @@ import type { Debt } from '@/lib/debt-types';
 import type { ContractDecision } from '@/lib/contract-types';
 import type { SzenarioAbsicht } from '@/lib/scenario-intent';
 import type { BudgetAktionsAbsicht } from '@/lib/budget-action-intent';
+import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
+import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
+import type { NetWorthBreakdown } from '@/lib/net-worth-types';
+import type { TaxReserveState } from '@/lib/tax-types';
+import type { UserSettings } from '@/lib/settings-types';
 
 export type SlotName = 'zeitraum' | 'kategorie' | 'haendler' | 'konto' | 'betrag';
 
@@ -154,9 +159,27 @@ export type DataNeed =
   | 'allocations'
   | 'contractDecisions'
   | 'debts'
-  | 'budgets';
+  | 'budgets'
+  /* Ab Welle 2 — die Dienste dahinter waren vollständig, nur der Kanal fehlte. */
+  | 'settings'
+  | 'specialCategories'
+  | 'portfolios'
+  | 'netWorth'
+  | 'taxReserve';
 
-/** Was die `application`-Schicht bereitstellt. Optional, weil `needs` steuert. */
+/**
+ * Was die `application`-Schicht bereitstellt. Optional, weil `needs` steuert.
+ *
+ * **Ein Feld, das `undefined` ist, heisst „nicht geladen" — nie „leer".** Die
+ * Unterscheidung ist keine Förmlichkeit: `allocations` stand hier ab WP-C in
+ * `DataNeed`, vier Budget-Einträge forderten es an, und geladen hat es
+ * niemand. Weil die Einträge auf eine leere Map zurückfielen, zählte eine
+ * gesplittete Buchung im Chat mit ihrem VOLLEN Betrag gegen das Budget —
+ * lautlos, ohne Fehler, und kein Test wurde rot: Der Katalog-Test prüft Form
+ * und Deep-Link, nicht den gerechneten Wert. Seit Welle 2 füllt das ViewModel
+ * jeden Kanal, den ein Eintrag anmeldet, und meldet zurück, wenn eine Quelle
+ * NICHT lesbar war, statt sie als leer auszugeben.
+ */
 export interface QuestionData {
   transactions?: readonly Transaction[];
   categories?: readonly Category[];
@@ -165,6 +188,18 @@ export interface QuestionData {
   contractDecisions?: ReadonlyMap<string, ContractDecision>;
   debts?: readonly Debt[];
   budgets?: readonly Budget[];
+  /** Einstellungen — Steuersatz, Unternehmer-Modus, Notgroschen-Ziel. */
+  settings?: UserSettings | null;
+  /** Anlässe („Urlaub Italien") samt ihren Zuordnungen. */
+  specialCategories?: readonly SpecialCategory[];
+  specialCategoryAssignments?: readonly SpecialCategoryAssignment[];
+  /** Depots samt Positionen — je Depot ein Eintrag in der Map. */
+  portfolios?: readonly Portfolio[];
+  positionsByPortfolio?: ReadonlyMap<string, PortfolioPosition[]>;
+  /** Vermögensaufstellung inkl. Kontosalden aus den Ankern. */
+  netWorth?: NetWorthBreakdown | null;
+  /** Steuerrücklage des laufenden Veranlagungsjahres. */
+  taxReserve?: TaxReserveState | null;
   /** Bezugszeitpunkt — hereingereicht, damit `antwort()` rein bleibt. */
   jetzt: Date;
 }

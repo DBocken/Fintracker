@@ -2,7 +2,17 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getTransactions, getCategories, getUserSettings } from '@/services/transaction-service';
+import { getAllocationMap } from '@/services/transaction-allocation-service';
+import {
+  getSpecialCategories,
+  getSpecialCategoryAssignments,
+} from '@/services/special-category-service';
+import { specialCategoriesKeys } from '@/features/special-categories/data/special-categories-query-keys';
+import { getPortfolios, getPositions } from '@/services/portfolio-service';
+import { getNetWorthBreakdown } from '@/services/net-worth-service';
+import { getTaxReserveState } from '@/services/tax-reserve-service';
+import type { PortfolioPosition } from '@/lib/portfolio-types';
 import { getAccounts } from '@/services/account-service';
 import { getDebts } from '@/services/debt-service';
 import { getBudgets } from '@/services/budget-service';
@@ -21,7 +31,13 @@ import {
   getQuestionConfirmations,
 } from '@/services/question-confirmation-service';
 import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
-import type { QuestionAnswer, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
+import type {
+  DataNeed,
+  QuestionAnswer,
+  QuestionData,
+  QuestionSlots,
+  SlotName,
+} from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 
@@ -72,6 +88,19 @@ export type MoneyQuestionOutcome =
       kandidaten: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }[];
       /** Reine Stufe-2-Vermutung: die Fläche sagt „nicht verstanden" dazu. */
       nurVermutung?: boolean;
+    }
+  | {
+      /**
+       * Der Eintrag wurde erkannt, aber eine Quelle, die er ANMELDET, war
+       * nicht lesbar (oder lädt noch). Es gibt hier bewusst keine Zahl: Aus
+       * einem unlesbaren Kanal eine leere Menge zu machen hiesse, „0 €" und
+       * „weiss ich nicht" zu verwechseln — die Verwechslung, die diese Welle
+       * am Split-Kanal aufgedeckt hat.
+       */
+      art: 'quellenfehlt';
+      entryId: string;
+      quellen: DataNeed[];
+      grund: 'fehler' | 'laedt';
     }
   | {
       art: 'antwort';
@@ -152,6 +181,42 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     queryFn: getContractDecisionMap,
   });
   const regeln = useQuery({ queryKey: ['merchant-rules'], queryFn: getMerchantRules });
+
+  // ── Kanäle der Welle 2 ────────────────────────────────────────────────
+  // Die Dienste dahinter waren vollständig; es fehlte allein der Weg ins
+  // Register. Alle lesen kleine Mengen (Depots, Anlässe, ein Steuersatz) —
+  // die 5000er-Buchungsliste oben bleibt die einzige teure Abfrage, und die
+  // Schlüssel sind bewusst DIESELBEN wie in den Fach-Slices, damit daneben
+  // kein zweiter Ladevorgang derselben Daten entsteht.
+  const splits = useQuery({ queryKey: ['allocations', 'map'], queryFn: getAllocationMap });
+  const einstellungen = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+  const anlaesse = useQuery({
+    queryKey: specialCategoriesKeys.categories,
+    queryFn: getSpecialCategories,
+  });
+  const anlassZuordnungen = useQuery({
+    queryKey: specialCategoriesKeys.assignments,
+    queryFn: getSpecialCategoryAssignments,
+  });
+  // Depots UND ihre Positionen in einer Abfrage: Getrennt wären es n+1
+  // Abfragen, deren Ladezustände einzeln auf die Antwort wirken — ein Depot,
+  // dessen Positionen noch fehlen, ist schlicht falsch bewertet.
+  const depots = useQuery({
+    queryKey: ['portfolios', 'mit-positionen'],
+    queryFn: async () => {
+      const portfolios = await getPortfolios();
+      const paare = await Promise.all(
+        portfolios.map(async (p) => [p.id, await getPositions(p.id)] as const),
+      );
+      return { portfolios, positionen: new Map<string, PortfolioPosition[]>(paare) };
+    },
+  });
+  const vermoegen = useQuery({ queryKey: ['net-worth'], queryFn: getNetWorthBreakdown });
+  const steuerJahr = jetzt.getFullYear();
+  const steuerRuecklage = useQuery({
+    queryKey: ['tax-reserve', steuerJahr],
+    queryFn: () => getTaxReserveState(steuerJahr),
+  });
   // Bestätigte Zuordnungen (WP-F.5): Fehler hier sind bewusst folgenlos —
   // ohne sie läuft der Router mit den kuratierten Paraphrasen weiter, deshalb
   // kein eigener Fehlerzustand (throwOnError bleibt aus, die Liste ist leer).
@@ -166,11 +231,67 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
   // die Chat-Erkennung auch Händler, die in keinem Katalog stehen.
   const modellKontext = useCategoryModel();
 
-  const abfragen = [transaktionen, kategorien, konten, schulden, budgets, vertragsentscheidungen, regeln];
+  /**
+   * Zustand JE KANAL statt einer Zahl für alles.
+   *
+   * Bis Welle 1 hing der Fehlerzustand an einer Liste aller Abfragen: Ein
+   * Lesefehler irgendwo sperrte jede Frage. Mit fünf weiteren Kanälen wäre
+   * das die falsche Verallgemeinerung — ein unlesbarer Steuersatz hat mit
+   * „Wie viel habe ich bei Rewe ausgegeben?" nichts zu tun, und die Frage
+   * unbeantwortet zu lassen wäre keine Vorsicht, sondern ein Ausfall.
+   *
+   * Der Grundbedarf bleibt global: Ohne Buchungen, Kategorien und Konten gibt
+   * es kein Vokabular, also auch keine erkannte Frage, die man gezielt
+   * absagen könnte. Alles darüber wird erst geprüft, wenn ein Eintrag es
+   * ANMELDET (`needs`) — genau wofür `needs` gedacht war.
+   */
+  const kanalZustand: Record<DataNeed, { isLoading: boolean; isError: boolean }> = {
+    transactions: transaktionen,
+    categories: kategorien,
+    accounts: konten,
+    allocations: splits,
+    contractDecisions: vertragsentscheidungen,
+    debts: schulden,
+    budgets,
+    settings: einstellungen,
+    specialCategories: {
+      // Ein Anlass ohne seine Zuordnungen ist eine leere Hülle; beide Quellen
+      // sind derselbe Kanal und teilen deshalb einen Zustand.
+      isLoading: anlaesse.isLoading || anlassZuordnungen.isLoading,
+      isError: anlaesse.isError || anlassZuordnungen.isError,
+    },
+    portfolios: depots,
+    netWorth: vermoegen,
+    taxReserve: steuerRuecklage,
+  };
+
+  /** Kanäle eines Eintrags, die NICHT lesbar waren bzw. noch laden. */
+  const kanalLuecken = (needs: readonly DataNeed[]) => ({
+    fehler: needs.filter((n) => kanalZustand[n].isError),
+    laedt: needs.filter((n) => !kanalZustand[n].isError && kanalZustand[n].isLoading),
+  });
+
+  const alleAbfragen = [
+    transaktionen,
+    kategorien,
+    konten,
+    schulden,
+    budgets,
+    vertragsentscheidungen,
+    regeln,
+    splits,
+    einstellungen,
+    anlaesse,
+    anlassZuordnungen,
+    depots,
+    vermoegen,
+    steuerRuecklage,
+  ];
+  const grundbedarf = [transaktionen, kategorien, konten, regeln];
   // Fehlerfall ausdrücklich: Eine Antwort aus halben Daten nennt eine Zahl,
   // die nichts belegt — und eine falsche Zahl ist hier schlimmer als keine.
-  const isError = abfragen.some((q) => q.isError);
-  const isLoading = abfragen.some((q) => q.isLoading);
+  const isError = grundbedarf.some((q) => q.isError);
+  const isLoading = grundbedarf.some((q) => q.isLoading);
 
   const daten: QuestionData = useMemo(
     () => ({
@@ -180,6 +301,14 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       debts: schulden.data ?? [],
       budgets: budgets.data ?? [],
       contractDecisions: vertragsentscheidungen.data ?? new Map(),
+      allocationsByTransaction: splits.data,
+      settings: einstellungen.data ?? null,
+      specialCategories: anlaesse.data,
+      specialCategoryAssignments: anlassZuordnungen.data,
+      portfolios: depots.data?.portfolios,
+      positionsByPortfolio: depots.data?.positionen,
+      netWorth: vermoegen.data ?? null,
+      taxReserve: steuerRuecklage.data ?? null,
       jetzt,
     }),
     [
@@ -189,6 +318,13 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       schulden.data,
       budgets.data,
       vertragsentscheidungen.data,
+      splits.data,
+      einstellungen.data,
+      anlaesse.data,
+      anlassZuordnungen.data,
+      depots.data,
+      vermoegen.data,
+      steuerRuecklage.data,
       jetzt,
     ],
   );
@@ -377,6 +513,19 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
           }
         : undefined;
 
+    // Erst hier — nach der Slot-Prüfung — steht fest, WELCHE Daten gebraucht
+    // werden. Vorher wäre es eine Pauschalsperre über alle Kanäle.
+    const luecken = kanalLuecken(entry.needs);
+    if (luecken.fehler.length || luecken.laedt.length) {
+      setErgebnis({
+        art: 'quellenfehlt',
+        entryId,
+        quellen: luecken.fehler.length ? luecken.fehler : luecken.laedt,
+        grund: luecken.fehler.length ? 'fehler' : 'laedt',
+      });
+      return;
+    }
+
     setErgebnis({
       art: 'antwort',
       entryId,
@@ -494,6 +643,9 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     hatBestand: (transaktionen.data ?? []).length > 0,
     isLoading,
     isError,
-    refetch: () => abfragen.forEach((q) => q.refetch()),
+    // Alle Kanäle, nicht nur der Grundbedarf: Wer „Erneut versuchen" drückt,
+    // will jede Quelle neu gelesen haben — auch die, deren Ausfall nur eine
+    // einzelne Frage betraf.
+    refetch: () => alleAbfragen.forEach((q) => q.refetch()),
   };
 }

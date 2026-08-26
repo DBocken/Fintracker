@@ -7,7 +7,7 @@ import FinanceEmptyState from '@/features/shared/presentation/FinanceEmptyState'
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
-import type { Aussage, QuestionAnswer } from '@/lib/question-registry';
+import type { Aussage, DataNeed, QuestionAnswer } from '@/lib/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
 import { SzenarioAntwort } from './SzenarioAntwort';
 import { BudgetAktionAntwort } from './BudgetAktionAntwort';
@@ -24,6 +24,30 @@ import { BudgetAktionAntwort } from './BudgetAktionAntwort';
  * Aktion (AGENTS.md §9) — `InfoGroup` statt `InteractiveCard`. Der Deep-Link
  * ist das Bedienelement, und er ist als solches sichtbar.
  */
+/**
+ * Kanalname → i18n-Key, als geschlossene Tabelle statt als gebauter Key.
+ *
+ * Zwei Gründe, und beide sind gemessen: Ein `t(\`…\${need}\`)` ist für
+ * `call-site-keys.test.ts` unsichtbar — der Wächter prüft Aufrufstellen gegen
+ * den Sprachbaum und kann einen zusammengesetzten Key nicht auflösen. Und der
+ * `Record` über der geschlossenen Union macht einen NEUEN Kanal ohne Namen zu
+ * einem Compilerfehler statt zu einem rohen Bezeichner auf dem Bildschirm.
+ */
+const QUELLEN_KEY: Record<DataNeed, string> = {
+  transactions: 'financeQuestions.source.transactions',
+  categories: 'financeQuestions.source.categories',
+  accounts: 'financeQuestions.source.accounts',
+  allocations: 'financeQuestions.source.allocations',
+  contractDecisions: 'financeQuestions.source.contractDecisions',
+  debts: 'financeQuestions.source.debts',
+  budgets: 'financeQuestions.source.budgets',
+  settings: 'financeQuestions.source.settings',
+  specialCategories: 'financeQuestions.source.specialCategories',
+  portfolios: 'financeQuestions.source.portfolios',
+  netWorth: 'financeQuestions.source.netWorth',
+  taxReserve: 'financeQuestions.source.taxReserve',
+};
+
 export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }) {
   const { t } = useI18n();
 
@@ -167,6 +191,32 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
             </Button>
           ))}
         </div>
+      </InfoGroup>
+    );
+  }
+
+  // Eine Quelle, die der erkannte Eintrag ANMELDET, war nicht lesbar. Der
+  // Chat sagt das und nennt sie beim Namen — er nennt keine Zahl. „0 €" und
+  // „konnte ich nicht lesen" sind verschiedene Aussagen, und die zweite als
+  // die erste auszugeben ist der Fehler, den Welle 2 am Split-Kanal gefunden
+  // hat.
+  if (ergebnis.art === 'quellenfehlt') {
+    return (
+      <InfoGroup title={t('financeQuestions.sourceMissingTitle')}>
+        <p className="text-sm">
+          {t(
+            ergebnis.grund === 'laedt'
+              ? 'financeQuestions.sourceLoading'
+              : 'financeQuestions.sourceUnreadable',
+          )
+            .split('{quellen}')
+            .join(ergebnis.quellen.map((q) => t(QUELLEN_KEY[q])).join(', '))}
+        </p>
+        {ergebnis.grund === 'fehler' && (
+          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={model.refetch}>
+            {t('financeQuestions.retry')}
+          </Button>
+        )}
       </InfoGroup>
     );
   }

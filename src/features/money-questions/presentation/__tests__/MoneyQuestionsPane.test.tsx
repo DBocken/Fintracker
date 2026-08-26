@@ -11,10 +11,39 @@ const getAccounts = vi.fn();
 const getDebts = vi.fn();
 const getBudgets = vi.fn();
 const getContractDecisionMap = vi.fn();
+// Kanäle der Welle 2. Sie werden hier mitgemockt, weil das ViewModel sie
+// LÄDT — ein ungemockter Dienst liefe gegen IndexedDB und machte aus jeder
+// Antwort eine Quellen-Absage.
+const getAllocationMap = vi.fn();
+const getUserSettings = vi.fn();
+const getSpecialCategories = vi.fn();
+const getSpecialCategoryAssignments = vi.fn();
+const getPortfolios = vi.fn();
+const getPositions = vi.fn();
+const getNetWorthBreakdown = vi.fn();
+const getTaxReserveState = vi.fn();
 
 vi.mock('@/services/transaction-service', () => ({
   getTransactions: (...a: unknown[]) => getTransactions(...a),
   getCategories: () => getCategories(),
+  getUserSettings: () => getUserSettings(),
+}));
+vi.mock('@/services/transaction-allocation-service', () => ({
+  getAllocationMap: () => getAllocationMap(),
+}));
+vi.mock('@/services/special-category-service', () => ({
+  getSpecialCategories: () => getSpecialCategories(),
+  getSpecialCategoryAssignments: () => getSpecialCategoryAssignments(),
+}));
+vi.mock('@/services/portfolio-service', () => ({
+  getPortfolios: () => getPortfolios(),
+  getPositions: (...a: unknown[]) => getPositions(...a),
+}));
+vi.mock('@/services/net-worth-service', () => ({
+  getNetWorthBreakdown: () => getNetWorthBreakdown(),
+}));
+vi.mock('@/services/tax-reserve-service', () => ({
+  getTaxReserveState: (...a: unknown[]) => getTaxReserveState(...a),
 }));
 vi.mock('@/services/account-service', () => ({ getAccounts: () => getAccounts() }));
 vi.mock('@/services/debt-service', () => ({ getDebts: () => getDebts() }));
@@ -85,6 +114,14 @@ beforeEach(() => {
   getDebts.mockResolvedValue([]);
   getBudgets.mockResolvedValue([]);
   getContractDecisionMap.mockResolvedValue(new Map());
+  getAllocationMap.mockResolvedValue(new Map());
+  getUserSettings.mockResolvedValue(null);
+  getSpecialCategories.mockResolvedValue([]);
+  getSpecialCategoryAssignments.mockResolvedValue([]);
+  getPortfolios.mockResolvedValue([]);
+  getPositions.mockResolvedValue([]);
+  getNetWorthBreakdown.mockResolvedValue(null);
+  getTaxReserveState.mockResolvedValue(null);
 });
 
 describe('Nachfragen-Fläche', () => {
@@ -106,6 +143,75 @@ describe('Nachfragen-Fläche', () => {
 
     expect(await screen.findByRole('button', { name: /erneut|nochmal|wiederhol/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/Frage zu deinen Finanzen/i)).not.toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte die Aufteilung einer Buchung TATSÄCHLICH laden, nicht nur anmelden', async () => {
+    // Der Fund der Welle 2: `allocations` stand ab WP-C in `needs`, und
+    // geladen hat es niemand — `daten.allocationsByTransaction` war IMMER
+    // `undefined`. Weil die Einträge auf eine leere Map zurückfielen, zählte
+    // eine gesplittete Buchung mit ihrem VOLLEN Betrag gegen das Budget.
+    //
+    // Deshalb steht dieser Test hier und nicht bei den Budget-Einträgen: Die
+    // Rechnung war die ganze Zeit richtig. Falsch war der Weg dorthin, und
+    // den sieht nur ein Test, der die Fläche mit ihren echten Abfragen fährt.
+    getTransactions.mockResolvedValue([
+      tx({ id: 'split-1', payee: 'REWE', amount: -100, date: '2026-07-08', category_id: null }),
+    ]);
+    getBudgets.mockResolvedValue([
+      { id: 'b1', user_id: 'local', category_id: 'local-cat-lebensmittel', limit: 300, period: 'monthly' },
+    ] as never);
+    getAllocationMap.mockResolvedValue(
+      new Map([
+        [
+          'split-1',
+          [
+            { id: 'a1', transaction_id: 'split-1', category_id: 'local-cat-lebensmittel', amount_minor: -4000 },
+            { id: 'a2', transaction_id: 'split-1', category_id: 'local-cat-freizeit', amount_minor: -6000 },
+          ],
+        ],
+      ]),
+    );
+
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('Wie viel Budget habe ich noch übrig?');
+
+    // 300 − 40 = 260 €. Ohne den geladenen Split wären es 200 € gewesen.
+    expect(await screen.findByText(/260,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/200,00/)).not.toBeInTheDocument();
+  });
+
+  it('sollte eine unlesbare Quelle BENENNEN, statt sie als leer auszugeben', async () => {
+    // „0 €" und „konnte ich nicht lesen" sind verschiedene Aussagen. Die
+    // zweite als die erste auszugeben ist genau der Fehler, den der
+    // Split-Kanal jahrelang unsichtbar gemacht hat.
+    getAllocationMap.mockRejectedValue(new Error('IndexedDB kaputt'));
+    getBudgets.mockResolvedValue([
+      { id: 'b1', user_id: 'local', category_id: 'local-cat-lebensmittel', limit: 300, period: 'monthly' },
+    ] as never);
+
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('Wie viel Budget habe ich noch übrig?');
+
+    expect(await screen.findByText(/nicht lesen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aufteilungen/i)).toBeInTheDocument();
+  });
+
+  it('sollte trotz einer unlesbaren Quelle jede Frage beantworten, die sie NICHT braucht', async () => {
+    // Der Grund für den Zustand je Kanal: Bis Welle 1 hing der Fehlerzustand
+    // an einer Liste aller Abfragen — ein Lesefehler irgendwo sperrte alles.
+    // Mit fünf weiteren Kanälen wäre das ein Ausfall statt einer Vorsicht.
+    getAllocationMap.mockRejectedValue(new Error('IndexedDB kaputt'));
+
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('Wieviel habe ich im Juli 2026 bei lidl sagt danke ausgegeben?');
+
+    expect(await screen.findByText(/50,00/)).toBeInTheDocument();
   });
 
   it('sollte eine Händlerfrage mit Zahl und Deep-Link beantworten', async () => {
