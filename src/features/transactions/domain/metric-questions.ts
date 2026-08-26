@@ -548,6 +548,84 @@ const kategorieBegruendung: QuestionEntry = {
   },
 };
 
+/**
+ * Kategorisier-Befehl (Welle 5) — die zweite schreibende Chat-Aktion.
+ *
+ * `antwort()` bleibt rein und RECHNET die Vorschau: welche Buchungen die
+ * Aktion berührt und was sie heute tragen. Der Schnappschuss für das
+ * Rückgängig entsteht hier, nicht erst beim Schreiben — sonst gäbe es einen
+ * Moment, in dem geschrieben ist und der Rückweg noch nicht feststeht.
+ *
+ * Kategorie ist PFLICHT-Slot: Eine Zuordnung „auf irgendeine Kategorie" gibt
+ * es nicht, und Raten wäre hier besonders teuer — eine falsch zugeordnete
+ * Kategorie verfälscht jede spätere Summe.
+ */
+const kategorieAktion: QuestionEntry = {
+  id: 'kategorie.aktion',
+  slots: { erforderlich: ['haendler', 'kategorie'], optional: [] },
+  ausloeser: ['financeQuestions.trigger.kategorieAktion'],
+  needs: ['transactions', 'categories', 'accounts'],
+  aufwand: 'guenstig',
+  nimmtKategorieAktion: true,
+  antwort(slots, daten): QuestionAnswer {
+    const absicht = slots.kategorieAktion;
+    const zielId = slots.kategorieIds?.[0];
+    const ziel = (daten.categories ?? []).find((c) => c.id === zielId);
+    // Die Bezugsmenge kommt NUR über den Händler — und das ist der Kern:
+    // Bei jedem lesenden Eintrag ist die Kategorie ein FILTER, bei diesem
+    // schreibenden ist sie das ZIEL. Sie mitzufiltern schloss genau die
+    // Buchungen aus, die geändert werden sollen; die Vorschau meldete
+    // „0 Buchungen", und der Befehl hätte nichts getan. Derselbe Slot, die
+    // entgegengesetzte Rolle.
+    const { transactions: menge, deepLink } = mengeFuer(
+      { slots: { erforderlich: ['haendler'], optional: [] } },
+      slots,
+      daten,
+    );
+
+    if (!absicht || !ziel) {
+      return {
+        art: 'keine',
+        wert: null,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.kategorieAktionUnklar', params: {} },
+        deepLink,
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    // Bereits richtig zugeordnete Buchungen bleiben draussen: Sie zu zählen
+    // machte die Vorschau grösser als die Wirkung — und „8 Buchungen ändern",
+    // wenn nur 3 sich ändern, ist eine falsche Ankündigung.
+    const betroffen = menge
+      .filter((t) => !t.is_transfer && t.category_id !== ziel.id)
+      .map((t) => ({ id: String(t.id), kategorieId: t.category_id ?? null }));
+
+    return {
+      art: 'aktion',
+      wert: null,
+      anzahl: betroffen.length,
+      aktion: {
+        art: absicht.art,
+        haendler: slots.haendler ?? '',
+        kategorieId: ziel.id,
+        kategorieName: ziel.name,
+        anzahl: betroffen.length,
+        vorher: betroffen,
+      },
+      aussage: {
+        key:
+          absicht.art === 'merken'
+            ? 'financeQuestions.answer.kategorieAktionMerken'
+            : 'financeQuestions.answer.kategorieAktionZuordnen',
+        params: { haendler: slots.haendler ?? '', kategorie: ziel.name, anzahl: betroffen.length },
+      },
+      deepLink,
+      deepLinkArt: 'quelle',
+    };
+  },
+};
+
 export const metricQuestions: readonly QuestionEntry[] = [
   ausgabenDurchschnitt,
   ausgabenAnteil,
@@ -560,4 +638,5 @@ export const metricQuestions: readonly QuestionEntry[] = [
   abbuchungLetzte,
   einkommenArten,
   kategorieBegruendung,
+  kategorieAktion,
 ];

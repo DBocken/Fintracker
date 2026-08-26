@@ -37,6 +37,7 @@ import {
 } from '@/lib/question-time-expressions';
 import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-intent';
 import { extrahiereBudgetAktion } from '@/lib/budget-action-intent';
+import { extrahiereKategorieAktion } from '@/lib/categorize-action-intent';
 
 export interface VokabelEintrag {
   /** Wonach gesucht wird — kleingeschrieben. */
@@ -801,6 +802,23 @@ export function routeFrage(
       return {
         art: 'aufloesen',
         kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(aktionsEintrag, slots) },
+      };
+    }
+  }
+
+  // Stufe 0a' (Welle 5): Dasselbe für den Kategorisier-Befehl. Er steht NACH
+  // dem Budget-Befehl, weil dessen Gate zusätzlich das Wort „Budget"
+  // verlangt und damit enger ist — der engere Test zuerst, sonst fienge der
+  // weitere ihm die eindeutigen Fälle weg.
+  const kategorieAktion = extrahiereKategorieAktion(text);
+  if (kategorieAktion) {
+    const eintrag = entries.find((e) => e.nimmtKategorieAktion);
+    if (eintrag) {
+      const kandidat = kandidatFuer(text, vokabular, eintrag, locale, jetzt);
+      const slots = { ...kandidat.slots, kategorieAktion };
+      return {
+        art: 'aufloesen',
+        kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(eintrag, slots) },
       };
     }
   }

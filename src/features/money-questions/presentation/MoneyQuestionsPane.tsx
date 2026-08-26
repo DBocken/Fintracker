@@ -8,9 +8,11 @@ import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState'
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import type { Aussage, DataNeed, QuestionAnswer } from '@/lib/question-registry';
+import { istKategorieAktion } from '@/lib/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
 import { SzenarioAntwort } from './SzenarioAntwort';
 import { ZielAntwort } from './ZielAntwort';
+import { KategorieAktionAntwort } from './KategorieAktionAntwort';
 import { BudgetAktionAntwort } from './BudgetAktionAntwort';
 
 /**
@@ -237,14 +239,25 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
   }
 
   // Eine Aktions-Antwort ist eine VORSCHAU (WP-I): Geschrieben wird erst auf
-  // Klick — das Register hat gerechnet, was passieren WÜRDE.
+  // Klick — das Register hat gerechnet, was passieren WÜRDE. Seit Welle 5
+  // gibt es mehrere Aktionsarten; unterschieden wird über die Vorschau,
+  // nicht über eine zweite Antwortart — es ist dieselbe Zusage an den
+  // Nutzer (Vorschau, Bestätigen, Rückgängig), nur ein anderer Gegenstand.
   if (ergebnis.antwort.art === 'aktion' && ergebnis.antwort.aktion) {
+    const vorschlag = ergebnis.antwort.aktion;
+    const aussage = einsetzen(ergebnis.antwort.aussage, t, (b) => String(b), locale);
+    // Benannte Wache statt einer Bedingung hier: Der Compiler ist an dieser
+    // Stelle die Sicherung — ein Vorschlag in der falschen Fläche kündigte
+    // etwas anderes an, als der Klick dann tut.
+    if (istKategorieAktion(vorschlag)) {
+      return <KategorieAktionAntwort vorschlag={vorschlag} aussage={aussage} />;
+    }
     return (
       <BudgetAktionAntwort
         antwort={ergebnis.antwort}
-        vorschlag={ergebnis.antwort.aktion}
+        vorschlag={vorschlag}
         budgets={model.budgets}
-        aussage={einsetzen(ergebnis.antwort.aussage, t, (b) => String(b), locale)}
+        aussage={aussage}
       />
     );
   }

@@ -4397,7 +4397,7 @@ export const de = {
         betrag: 'Um welchen Betrag geht es?',
       },
     entryName: {
-      kategorie: { begruendung: 'Warum eine Buchung so eingeordnet ist' },
+      kategorie: { begruendung: 'Warum eine Buchung so eingeordnet ist', aktion: 'Buchungen umtragen oder Regel anlegen' },
       liquiditaet: { reichweite: 'Reichweite deines Geldes' },
       abbuchung: { naechste: 'Nächste Abbuchungen', letzte: 'Letzte Buchung bei einem Händler' },
       ziel: { obergrenze: 'Höchstbetrag, der noch trägt', sparrate: 'Nötige monatliche Rate' },
@@ -4459,7 +4459,16 @@ export const de = {
       regex_fallback: 'Weil ein allgemeines Stichwort zutrifft — die schwächste der vier Quellen.',
       none: 'Dafür gab es kein ausreichendes Signal.',
     },
+    kategorieAktion: {
+      vorschauZuordnen: '{anzahl} Buchungen bekommen die Kategorie „{kategorie}“.',
+      vorschauMerken: '{anzahl} Buchungen bekommen „{kategorie}“ — und eine Regel für {haendler} wird angelegt.',
+      reichweite: 'Die Regel gilt ab dann auch für Buchungen, die es noch nicht gibt.',
+      erledigtZuordnen: '{anzahl} Buchungen sind jetzt in „{kategorie}“.',
+      erledigtMerken: 'Erledigt — und {haendler} landet künftig automatisch in „{kategorie}“.',
+      nichtsZuTun: 'Alle Buchungen von {haendler} sind bereits in „{kategorie}“ — da ist nichts zu ändern.',
+    },
     trigger: {
+      kategorieAktion: 'ordne, zuordnen, weise zu, merk dir, kategorisiere, buche auf',
       warumKategorie: 'warum ist, wieso ist, warum wurde, wieso wurde, wie kommt es dass, warum landet',
       schuldenDauer: 'wie lange zahle ich, schuldenfrei, noch abbezahlen, laufzeit meiner schulden, fertig mit, monate noch, bis die schulden weg',
       schuldenZinsen: 'wie viel zinsen zahle ich, zinsen insgesamt, was kosten mich meine schulden, zinslast',
@@ -4531,6 +4540,9 @@ export const de = {
       budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
+      kategorieAktionZuordnen: '{anzahl} Buchungen von {haendler} nach „{kategorie}“ umtragen?',
+      kategorieAktionMerken: '{haendler} künftig immer „{kategorie}“ zuordnen?',
+      kategorieAktionUnklar: 'Dafür brauche ich beides: welchen Händler und welche Kategorie.',
       kategorieBegruendung: 'Deine jüngste Buchung bei {haendler} steht in „{kategorie}“.',
       kategorieOhneZuordnung: 'Die jüngste Buchung bei {haendler} hat noch keine Kategorie — auch die Automatik konnte keine sicher zuordnen.',
       schuldenDauer: 'So viele Monate brauchst du bei deinen jetzigen Mindestraten.',

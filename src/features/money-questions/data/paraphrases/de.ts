@@ -660,6 +660,16 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'warum steht spotify in dieser kategorie',
     'wie kommt die zuordnung bei edeka zustande',
   ],
+  'kategorie.aktion': [
+    'ordne die rewe buchungen zu lebensmitteln',
+    'weise alle dm buchungen der drogerie zu',
+    'merk dir dass aldi immer lebensmittel ist',
+    'kategorisiere netflix als freizeit',
+    'buche die tankstelle auf mobilität',
+    'ordne amazon künftig immer shopping zu',
+    'stecke die lidl buchungen in lebensmittel',
+    'merk dir spotify gehört zu freizeit',
+  ],
   'verfuegbar.bisGehalt': [
     'was kann ich bis zum gehalt noch ausgeben',
     'reicht es bis zur nächsten zahlung',

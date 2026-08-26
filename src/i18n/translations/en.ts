@@ -4385,7 +4385,7 @@ export const en = {
         betrag: 'Which amount are we talking about?',
       },
     entryName: {
-      kategorie: { begruendung: 'Why a transaction is filed this way' },
+      kategorie: { begruendung: 'Why a transaction is filed this way', aktion: 'Refile transactions or create a rule' },
       liquiditaet: { reichweite: 'How long your money lasts' },
       abbuchung: { naechste: 'Upcoming debits', letzte: 'Last transaction at a merchant' },
       ziel: { obergrenze: 'Highest amount that still holds', sparrate: 'Monthly rate needed' },
@@ -4447,7 +4447,16 @@ export const en = {
       regex_fallback: 'Because a generic keyword matches — the weakest of the four sources.',
       none: 'There was no sufficient signal for that.',
     },
+    kategorieAktion: {
+      vorschauZuordnen: '{anzahl} transactions get the category "{kategorie}".',
+      vorschauMerken: '{anzahl} transactions get "{kategorie}" — and a rule for {haendler} is created.',
+      reichweite: 'From then on the rule also applies to transactions that do not exist yet.',
+      erledigtZuordnen: '{anzahl} transactions are now in "{kategorie}".',
+      erledigtMerken: 'Done — and {haendler} will land in "{kategorie}" automatically from now on.',
+      nichtsZuTun: 'All transactions from {haendler} are already in "{kategorie}" — nothing to change.',
+    },
     trigger: {
+      kategorieAktion: 'assign, categorise, categorize, remember that, file under, put into',
       warumKategorie: 'why is, why was, how come, why does it end up',
       schuldenDauer: 'how long will i be paying, debt free, to pay off, term of my debts, months until',
       schuldenZinsen: 'how much interest do i pay, interest in total, what do my debts cost me, interest burden',
@@ -4519,6 +4528,9 @@ export const en = {
       budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
+      kategorieAktionZuordnen: 'Move {anzahl} transactions from {haendler} to "{kategorie}"?',
+      kategorieAktionMerken: 'Always file {haendler} under "{kategorie}" from now on?',
+      kategorieAktionUnklar: 'For that I need both: which merchant and which category.',
       kategorieBegruendung: 'Your most recent transaction at {haendler} sits in "{kategorie}".',
       kategorieOhneZuordnung: 'The most recent transaction at {haendler} has no category yet — the automation could not assign one with confidence either.',
       schuldenDauer: 'That is how many months it takes at your current minimum payments.',

@@ -46,6 +46,7 @@ import type { Debt } from '@/lib/debt-types';
 import type { ContractDecision } from '@/lib/contract-types';
 import type { SzenarioAbsicht } from '@/lib/scenario-intent';
 import type { BudgetAktionsAbsicht } from '@/lib/budget-action-intent';
+import type { KategorieAktionsAbsicht } from '@/lib/categorize-action-intent';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
 import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';
@@ -133,6 +134,11 @@ export interface QuestionSlots {
    * Rückfrage, wenn sie fehlt.
    */
   budgetAktion?: BudgetAktionsAbsicht;
+  /**
+   * Erkannte Kategorisier-Absicht (Welle 5). Wie `budgetAktion` kein
+   * `SlotName`: Sie wird als Ganzes extrahiert, nicht einzeln nachgefragt.
+   */
+  kategorieAktion?: KategorieAktionsAbsicht;
 }
 
 /**
@@ -155,6 +161,49 @@ export interface BudgetAktionsVorschlag {
   nachher?: number;
   /** ID des bestehenden Budgets — fehlt beim Anlegen. */
   budgetId?: string;
+}
+
+/**
+ * Vorschau einer Kategorisier-Aktion (Welle 5).
+ *
+ * `zuordnen` wirkt auf den Bestand, `merken` legt zusätzlich eine Dauerregel
+ * an — die Vorschau muss beides UNTERSCHEIDBAR zeigen, weil der Unterschied
+ * nicht in der Zahl steckt, sondern in der Reichweite: dieselben acht
+ * Buchungen, aber einmal als Korrektur und einmal als eingeschaltete
+ * Automatik.
+ */
+export interface KategorieAktionsVorschlag {
+  art: 'zuordnen' | 'merken';
+  /** Normalisierter Händlername — Nutzerdatum. */
+  haendler: string;
+  /** Stabile Ziel-Kategorie-ID, nie ein Anzeigename (§6). */
+  kategorieId: string;
+  /** Anzeigename der Ziel-Kategorie — Nutzerdatum. */
+  kategorieName: string;
+  /** Wie viele Buchungen die Aktion berührt. */
+  anzahl: number;
+  /**
+   * IDs der betroffenen Buchungen samt ihrer BISHERIGEN Kategorie — der
+   * Schnappschuss für das Rückgängig. Er entsteht in der reinen Vorschau,
+   * nicht erst beim Schreiben: Sonst gäbe es einen Moment, in dem geschrieben
+   * ist und der Rückweg noch nicht feststeht.
+   */
+  vorher: readonly { id: string; kategorieId: string | null }[];
+}
+
+/** Jede Vorschau einer schreibenden Chat-Aktion. */
+export type AktionsVorschlag = BudgetAktionsVorschlag | KategorieAktionsVorschlag;
+
+/**
+ * Ist der Vorschlag eine Kategorisier-Aktion?
+ *
+ * Als benannte Wache statt einer Bedingung an der Aufrufstelle: Die
+ * Präsentation entscheidet damit, WELCHE Vorschau zu einer echten
+ * Schreiboperation gezeigt wird — ein Vorschlag in der falschen Fläche
+ * kündigte etwas anderes an, als der Klick dann tut.
+ */
+export function istKategorieAktion(v: AktionsVorschlag): v is KategorieAktionsVorschlag {
+  return v.art === 'zuordnen' || v.art === 'merken';
 }
 
 /**
@@ -336,7 +385,7 @@ export interface QuestionAnswer {
   /** Die Veränderungs-Menge einer `art: 'szenario'`-Antwort — sonst leer. */
   szenario?: SzenarioAbsicht;
   /** Die Vorschau einer `art: 'aktion'`-Antwort — sonst leer. */
-  aktion?: BudgetAktionsVorschlag;
+  aktion?: AktionsVorschlag;
   /** Die gestellte Frage einer `art: 'zielrueckrechnung'`-Antwort. */
   ziel?: Zielfrage;
   /**
@@ -447,6 +496,12 @@ export interface QuestionEntry {
    * Paraphrase, die eine Monatsfrage rettete, kippte eine Nutzungsfrage.
    */
   normiertAufMonat?: boolean;
+  /**
+   * Nimmt dieser Eintrag die erkannte {@link KategorieAktionsAbsicht} entgegen
+   * (Welle 5)? Genau EIN Eintrag trägt das Flag — dieselbe Bauform wie
+   * `nimmtSzenarioAbsicht`.
+   */
+  nimmtKategorieAktion?: boolean;
   /** REIN und SYNCHRON. Ruft keinen Service — auch ein Aktions-Eintrag nicht. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }

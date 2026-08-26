@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { metricQuestions } from '../metric-questions';
 import type { QuestionData, QuestionEntry, QuestionSlots } from '@/lib/question-registry';
+import { istKategorieAktion } from '@/lib/question-registry';
 import type { Category, Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';
 import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';
@@ -268,5 +269,70 @@ describe('kategorie.begruendung', () => {
   it('sollte ohne Buchung nichts behaupten', () => {
     const antwort = e.antwort({ haendler: 'gibtsnicht' }, { ...mit([]), merchantRules: [] });
     expect(antwort.art).toBe('keine');
+  });
+});
+
+describe('kategorie.aktion', () => {
+  const e = eintrag('kategorie.aktion');
+
+  const absicht = { art: 'zuordnen' as const, haendlerText: 'rewe', kategorieText: 'lebensmittel' };
+
+  it('sollte die Vorschau samt Rückweg rechnen, ohne zu schreiben', () => {
+    const antwort = e.antwort(
+      { haendler: 'rewe', kategorieIds: ['c-lebensmittel'], kategorieAktion: absicht },
+      mit([tx('2026-07-02', -30, 'REWE'), tx('2026-07-05', -20, 'REWE', 'c-freizeit')]),
+    );
+    expect(antwort.art).toBe('aktion');
+    expect(antwort.aktion?.art).toBe('zuordnen');
+    // Der Schnappschuss entsteht in der VORSCHAU, nicht erst beim Schreiben:
+    // Sonst gäbe es einen Moment, in dem geschrieben ist und der Rückweg
+    // noch nicht feststeht.
+    const vorschau = antwort.aktion;
+    expect(vorschau && istKategorieAktion(vorschau) ? vorschau.vorher.map((v) => v.kategorieId) : null)
+      .toEqual([null, 'c-freizeit']);
+  });
+
+  it('[REGRESSION] sollte bereits richtig zugeordnete Buchungen NICHT mitzählen', () => {
+    // „8 Buchungen ändern", wenn nur 3 sich ändern, ist eine falsche
+    // Ankündigung — und die Ankündigung ist hier das Versprechen, auf das
+    // jemand klickt.
+    const antwort = e.antwort(
+      { haendler: 'rewe', kategorieIds: ['c-lebensmittel'], kategorieAktion: absicht },
+      mit([
+        tx('2026-07-02', -30, 'REWE', 'c-lebensmittel'),
+        tx('2026-07-05', -20, 'REWE', 'c-freizeit'),
+      ]),
+    );
+    expect(antwort.anzahl).toBe(1);
+  });
+
+  it('sollte „merken" als andere Aktionsart durchreichen', () => {
+    const antwort = e.antwort(
+      {
+        haendler: 'rewe',
+        kategorieIds: ['c-lebensmittel'],
+        kategorieAktion: { ...absicht, art: 'merken' },
+      },
+      mit([tx('2026-07-02', -30, 'REWE')]),
+    );
+    expect(antwort.aktion?.art).toBe('merken');
+  });
+
+  it('sollte ohne erkannte Kategorie NICHTS vorschlagen', () => {
+    // Raten wäre hier besonders teuer: Eine falsch zugeordnete Kategorie
+    // verfälscht jede spätere Summe.
+    const antwort = e.antwort(
+      { haendler: 'rewe', kategorieAktion: absicht },
+      mit([tx('2026-07-02', -30, 'REWE')]),
+    );
+    expect(antwort.art).toBe('keine');
+  });
+
+  it('sollte interne Überträge nicht umtragen', () => {
+    const antwort = e.antwort(
+      { haendler: 'rewe', kategorieIds: ['c-lebensmittel'], kategorieAktion: absicht },
+      mit([tx('2026-07-02', -900, 'REWE')].map((t) => ({ ...t, is_transfer: true }))),
+    );
+    expect(antwort.anzahl).toBe(0);
   });
 });

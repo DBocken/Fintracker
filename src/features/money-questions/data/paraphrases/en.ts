@@ -408,6 +408,16 @@ export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
     'why is spotify in this category',
     'how does the assignment at edeka come about',
   ],
+  'kategorie.aktion': [
+    'assign the rewe transactions to groceries',
+    'file all dm transactions under drugstore',
+    'remember that aldi is always groceries',
+    'categorise netflix as leisure',
+    'put the petrol station into mobility',
+    'always assign amazon to shopping from now on',
+    'move the lidl transactions into groceries',
+    'remember spotify belongs to leisure',
+  ],
   'verfuegbar.bisGehalt': [
     'what can i still spend until payday',
     'how much is free until my next salary',

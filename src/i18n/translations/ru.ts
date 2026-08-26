@@ -4385,7 +4385,7 @@ export const ru = {
         betrag: 'О какой сумме идёт речь?',
       },
     entryName: {
-      kategorie: { begruendung: 'Почему операция отнесена именно так' },
+      kategorie: { begruendung: 'Почему операция отнесена именно так', aktion: 'Перенести операции или создать правило' },
       liquiditaet: { reichweite: 'Насколько хватит денег' },
       abbuchung: { naechste: 'Ближайшие списания', letzte: 'Последняя операция у продавца' },
       ziel: { obergrenze: 'Максимум, который выдержит', sparrate: 'Необходимый платёж в месяц' },
@@ -4447,7 +4447,16 @@ export const ru = {
       regex_fallback: 'Потому что подходит общее ключевое слово — самый слабый из четырёх источников.',
       none: 'Достаточного сигнала для этого не было.',
     },
+    kategorieAktion: {
+      vorschauZuordnen: 'Операции ({anzahl}) получат категорию «{kategorie}».',
+      vorschauMerken: 'Операции ({anzahl}) получат «{kategorie}» — и будет создано правило для {haendler}.',
+      reichweite: 'С этого момента правило действует и на операции, которых ещё нет.',
+      erledigtZuordnen: 'Операции ({anzahl}) теперь в «{kategorie}».',
+      erledigtMerken: 'Готово — и {haendler} впредь попадает в «{kategorie}» автоматически.',
+      nichtsZuTun: 'Все операции от {haendler} уже в «{kategorie}» — менять нечего.',
+    },
     trigger: {
+      kategorieAktion: 'отнеси, присвой, запомни что, категоризируй',
       warumKategorie: 'почему это, почему она, почему попала, как так вышло что',
       schuldenDauer: 'сколько ещё платить, когда я закрою долги, срок моих долгов, когда стану свободен от долгов',
       schuldenZinsen: 'сколько процентов я плачу, проценты всего, во что обходятся долги, процентная нагрузка',
@@ -4519,6 +4528,9 @@ export const ru = {
       budgetAktion: 'создать бюджет, изменить бюджет, увеличить бюджет, удалить бюджет',
     },
     answer: {
+      kategorieAktionZuordnen: 'Перенести операций ({anzahl}) от {haendler} в «{kategorie}»?',
+      kategorieAktionMerken: 'Всегда относить {haendler} к «{kategorie}»?',
+      kategorieAktionUnklar: 'Для этого нужны оба: продавец и категория.',
       kategorieBegruendung: 'Последняя операция в {haendler} отнесена к «{kategorie}».',
       kategorieOhneZuordnung: 'У последней операции в {haendler} категории пока нет — автоматика тоже не смогла уверенно её определить.',
       schuldenDauer: 'Столько месяцев уйдёт при нынешних минимальных платежах.',
