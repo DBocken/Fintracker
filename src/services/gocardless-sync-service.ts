@@ -8,7 +8,7 @@ import {
 } from '@/lib/bank-transaction-fields';
 import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
-import { categorizeTransactionConfident } from '@/lib/categorization';
+import { createCategorizer } from '@/lib/categorization';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { applyDetectedContracts } from './contract-detection-service';
@@ -293,6 +293,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
     const categories = await getCategories();
     const learnedRules = await getMerchantRules();
+    // Kategorie-Index EINMAL für den ganzen Sync-Lauf, nicht je Bankbuchung.
+    const categorizer = createCategorizer(categories, learnedRules);
     const userSettings = await getUserSettings();
 
     // Startsaldo aus der ersten Buchung des Fensters zurueckrechnen — als
@@ -369,7 +371,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         };
         // Stille Zuweisung nur ab mittlerer Konfidenz — Regex-Raten (0,55) bleiben
         // unkategorisiert und landen als Vorschlag in der Coach-Inbox.
-        const categoryId = categorizeTransactionConfident(draftTransaction as import('../types').Transaction, categories, learnedRules);
+        const categoryId = categorizer.categorizeConfident(draftTransaction as import('../types').Transaction);
 
         const created = await createTransaction({
           account_id: account.id,

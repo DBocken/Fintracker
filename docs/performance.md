@@ -49,6 +49,52 @@ Single-Blob-Engpass seit WP 4.1 gelöst ist (Entscheidung und Messung:
   `transaction-service.ordering.test.ts` und
   `src/features/shared/domain/__tests__/dashboard-filtering.test.ts`.
 
+### Auto-Kategorisierung: einmal vorbereiten statt je Buchung
+
+`createCategorizer(categories, learnedRules)` (`src/lib/categorization.ts`) baut
+den Kategorie-Index EINMAL und kategorisiert danach beliebig viele Buchungen.
+Alle Schleifen-Aufrufer nutzen diese Form: `recategorizeTransactions`,
+`applyAutoCategorization`, `getCategoryPreview`, `getTopCategorySuggestion`
+(`transaction-service.ts`), der GoCardless-Sync, die CSV-Review-Vorschau
+(`review-preview.ts`) und die Vorschlagsliste (`automation-suggestions.ts`).
+`explainCategorization(tx, categories, rules)` bleibt als Einzelfall darüber —
+für den Beleg-Scan und die Detailansicht, die genau eine Buchung ansehen.
+
+Vorher lagen zwei Aufbereitungen im innersten Vergleich statt davor:
+
+- der Kategorie-Index (`byId`-Map + Auflösung der Einkommens-Kategorien über die
+  Elternkette) wurde je Buchung neu gebaut;
+- `matchesKeyword` schrieb bei **jedem** Aufruf beide Seiten klein und prüfte die
+  Buchstaben-Regex neu — bei 200 Kategorien × 3 Filtern × 4 Textfeldern
+  2 400-mal je Buchung dasselbe Ergebnis. `prepareKeyword()` /
+  `matchesPreparedKeyword()` (`src/lib/keyword-match.ts`) trennen das jetzt:
+  Keyword einmal je Filter, Buchungstext einmal je Buchung.
+
+Gemessen (best-of-5, Reihenfolge je Runde getauscht, jsdom/Node 22):
+
+| Bestand | vorher | nachher | Faktor |
+|---|---|---|---|
+| 3 000 Buchungen × 80 Kategorien | 170 ms | 105 ms | 1,63× |
+| 3 000 Buchungen × 200 Kategorien | 426 ms | 252 ms | 1,69× |
+| 10 000 Buchungen × 200 Kategorien | 1 384 ms | 836 ms | 1,65× |
+
+**Der Faktor ist über alle drei Formen gleich — und das ist die Aussage:**
+Verbessert wurde die Konstante, nicht die Klasse. Das Filter-Matching bleibt
+`Buchungen × Kategorien × Filter`. Ein invertierter Index über die Filter wäre
+der nächste Schritt und ist **bewusst nicht** gegangen: lange Keywords matchen
+als Substring (`e.on`, `trade republic`), das lässt sich nicht auf ein
+Wort-Nachschlagen abbilden, ohne die Trefferregel zu ändern — und die Trefferregel
+entscheidet, in welche Kategorie eine Buchung fällt. Der Standard-Kategoriebaum
+umfasst 110 Einträge (`DEFAULT_LOCAL_CATEGORIES`), der reale Fall liegt damit
+zwischen den ersten beiden Zeilen — Größenordnung 0,04 ms je Buchung. Das trägt,
+bis es gemessen nicht mehr trägt.
+
+Abgesichert durch zwei Tests mit unterschiedlicher Aufgabe:
+`src/lib/__tests__/categorizer.test.ts` zählt die **Zugriffe** auf die
+Kategorien und verlangt, dass ihre Zahl nicht von der Zahl der Buchungen abhängt
+(ohne Uhr, damit nichts flackert); `categorizer.perf.test.ts` hält ein absolutes
+Budget für den Vollauf (3 000 × 200 unter 1 500 ms, gemessen ~320 ms).
+
 ---
 
 ## Gelöster Haupt-Engpass: vom Single-Blob zu Quartals-Chunks (WP 4.1)
@@ -75,6 +121,16 @@ der Legacy-Zweig bis zur Migration (nummerierter Schritt
   Verworfenes vollständig in `docs/architecture/transaction-storage-chunks.md`.
 
 ---
+
+## Was hier NICHT gilt
+
+`MAX_TRANSACTIONS_LOCAL = 10000` stand bis August 2026 in `src/lib/constants.ts`
+und wurde **nirgends gelesen** — nicht in `src/`, nicht in `api/`, nicht in einem
+Test. Der Bestand ist nicht gedeckelt. Wer eine Laufzeit-Überlegung auf „n ist ja
+begrenzt" stützt, stützt sie auf nichts: Bankanbindung über mehrere Jahre und
+zwei Konten geht an dieser Zahl vorbei, ohne dass irgendetwas rot wird. Die
+Konstante ist entfernt; was den Bestand tatsächlich trägt, sind die
+Quartals-Chunks und die Virtualisierung oben.
 
 ## Mess- & Testinfrastruktur
 

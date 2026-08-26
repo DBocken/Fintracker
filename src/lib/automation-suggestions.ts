@@ -6,7 +6,7 @@
 // On-demand & rein: berechnet aus vorhandenen Daten, ohne die Import-Pipeline
 // zu berühren. Die einzige Mutation passiert erst, wenn der Nutzer annimmt.
 
-import { explainCategorization } from "@/lib/categorization";
+import { createCategorizer } from "@/lib/categorization";
 import { buildCategorySuggestionFromResult } from "@/lib/automation-suggestion-model";
 import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import type { Category, Transaction } from "@/types";
@@ -39,6 +39,7 @@ export function buildPendingCategorySuggestions(
   limit = 20,
 ): AutomationSuggestion[] {
   const decidedById = new Map(decidedSuggestions.map((s) => [s.id, s.status]));
+  const categorizer = createCategorizer(categories, learnedRules);
   const out: AutomationSuggestion[] = [];
 
   for (const tx of transactions) {
@@ -46,7 +47,7 @@ export function buildPendingCategorySuggestions(
     if (tx.category_id) continue;
     if (tx.is_transfer) continue;
 
-    const result = explainCategorization(tx, categories, learnedRules);
+    const result = categorizer.explain(tx);
     if (!result.categoryId || result.confidence < MIN_SUGGEST_CONFIDENCE) continue;
 
     const suggestion = buildCategorySuggestionFromResult(tx, result);
