@@ -10,6 +10,7 @@ import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import type { Aussage, DataNeed, QuestionAnswer } from '@/lib/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
 import { SzenarioAntwort } from './SzenarioAntwort';
+import { ZielAntwort } from './ZielAntwort';
 import { BudgetAktionAntwort } from './BudgetAktionAntwort';
 
 /**
@@ -226,6 +227,12 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
   // Monte-Carlo läuft im Worker — das Register hat nur die Absicht geliefert.
   if (ergebnis.antwort.art === 'szenario' && ergebnis.antwort.szenario) {
     return <SzenarioAntwort absicht={ergebnis.antwort.szenario} />;
+  }
+
+  // Eine Zielrückrechnung trägt nur die FRAGE (Welle 3): Die Binärsuche über
+  // den Betrag läuft in der Fläche, nicht im Register.
+  if (ergebnis.antwort.art === 'zielrueckrechnung' && ergebnis.antwort.ziel) {
+    return <ZielAntwort ziel={ergebnis.antwort.ziel} />;
   }
 
   // Eine Aktions-Antwort ist eine VORSCHAU (WP-I): Geschrieben wird erst auf

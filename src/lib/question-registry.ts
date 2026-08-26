@@ -241,6 +241,14 @@ export type AnswerKind =
    * ausdrücklichen Klick — der Chat schreibt nie aus eigener Deutung.
    */
   | 'aktion'
+  /**
+   * `zielrueckrechnung` (Welle 3): Die Antwort ist noch KEINE Zahl, sondern
+   * die gestellte Zielfrage — „wie hoch höchstens?" oder „wie viel monatlich?".
+   * Gerechnet wird sie asynchron in der Fläche über die Monte-Carlo-Suche,
+   * genau wie bei `szenario`: Eine Binärsuche mit hunderten Simulationsläufen
+   * gehört nicht in eine reine, synchrone `antwort()`.
+   */
+  | 'zielrueckrechnung'
   | 'keine';
 
 /**
@@ -291,6 +299,23 @@ export interface VergleichsAntwort {
   quote: number | null;
 }
 
+/**
+ * Eine Zielfrage — die Umkehrung der Leistbarkeit.
+ *
+ * `obergrenze`: „Wie hoch darf X höchstens sein, damit mein Puffer hält?"
+ * `sparrate`: „Wie viel muss ich monatlich zurücklegen, um X zu schaffen?"
+ *
+ * Beide brauchen dieselbe Engine und unterscheiden sich nur darin, WELCHE
+ * Grösse gesucht wird — deshalb eine Form mit einer `art`, nicht zwei.
+ */
+export interface Zielfrage {
+  art: 'obergrenze' | 'sparrate';
+  /** Betrag des Ziels — bei `obergrenze` das Gesuchte und deshalb offen. */
+  betrag?: number;
+  /** Tage bis zum Ziel; Vorgabe ist der Horizont des Eintrags. */
+  inTagen: number;
+}
+
 export interface QuestionAnswer {
   art: AnswerKind;
   /** Euro bei `art: 'geld'`, Anteil 0..1 bei `quote`, sonst je nach Art. */
@@ -303,6 +328,8 @@ export interface QuestionAnswer {
   szenario?: SzenarioAbsicht;
   /** Die Vorschau einer `art: 'aktion'`-Antwort — sonst leer. */
   aktion?: BudgetAktionsVorschlag;
+  /** Die gestellte Frage einer `art: 'zielrueckrechnung'`-Antwort. */
+  ziel?: Zielfrage;
   /**
    * Die Gegenüberstellung einer `art: 'vergleich'`-Antwort — sonst leer.
    * `wert` trägt dabei die HAUPT-Größe, `vergleich.referenz` die zweite;

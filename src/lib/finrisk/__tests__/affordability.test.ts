@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateAffordability } from '../affordability';
+import { evaluateAffordability, hoechsterTragbarerBetrag } from '../affordability';
 import type { ForecastAccount, ForecastConfig, ForecastInput, RecurringFlow } from '../../forecast-types';
 
 /**
@@ -97,5 +97,68 @@ describe('evaluateAffordability', () => {
       const b = evaluateAffordability(input(2500, 600), config, goal, { monteCarlo: MC });
       expect(a).toEqual(b);
     }, 30000);
+  });
+});
+
+/**
+ * Zielrückrechnung (Welle 3): die andere Richtung derselben Frage.
+ *
+ * `evaluateAffordability` nimmt einen Betrag und sucht die Änderung, die ihn
+ * tragbar macht. Wer fragt „Wie hoch darf mein Urlaubsbudget höchstens sein?",
+ * hat den Betrag noch nicht — er IST die Antwort.
+ */
+describe('hoechsterTragbarerBetrag', () => {
+  it('sollte eine Grenze finden, die trägt — und knapp darüber nicht mehr', () => {
+    // Der eigentliche Prüfpunkt: nicht die Zahl selbst (die hängt am
+    // Zufallsstrom), sondern dass sie GRENZE ist. Genau bei ihr wird die
+    // Zielsicherheit gehalten, bei deutlich mehr nicht.
+    const ergebnis = hoechsterTragbarerBetrag(input(8000, 400), config, 60, { monteCarlo: MC });
+
+    expect(ergebnis.bereitsUnterDeckung).toBe(false);
+    expect(ergebnis.betrag).toBeGreaterThan(0);
+    expect(ergebnis.successProbability).toBeGreaterThanOrEqual(ergebnis.targetConfidence);
+
+    const drueber = evaluateAffordability(
+      input(8000, 400),
+      config,
+      { amount: ergebnis.betrag * 2, dayIndex: 60 },
+      { monteCarlo: MC },
+    );
+    expect(drueber.affordableAsIs).toBe(false);
+  });
+
+  it('sollte monoton sein: mehr Guthaben erlaubt nie weniger', () => {
+    // Die Voraussetzung der Binärsuche. Ohne Monotonie fände sie irgendeinen
+    // Punkt statt der Grenze — dann wäre sie nicht ungenau, sondern falsch.
+    const wenig = hoechsterTragbarerBetrag(input(5000, 400), config, 60, { monteCarlo: MC });
+    const viel = hoechsterTragbarerBetrag(input(15000, 400), config, 60, { monteCarlo: MC });
+    expect(viel.betrag).toBeGreaterThanOrEqual(wenig.betrag);
+  });
+
+  it('[REGRESSION] sollte „schon ohne Ausgabe unter Deckung" BENENNEN statt 0 € zu antworten', () => {
+    // „0 €" liest sich wie „du darfst nichts ausgeben" — die Lage ist aber
+    // eine andere: Nicht die Anschaffung ist das Problem, sondern der Stand
+    // davor. Eine Antwort, die das verwischt, schickt jemanden auf die
+    // falsche Suche.
+    const ergebnis = hoechsterTragbarerBetrag(
+      input(0, 1500),
+      { startDate: START, safetyBuffer: 3000 },
+      30,
+      { monteCarlo: MC },
+    );
+    expect(ergebnis.bereitsUnterDeckung).toBe(true);
+    expect(ergebnis.betrag).toBe(0);
+  });
+
+  it('sollte die Obergrenze der Frage zurückgeben, wenn selbst sie trägt', () => {
+    // Dann ist die Grenze nicht die Liquidität, sondern die Frage. Eine
+    // grössere Zahl zu erfinden wäre eine Behauptung über Geld, nach dem
+    // niemand gefragt hat.
+    const ergebnis = hoechsterTragbarerBetrag(input(50000, 200), config, 30, {
+      monteCarlo: MC,
+      obergrenze: 500,
+    });
+    expect(ergebnis.betrag).toBe(500);
+    expect(ergebnis.bereitsUnterDeckung).toBe(false);
   });
 });

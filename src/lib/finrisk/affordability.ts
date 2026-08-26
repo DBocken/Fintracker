@@ -297,3 +297,116 @@ export function evaluateAffordability(
     options: [asIs, ...ranked],
   };
 }
+
+/**
+ * Die andere Richtung derselben Frage: **Wie viel darf es höchstens sein?**
+ *
+ * `evaluateAffordability` nimmt einen Betrag und sucht die Änderung, die ihn
+ * tragbar macht. Wer aber fragt „Wie hoch darf mein Urlaubsbudget höchstens
+ * sein, damit mein Puffer hält?", hat den Betrag noch nicht — er ist die
+ * ANTWORT. Gesucht wird deshalb über den Betrag, mit demselben Bewerter und
+ * derselben Binärsuche wie bei den drei Hebeln; ein zweiter Apparat wäre ein
+ * zweiter Ort, an dem „tragbar" etwas anderes heissen könnte.
+ *
+ * **Die Suche ist monoton, und das ist die Voraussetzung**: Ein grösserer
+ * Betrag kann die Erfolgswahrscheinlichkeit nie erhöhen. Ohne diese
+ * Eigenschaft wäre eine Binärsuche nicht bloss ungenau, sondern falsch —
+ * sie fände irgendeinen Punkt, nicht die Grenze.
+ */
+export interface HoechstbetragErgebnis {
+  /** Grösster Betrag, der die Zielsicherheit noch hält (EUR, gerundet). */
+  betrag: number;
+  /** Erreichte Erfolgswahrscheinlichkeit bei genau diesem Betrag. */
+  successProbability: number;
+  /** Zielsicherheit, gegen die gesucht wurde. */
+  targetConfidence: number;
+  /** Tagindex, auf den die Ausgabe gelegt wurde. */
+  dayIndex: number;
+  /**
+   * `true`, wenn schon 0 € die Zielsicherheit reisst — dann gibt es keinen
+   * tragbaren Betrag, und „0 €" wäre die irreführende Antwort: Nicht die
+   * Anschaffung ist das Problem, sondern die Lage davor.
+   */
+  bereitsUnterDeckung: boolean;
+}
+
+export function hoechsterTragbarerBetrag(
+  input: ForecastInput,
+  config: ForecastConfig,
+  dayIndex: number,
+  options: AffordabilityOptions & { obergrenze?: number } = {},
+): HoechstbetragErgebnis {
+  const target = Math.min(0.999, Math.max(0.5, options.targetConfidence ?? 0.9));
+  const mc = searchMc(options.monteCarlo);
+  const startISO = config.startDate ?? format(new Date(), ISO);
+  const accountId = pickVariableExpenseAccount(input.accounts);
+
+  const neededMonths = Math.ceil((dayIndex + 120) / 30);
+  const cfg: ForecastConfig = { ...config, months: Math.max(config.months ?? 6, neededMonths) };
+
+  const leer: HoechstbetragErgebnis = {
+    betrag: 0,
+    successProbability: 0,
+    targetConfidence: target,
+    dayIndex,
+    bereitsUnterDeckung: true,
+  };
+  if (!accountId) return leer;
+
+  const bewerte = (betrag: number) =>
+    evaluate(withPurchase(input, betrag, dayIndex, startISO, accountId), cfg, mc);
+
+  // Ohne jede Ausgabe schon unter der Zielsicherheit: Dann ist kein Betrag
+  // tragbar, und die ehrliche Antwort ist nicht „0 €", sondern der Hinweis
+  // darauf, dass die Lage vor der Anschaffung nicht trägt.
+  const ohne = bewerte(0);
+  if (ohne.success < target) return { ...leer, successProbability: ohne.success };
+
+  // Obergrenze: standardmässig das kleinste operative Guthaben — mehr als
+  // alles auszugeben ist nie tragbar, und die Suche braucht ein Dach.
+  const dach =
+    options.obergrenze ??
+    Math.max(
+      100,
+      input.accounts.reduce((summe, konto) => summe + Math.max(0, konto.openingBalance), 0),
+    );
+
+  if (bewerte(dach).success >= target) {
+    // Selbst das Dach trägt — dann ist die Grenze nicht die Liquidität,
+    // sondern die Obergrenze der Frage. Das wird so zurückgegeben, statt
+    // eine grössere Zahl zu erfinden.
+    const ev = bewerte(dach);
+    return {
+      betrag: round2(dach),
+      successProbability: ev.success,
+      targetConfidence: target,
+      dayIndex,
+      bereitsUnterDeckung: false,
+    };
+  }
+
+  let lo = 0; // trägt
+  let hi = dach; // trägt nicht
+  let best = ohne;
+  // Acht Schritte statt sechs wie bei den Hebeln: Hier ist die gesuchte Grösse
+  // die ANTWORT und keine Stellschraube — eine Unschärfe von einem Achtel des
+  // Dachs stünde als Betrag auf dem Bildschirm.
+  for (let i = 0; i < 8; i++) {
+    const mitte = (lo + hi) / 2;
+    const ev = bewerte(mitte);
+    if (ev.success >= target) {
+      lo = mitte;
+      best = ev;
+    } else {
+      hi = mitte;
+    }
+  }
+
+  return {
+    betrag: round2(lo),
+    successProbability: best.success,
+    targetConfidence: target,
+    dayIndex,
+    bereitsUnterDeckung: false,
+  };
+}

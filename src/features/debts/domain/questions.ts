@@ -18,7 +18,7 @@
  *    vorbelegten Deep-Link zurück. Das hält `antwort()` ausnahmslos rein —
  *    die Eigenschaft, an der die Testbarkeit des ganzen Registers hängt.
  */
-import type { QuestionAnswer, QuestionEntry } from '@/lib/question-registry';
+import type { QuestionAnswer, QuestionEntry, QuestionSlots } from '@/lib/question-registry';
 import { totalOutstandingDebt, totalMinimumPayment } from '@/lib/debt-totals';
 import { offeneRatenJeHaendler } from '@/lib/installments';
 import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
@@ -138,8 +138,89 @@ const ratenOffen: QuestionEntry = {
   },
 };
 
+/**
+ * Zielrückrechnung (Welle 3) — die Umkehrung der Leistbarkeit.
+ *
+ * `leistbarkeit.anschaffung` nimmt einen Betrag und fragt „geht das?".
+ * Diese beiden fragen andersherum: Der gesuchte Wert IST die Antwort —
+ * die zulässige Obergrenze bzw. die nötige monatliche Rate.
+ *
+ * Beide sind `teuer` und tragen deshalb nur die FRAGE, keine Zahl:
+ * Gerechnet wird über eine Binärsuche mit hunderten Simulationsläufen, und
+ * die gehört nicht in eine reine, synchrone `antwort()` — dieselbe
+ * Arbeitsteilung wie bei `szenario.kombination` (WP-H).
+ *
+ * Beide beantworten Szenarien: Sie reden ausdrücklich über eine veränderte
+ * Welt, und die Simulation ist die einzige Funktion, die eine solche rechnet.
+ */
+const HORIZONT_TAGE = 90;
+
+const zielObergrenze: QuestionEntry = {
+  id: 'ziel.obergrenze',
+  slots: { erforderlich: [], optional: ['zeitraum'] },
+  ausloeser: ['financeQuestions.trigger.zielObergrenze'],
+  needs: [],
+  aufwand: 'teuer',
+  beantwortetSzenarien: true,
+  antwort: (slots, daten) => ({
+    art: 'zielrueckrechnung',
+    wert: null,
+    anzahl: 0,
+    aussage: { key: 'financeQuestions.answer.zielObergrenze', params: {} },
+    ziel: { art: 'obergrenze', inTagen: tageBis(slots, daten.jetzt, HORIZONT_TAGE) },
+    deepLink: '/liquidity?mode=simulation',
+    deepLinkArt: 'kontext',
+  }),
+};
+
+const zielSparrate: QuestionEntry = {
+  id: 'ziel.sparrate',
+  // Der Betrag ist hier PFLICHT — anders als bei der Obergrenze, wo er das
+  // Gesuchte ist. „Wie viel muss ich sparen?" ohne Ziel ist keine Frage,
+  // sondern eine halbe.
+  slots: { erforderlich: ['betrag'], optional: ['zeitraum'] },
+  ausloeser: ['financeQuestions.trigger.zielSparrate'],
+  needs: [],
+  aufwand: 'teuer',
+  beantwortetSzenarien: true,
+  antwort: (slots, daten) => ({
+    art: 'zielrueckrechnung',
+    wert: slots.betrag ?? null,
+    anzahl: 0,
+    aussage: {
+      key: 'financeQuestions.answer.zielSparrate',
+      params: { betrag: slots.betrag ?? 0 },
+    },
+    ziel: { art: 'sparrate', betrag: slots.betrag, inTagen: tageBis(slots, daten.jetzt, HORIZONT_TAGE) },
+    deepLink:
+      slots.betrag !== undefined
+        ? `/liquidity?mode=simulation&betrag=${slots.betrag}`
+        : '/liquidity?mode=simulation',
+    deepLinkArt: 'kontext',
+  }),
+};
+
+/**
+ * Tage bis zum Ziel aus einem erkannten Zeitraum — sonst der Vorgabe-Horizont.
+ *
+ * Der Zeitraum-Slot ist auf die VERGANGENHEIT ausgelegt („letzten Monat");
+ * hier zählt sein ENDE, weil eine Zielfrage nach vorn schaut. Liegt das Ende
+ * nicht in der Zukunft, bleibt es beim Horizont statt bei einem negativen
+ * Abstand — eine Anschaffung in der Vergangenheit gibt es nicht.
+ */
+function tageBis(slots: QuestionSlots, jetzt: Date, vorgabe: number): number {
+  const bis = slots.zeitraum?.bis;
+  if (!bis) return vorgabe;
+  // `daten.jetzt` statt `Date.now()`: `antwort()` ist REIN — derselbe Aufruf
+  // muss morgen dasselbe liefern, sonst wäre der Eintrag nicht testbar.
+  const tage = Math.round((Date.parse(`${bis}T12:00:00Z`) - jetzt.getTime()) / 86_400_000);
+  return tage > 0 ? tage : vorgabe;
+}
+
 export const questions: readonly QuestionEntry[] = [
   schuldenRestschuld,
   leistbarkeitAnschaffung,
   ratenOffen,
+  zielObergrenze,
+  zielSparrate,
 ];

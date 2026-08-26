@@ -622,3 +622,53 @@ describe('Szenario-Gate an BEIDEN Router-Stufen', () => {
     expect(routing.art).toBe('aufloesen');
   });
 });
+
+describe('Offene Bezugsgröße schlägt den Stichentscheid', () => {
+  /**
+   * Der Fund der Welle 3: Die Wortebene erkannte „wieviel habe ich für
+   * quastelhuber ausgegeben" korrekt als mehrdeutig (Gesamtsumme, Händler,
+   * Kategorie). Stufe 2 löste den Gleichstand zugunsten der GESAMTSUMME auf —
+   * also zugunsten der Familie, die die Einschränkung der Frage ignoriert.
+   *
+   * Wer nach einem Teil fragt und das Ganze bekommt, bekommt eine falsche
+   * Zahl mit richtigem Anstrich. Ein Stichentscheid darf deshalb nicht auf
+   * eine Familie OHNE Bezugsgröße fallen, solange eine genannte nicht
+   * aufgelöst ist.
+   */
+  const gesamt: QuestionEntry = {
+    id: 'ausgaben.gesamt',
+    slots: { erforderlich: [], optional: [] },
+    ausloeser: ['k.a'],
+    needs: [],
+    aufwand: 'guenstig',
+    antwort: () => { throw new Error('nicht gefragt'); },
+  };
+  const jeHaendler: QuestionEntry = { ...gesamt, id: 'ausgaben.haendler', slots: { erforderlich: ['haendler'], optional: [] } };
+  const vok: QuestionVocabulary = {
+    kategorien: [], konten: [], haendler: [{ wort: 'lidl', wert: 'lidl' }],
+    ausloeser: new Map([['ausgaben.gesamt', ['ausgegeben']], ['ausgaben.haendler', ['ausgegeben']]]),
+  };
+  const JETZT = new Date('2026-08-23');
+  const stich = { klasse: 'ausgaben.gesamt', marge: 0.9 };
+
+  it('[REGRESSION] sollte bei unaufgelöster Bezugsgröße nicht zur Gesamtsumme durchgreifen', () => {
+    const routing = routeFrage('wieviel habe ich für quastelhuber ausgegeben', vok, [gesamt, jeHaendler], 'de', JETZT, stich);
+    expect(routing.art).toBe('kandidaten');
+  });
+
+  it('sollte ohne genannte Bezugsgröße weiterhin zur Gesamtsumme durchgreifen', () => {
+    // Die Gegenprobe: „Wieviel habe ich ausgegeben?" IST die Frage nach der
+    // Gesamtsumme. Ein Gate, das auch sie bremste, wäre keine Schranke,
+    // sondern eine Abschaltung.
+    const routing = routeFrage('wieviel habe ich ausgegeben', vok, [gesamt, jeHaendler], 'de', JETZT, stich);
+    expect(routing.art).toBe('aufloesen');
+  });
+
+  it('sollte bei AUFGELÖSTER Bezugsgröße nicht bremsen', () => {
+    const routing = routeFrage('wieviel habe ich bei lidl ausgegeben', vok, [gesamt, jeHaendler], 'de', JETZT, {
+      klasse: 'ausgaben.haendler',
+      marge: 0.9,
+    });
+    expect(routing.art).toBe('aufloesen');
+  });
+});

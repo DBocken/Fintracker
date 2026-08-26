@@ -4384,6 +4384,7 @@ export const en = {
         betrag: 'Which amount are we talking about?',
       },
     entryName: {
+      ziel: { obergrenze: 'Highest amount that still holds', sparrate: 'Monthly rate needed' },
       steuer: { gewinn: 'Profit by cash-basis accounts', ruecklage: 'Tax reserve' },
       anlass: { kosten: 'Cost of an event', liste: 'Your events', vorschlag: 'Transactions for an event' },
       transfer: { kandidaten: 'Possible internal transfers' },
@@ -4424,7 +4425,19 @@ export const en = {
       receivables: 'Lent out',
       debts: 'Debts',
     },
+    ziel: {
+      titel: 'Goal calculation',
+      rechnet: 'Looking for the limit — one moment.',
+      fehler: 'I could not read the forecast basis for this calculation.',
+      obergrenzeErklaerung: 'That much would hold in {tage} days without breaking your buffer (confidence {sicherheit}).',
+      sparrateErklaerung: 'That much per month, then the goal holds in {tage} days (confidence {sicherheit}).',
+      bereitsTragbar: 'You do not need to set anything aside — the goal already holds as it is.',
+      unterDeckung: 'Your buffer does not hold even without this expense. The problem here is not the purchase but the state before it — so I am not naming an upper limit.',
+      unerreichbar: 'Even with setting money aside I cannot reach this goal in the period. Naming a rate that would not hold does not help you.',
+    },
     trigger: {
+      zielObergrenze: 'how high may, how expensive may, spend at most, maximum i can spend, upper limit, how much can i spend without',
+      zielSparrate: 'how much do i have to save, how much monthly to save, savings rate for, save monthly to reach',
       steuer: 'tax, taxes, tax office, profit and loss, self-employed, business',
       steuerGewinn: 'my profit, profit this year, surplus, profit did i make, earn self-employed',
       steuerRuecklage: 'tax reserve, set aside for taxes, how much for the tax office, put aside for tax',
@@ -4486,6 +4499,8 @@ export const en = {
       budgetAktion: 'create a budget, change a budget, increase a budget, delete a budget',
     },
     answer: {
+      zielObergrenze: 'I am working out how high the amount may be without breaking your buffer.',
+      zielSparrate: 'I am working out how much you would have to set aside each month to manage {betrag}.',
       steuerGewinn: 'That is your profit for {jahr} by the cash-basis accounts.',
       steuerVerlust: 'That is your loss for {jahr} by the cash-basis accounts.',
       steuerRuecklageLuecke: 'That is what is still missing from your {jahr} tax reserve.',

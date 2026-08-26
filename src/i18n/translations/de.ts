@@ -4396,6 +4396,7 @@ export const de = {
         betrag: 'Um welchen Betrag geht es?',
       },
     entryName: {
+      ziel: { obergrenze: 'Höchstbetrag, der noch trägt', sparrate: 'Nötige monatliche Rate' },
       steuer: { gewinn: 'Gewinn nach EÜR', ruecklage: 'Steuerrücklage' },
       anlass: { kosten: 'Kosten eines Anlasses', liste: 'Deine Anlässe', vorschlag: 'Buchungen für einen Anlass' },
       transfer: { kandidaten: 'Mögliche interne Überträge' },
@@ -4436,7 +4437,19 @@ export const de = {
       receivables: 'Ausgeliehen',
       debts: 'Schulden',
     },
+    ziel: {
+      titel: 'Zielrückrechnung',
+      rechnet: 'Ich suche die Grenze — einen Moment.',
+      fehler: 'Für die Rückrechnung konnte ich deine Prognose-Grundlage nicht lesen.',
+      obergrenzeErklaerung: 'So viel wäre in {tage} Tagen tragbar, ohne dass dein Puffer bricht (Sicherheit {sicherheit}).',
+      sparrateErklaerung: 'So viel monatlich, dann trägt das Ziel in {tage} Tagen (Sicherheit {sicherheit}).',
+      bereitsTragbar: 'Dafür musst du nichts extra zurücklegen — das Ziel trägt schon so.',
+      unterDeckung: 'Schon ohne diese Ausgabe hält dein Puffer nicht. Hier ist nicht die Anschaffung das Problem, sondern der Stand davor — deshalb nenne ich keine Obergrenze.',
+      unerreichbar: 'Auch mit Zurücklegen erreiche ich dieses Ziel im Zeitraum nicht. Eine Rate zu nennen, die nicht hält, hilft dir nicht.',
+    },
     trigger: {
+      zielObergrenze: 'wie hoch darf, wie teuer darf, höchstens ausgeben, maximal ausgeben, obergrenze, wie viel darf ich ausgeben ohne',
+      zielSparrate: 'wie viel muss ich sparen, wie viel monatlich sparen, sparrate für, monatlich sparen um, zurücklegen um',
       steuer: 'steuer, steuern, finanzamt, eür, euer, selbständig, gewerbe',
       steuerGewinn: 'mein gewinn, gewinn dieses jahr, überschuss, gewinn gemacht, verdient als selbständige',
       steuerRuecklage: 'steuerrücklage, für steuern zurücklegen, wie viel für das finanzamt, steuern zurückgelegt, rücklage für steuern',
@@ -4498,6 +4511,8 @@ export const de = {
       budgetAktion: 'budget anlegen, budget ändern, budget erhöhen, budget löschen',
     },
     answer: {
+      zielObergrenze: 'Ich rechne aus, wie hoch der Betrag höchstens sein darf, damit dein Puffer hält.',
+      zielSparrate: 'Ich rechne aus, wie viel du monatlich zurücklegen müsstest, um {betrag} zu schaffen.',
       steuerGewinn: 'So hoch ist dein Gewinn {jahr} nach der EÜR.',
       steuerVerlust: 'So hoch ist dein Verlust {jahr} nach der EÜR.',
       steuerRuecklageLuecke: 'So viel fehlt {jahr} noch in deiner Steuerrücklage.',

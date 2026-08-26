@@ -244,7 +244,12 @@ describe('Abfrage-Register: Katalog', () => {
       // Szenario reicht die erkannte Absicht durch, und die Monte-Carlo läuft
       // asynchron in der Fläche (WP-H). Verboten bleibt eine teure Rechnung
       // IM Register.
-      expect(['verweis', 'szenario']).toContain(entry.antwort(alleSlots, daten).art);
+      // `zielrueckrechnung` (Welle 3) gehört in dieselbe Klasse wie
+      // `szenario`: Die Antwort trägt die FRAGE, gerechnet wird asynchron in
+      // der Fläche.
+      expect(['verweis', 'szenario', 'zielrueckrechnung']).toContain(
+        entry.antwort(alleSlots, daten).art,
+      );
       // Ein teurer Eintrag darf keine Daten anfordern — sonst würde die
       // Fläche für eine Antwort laden, die sie gar nicht berechnet.
       expect(entry.needs).toEqual([]);

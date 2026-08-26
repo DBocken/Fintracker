@@ -324,6 +324,34 @@ function analysiereFrage(
 }
 
 /**
+ * Nennt die Frage eine Bezugsgröße, die sich NICHT auflösen liess?
+ *
+ * „wieviel habe ich für quastelhuber ausgegeben" schränkt ausdrücklich ein —
+ * nur eben auf etwas, das weder Kategorie noch Händler noch Anlass ist. Die
+ * ehrliche Reaktion darauf ist die Rückfrage, nicht die Gesamtsumme: Wer nach
+ * einem Teil fragt und das Ganze bekommt, bekommt eine falsche Zahl mit
+ * richtigem Anstrich.
+ *
+ * Erkannt wird die POSITION, nicht das Wort: ein Inhaltswort direkt hinter
+ * „für"/„bei"/„beim". Dieselbe Idee wie die Text-Prop bei `check:i18n` — ein
+ * unbekanntes Wort ist überall sonst harmlos, an dieser Stelle ist es eine
+ * Einschränkung.
+ *
+ * Bewusst NICHT ausgelöst, wenn gar keine Bezugsgröße genannt ist: „Wieviel
+ * habe ich ausgegeben?" IST die Frage nach der Gesamtsumme.
+ */
+const BEZUGS_PRAEPOSITION = /\b(?:fuer|fur|bei|beim|for|at|on|на|для|в)\s+([a-z0-9äöüß]{3,})/u;
+
+function hatUnaufgelösteBezugsgroesse(kontext: FrageKontext): boolean {
+  // Eine aufgelöste Bezugsgröße schliesst den Fall aus — dann ist nichts offen.
+  if (kontext.haendler || kontext.kategorie || kontext.anlass) return false;
+  const treffer = BEZUGS_PRAEPOSITION.exec(kontext.ohneZeit);
+  if (!treffer) return false;
+  const wort = treffer[1];
+  return !STOPPWOERTER.has(wort);
+}
+
+/**
  * Slot-Extraktion für EINEN Eintrag — von `match()` UND `kandidatFuer()`
  * benutzt: Auch ein von Stufe 2 vorgeschlagener Eintrag bekommt seine Slots
  * aus exakt dieser deterministischen Extraktion, nie aus dem Modell.
@@ -834,6 +862,11 @@ export function routeFrage(
    * hätte den Fund nur verschoben — dieselbe Lehre wie bei `normiertAufMonat`.
    */
   const szenarioFrage = istSzenarioFrage(text);
+  // Einmal analysieren statt je Zweig erneut — dieselbe Analyse, die auch die
+  // Wortebene benutzt.
+  const offeneBezugsgroesse = hatUnaufgelösteBezugsgroesse(
+    analysiereFrage(text, vokabular, locale, jetzt),
+  );
   const stufe2Faehig = szenarioFrage
     ? ohneVergleiche.filter((e) => e.beantwortetSzenarien)
     : ohneVergleiche;
@@ -858,7 +891,18 @@ export function routeFrage(
     const bestaetigt = lexikalisch.top.find((k) => k.entryId === intent.klasse);
     // Der Stichentscheid: Wortebene sagt „mehrdeutig", Subword-Ebene kennt
     // die Formulierung — zusammen reicht es für eine Antwort.
-    if (bestaetigt && intent.marge >= MIN_INTENT_MARGE_STICH) {
+    // Der Stichentscheid darf einen Gleichstand NICHT zugunsten einer
+    // Familie auflösen, die ohne Bezugsgröße auskommt, wenn die Frage eine
+    // NENNT und der Router sie nicht auflösen konnte. Gemessen: „wieviel habe
+    // ich im Juli 2026 für quastelhuber ausgegeben" bekam so „alle Ausgaben
+    // zusammen" — eine falsche Zahl mit richtigem Anstrich. Wer nach einem
+    // Teil fragt, darf nicht das Ganze bekommen; die Rückfrage ist hier die
+    // Antwort (`MIN_MARGE`-Gate der Wortebene hatte das richtig erkannt).
+    const weitetAus =
+      bestaetigt !== undefined &&
+      entries.find((e) => e.id === bestaetigt.entryId)?.slots.erforderlich.length === 0 &&
+      offeneBezugsgroesse;
+    if (bestaetigt && !weitetAus && intent.marge >= MIN_INTENT_MARGE_STICH) {
       return { art: 'aufloesen', kandidat: bestaetigt };
     }
     if (bestaetigt) return lexikalisch;

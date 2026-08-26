@@ -156,7 +156,11 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Als Familie: Wie viel geben wir monatlich für unsere Kinder aus?', 'ausgaben.kategorie'),
   z('Als Paar: Wer von uns übernimmt aktuell welchen Anteil der gemeinsamen Kosten?', 'luecke'),
   z('Als Familie: Können wir uns Elternzeit mit einem geringeren Einkommen leisten?', 'luecke'),
-  z('Als Freelancer: Wie viel Geld sollte ich für Steuern zurücklegen?', 'luecke'),
+  // Welle 2 hat diese Lücke GESCHLOSSEN: `steuer.ruecklage` rechnet das Ziel
+  // aus den Betriebseinnahmen und nennt die noch fehlende Summe. Umkuratiert,
+  // weil die Zeile sonst verlangte, dass der Chat eine Frage NICHT beantwortet,
+  // die er beantworten kann — dieselbe Umkuratierung wie in Welle 1.
+  z('Als Freelancer: Wie viel Geld sollte ich für Steuern zurücklegen?', 'steuer.ruecklage'),
   z('Als Selbstständiger: Wie hoch sind meine durchschnittlichen monatlichen Betriebsausgaben?', 'luecke'),
   z('Als Freelancer: Wie viele Monate kann ich überbrücken, wenn keine neuen Aufträge kommen?', 'luecke'),
   z('Als Selbstständiger: Wie viel kann ich mir privat auszahlen, ohne meine geschäftliche Liquidität zu gefährden?', 'luecke'),
@@ -174,6 +178,11 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Welche wiederkehrenden Zahlungen haben sich möglicherweise verändert, ohne dass ich es bemerkt habe?', 'vertraege.teurer'),
   z('Wie viel meines Einkommens gebe ich durchschnittlich für notwendige und wie viel für freiwillige Ausgaben aus?', 'luecke'),
   z('Wie hoch ist meine tatsächliche Sparquote nach Berücksichtigung unregelmäßiger Jahreskosten?', 'luecke'),
+  // BLEIBT Lücke — und das ist der Prüfpunkt: Hier ist kein Zielbetrag
+  // genannt, weil die Frage nach einer laufenden Rücklage für WIEDERKEHRENDE
+  // Jahresrechnungen sucht (Sinking Fund, Welle 4). `ziel.sparrate` griff
+  // danach, bis sein Auslöser enger wurde — es hätte nach einem Betrag
+  // gefragt, den der Fragende gar nicht hat.
   z('Wie viel sollte ich monatlich zurücklegen, damit jährliche Versicherungen und andere einmalige Rechnungen mich nicht überraschen?', 'luecke'),
   z('Welche Ausgaben müsste ich reduzieren, um meine Sparrate um 300 Euro pro Monat zu erhöhen?', 'luecke'),
   z('Kann ich mein Freizeitbudget erhöhen, wenn ich gleichzeitig mein Restaurantbudget reduziere?', 'luecke'),
@@ -221,7 +230,11 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   // Kombinations-Rechnung nimmt alle drei als Deltas + Schwelle.
   z('Kann ich mir einen Urlaub für 5.000 Euro im nächsten Sommer leisten, wenn mein Notgroschen mindestens 10.000 Euro bleiben soll und gleichzeitig 400 Euro monatlich in meine Altersvorsorge fließen?', 'szenario.kombination'),
   z('Wann kann ich mir einen Urlaub für 5.000 Euro mit mindestens 90 Prozent Wahrscheinlichkeit leisten, wenn meine monatlichen Ausgaben ähnlich stark schwanken wie in den letzten zwei Jahren?', 'leistbarkeit.anschaffung'),
-  z('Wie hoch darf mein Urlaubsbudget maximal sein, damit mein Kontostand in den darauffolgenden sechs Monaten mit mindestens 95 Prozent Wahrscheinlichkeit nicht unter 3.000 Euro fällt?', 'leistbarkeit.anschaffung'),
+  // Bis Welle 3 war `leistbarkeit.anschaffung` die beste erreichbare Deutung:
+  // Sie nimmt einen Betrag und fragt „geht das?". Diese Frage dreht die
+  // Richtung um — der Betrag IST das Gesuchte. Seit `ziel.obergrenze` gibt es
+  // dafür die passende Familie, und die Zeile misst jetzt sie.
+  z('Wie hoch darf mein Urlaubsbudget maximal sein, damit mein Kontostand in den darauffolgenden sechs Monaten mit mindestens 95 Prozent Wahrscheinlichkeit nicht unter 3.000 Euro fällt?', 'ziel.obergrenze'),
   z('Was passiert mit meinem Finanzplan, wenn ich meinen Urlaub dieses Jahr buche, mein Auto nächstes Jahr ersetzen muss und gleichzeitig meine Miete um 10 Prozent steigt?', 'luecke'),
   z('Welche Kombination aus weniger Freizeit-, Restaurant- und Shoppingausgaben würde reichen, um mein Sparziel zwölf Monate früher zu erreichen?', 'luecke'),
   z('Welche Budgetkategorien sollte ich reduzieren, wenn ich 500 Euro zusätzlich sparen möchte, aber meine Lebensqualität möglichst wenig beeinträchtigt werden soll?', 'luecke'),
