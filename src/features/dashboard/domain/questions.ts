@@ -57,14 +57,10 @@ export const questions: readonly QuestionEntry[] = [
     '/liquidity',
     'financeQuestions.showForecast',
   ),
-  verweis(
-    'verfuegbar.bisGehalt',
-    ['financeQuestions.trigger.gehalt'],
-    ['financeQuestions.trigger.bisGehalt'],
-    'financeQuestions.answer.bisGehalt',
-    '/coach',
-    'financeQuestions.showCoach',
-  ),
+  // `verfuegbar.bisGehalt` stand hier bis Welle 2 als VERWEIS auf den Coach.
+  // Seit die Kontosalden ein Datenkanal sind, rechnet der Eintrag die Zahl
+  // selbst und liegt bei den Konten (`features/accounts/domain/questions.ts`)
+  // — dort, wo seine Daten herkommen.
   {
     /**
      * Kombinierte Was-wäre-wenn-Frage (WP-H): „Auto verkaufen,
