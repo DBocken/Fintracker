@@ -24,6 +24,22 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Nachfragen rechnet jetzt Kennzahlen, nicht nur Summen.** „Was kostet
+  mich Lebensmittel im Durchschnitt pro Monat?", „Welchen Anteil meiner
+  Ausgaben macht Wohnen aus?", „Wie hoch war mein durchschnittlicher
+  Einkauf bei Aldi?", „Welcher Monat war der teuerste?" und „Wie haben sich
+  meine Ausgaben entwickelt?" werden beantwortet — dieselben fünf
+  Rechenarten auf jeder Bezugsgröße, auch auf den Oberbegriffen wie „Auto"
+  oder „Essen". Der Monatsdurchschnitt verteilt dabei auf KALENDERMONATE:
+  Wer dreimal im Jahr tankt, belastet seinen Haushalt mit einem Zwölftel,
+  nicht mit einem Drittel.
+- **Vergleiche im Chat.** „Gebe ich mehr bei Aldi oder bei Lidl aus?",
+  „Was ist teurer: Restaurants oder Lebensmittel?" und „Sind meine
+  Mobilitätskosten höher als im Vorjahr?" stellen zwei Größen
+  nebeneinander — mit Differenz und prozentualer Veränderung. Ein
+  Zeitvergleich nimmt beim Monat denselben Monat des Vorjahres, nicht den
+  Vormonat: Weihnachten mit November zu vergleichen wäre kein Trend.
+
 - **Budgets per Chat anlegen und ändern — mit Bestätigung und Rückgängig.**
   „Lege ein Budget von 200 € für Lebensmittel an", „erhöhe mein
   Freizeitbudget um 50", „lösch das Budget für Kino" versteht die Seite

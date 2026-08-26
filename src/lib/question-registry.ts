@@ -64,6 +64,19 @@ export interface ZeitraumSlot {
   label: string;
 }
 
+/**
+ * Der Vergleichspartner einer Frage — dieselbe Achse wie die Hauptgröße.
+ *
+ * Verglichen wird nie Äpfel mit Birnen: Ein Händler steht gegen einen
+ * Händler, eine Kategorienmenge gegen eine Kategorienmenge, ein Zeitraum
+ * gegen einen Zeitraum. Achsübergreifende Vergleiche („Aldi gegen Juli")
+ * gibt es nicht, weil sie keine Frage beantworten.
+ */
+export type VergleichsSlot =
+  | { art: 'haendler'; haendler: string }
+  | { art: 'kategorie'; kategorieIds: readonly string[] }
+  | { art: 'zeitraum'; zeitraum: ZeitraumSlot };
+
 export interface QuestionSlots {
   zeitraum?: ZeitraumSlot;
   /**
@@ -78,6 +91,20 @@ export interface QuestionSlots {
   haendler?: string;
   kontoId?: string;
   betrag?: number;
+  /**
+   * Der zweite Partner einer Vergleichsfrage (Welle 1).
+   *
+   * „Gebe ich mehr bei Aldi oder bei Lidl aus?" und „Sind meine
+   * Lebensmittelkosten höher als im Vorjahr?" sind DIESELBE Rechnung —
+   * eine Menge gegen eine Referenzmenge. Deshalb ein Slot für beide
+   * Achsen statt zweier Mechanismen, die auseinanderlaufen.
+   *
+   * Kein `SlotName`: Ein fehlender Vergleichspartner wird nie einzeln
+   * nachgefragt („womit soll ich vergleichen?" ist eine Sackgasse, wenn
+   * der Nutzer gar nicht vergleichen wollte) — ohne ihn ist die Frage
+   * schlicht keine Vergleichsfrage.
+   */
+  vergleich?: VergleichsSlot;
   /**
    * Erkannte Szenario-Absicht (WP-H) — die MENGE der Veränderungen einer
    * kombinierten Was-wäre-wenn-Frage. Kein `SlotName`: Sie wird nie einzeln
@@ -159,6 +186,13 @@ export type AnswerKind =
   | 'verweis'
   | 'szenario'
   /**
+   * `vergleich` (Welle 1): Zwei Größen nebeneinander — Wert, Referenz und
+   * Differenz. Trägt sowohl „Aldi oder Lidl?" als auch „mehr als im
+   * Vorjahr?"; es ist dieselbe Rechnung, und zwei Antwortarten dafür
+   * würden bloss auseinanderlaufen.
+   */
+  | 'vergleich'
+  /**
    * `aktion` (WP-I): Die Antwort IST eine VORSCHAU einer Schreiboperation,
    * nicht ihre Ausführung. Die Präsentation zeigt sie und schreibt erst auf
    * ausdrücklichen Klick — der Chat schreibt nie aus eigener Deutung.
@@ -190,6 +224,21 @@ export interface Aussage {
   params: Record<string, string | number>;
 }
 
+/**
+ * Zwei Größen nebeneinander. `labelWert`/`labelReferenz` sind NUTZERDATEN
+ * (Händlername, Kategoriename, Zeitraum-Label) — hier wird nichts übersetzt,
+ * dieselbe Regel wie bei `ListenPosten.label`.
+ */
+export interface VergleichsAntwort {
+  labelWert: string;
+  labelReferenz: string;
+  referenz: number;
+  /** `wert − referenz`. Negativ heisst: die erste Größe ist kleiner. */
+  differenz: number;
+  /** Relative Veränderung gegenüber der Referenz; `null`, wenn diese null ist. */
+  quote: number | null;
+}
+
 export interface QuestionAnswer {
   art: AnswerKind;
   /** Euro bei `art: 'geld'`, Anteil 0..1 bei `quote`, sonst je nach Art. */
@@ -202,6 +251,12 @@ export interface QuestionAnswer {
   szenario?: SzenarioAbsicht;
   /** Die Vorschau einer `art: 'aktion'`-Antwort — sonst leer. */
   aktion?: BudgetAktionsVorschlag;
+  /**
+   * Die Gegenüberstellung einer `art: 'vergleich'`-Antwort — sonst leer.
+   * `wert` trägt dabei die HAUPT-Größe, `vergleich.referenz` die zweite;
+   * beide roh, maskiert wird in der Präsentation.
+   */
+  vergleich?: VergleichsAntwort;
   aussage: Aussage;
   /** Worauf der Wert beruht — erklärbar wie `CategorizationResult.reasons`. */
   begruendung?: Aussage[];
@@ -281,6 +336,29 @@ export interface QuestionEntry {
    * die Vorschau — geschrieben wird ausschliesslich per Bestätigen-Klick.
    */
   nimmtBudgetAktion?: boolean;
+  /**
+   * Auf WELCHER Achse vergleicht dieser Eintrag (Welle 1)? Je Achse genau
+   * ein Eintrag. Erkennt der Router zwei Größen derselben Achse, routet er
+   * direkt hierher — zwei genannte Vergleichspartner sind stärkere Evidenz
+   * als jedes einzelne Auslösewort, dieselbe Begründung wie beim
+   * Szenario-Gate.
+   */
+  nimmtVergleich?: 'haendler' | 'kategorie' | 'zeitraum';
+  /**
+   * Normiert dieser Eintrag auf MONATE (Welle 1)?
+   *
+   * Dann darf er nicht antworten, wenn die Frage eine andere Bezugsperiode
+   * nennt: „Was kostet mich mein Auto pro NUTZUNG?" und „Wie viel gebe ich
+   * pro WOCHE aus?" fragen nach etwas, das dieser Eintrag nicht rechnet —
+   * und eine Monatszahl darauf ist nicht knapp daneben, sondern eine
+   * Antwort auf eine andere Frage.
+   *
+   * Dieselbe Bauform wie das Szenario-Gate: ein deterministischer
+   * Ausschluss, kein Vokabel-Feintuning. Gemessen entstand er, weil sich
+   * die Fehlschläge sonst nur zwischen den Korpora verschoben — jede
+   * Paraphrase, die eine Monatsfrage rettete, kippte eine Nutzungsfrage.
+   */
+  normiertAufMonat?: boolean;
   /** REIN und SYNCHRON. Ruft keinen Service — auch ein Aktions-Eintrag nicht. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }

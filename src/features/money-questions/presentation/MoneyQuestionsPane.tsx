@@ -332,7 +332,7 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
   const wertText =
     antwort.wert === null
       ? null
-      : antwort.art === 'geld' || antwort.art === 'liste'
+      : antwort.art === 'geld' || antwort.art === 'liste' || antwort.art === 'vergleich'
         ? money.format(antwort.wert)
         : antwort.art === 'quote'
           ? `${Math.round(antwort.wert * 100)} %`
@@ -366,6 +366,39 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
           )}
           <p className="mt-1 text-sm">{einsetzen(antwort.aussage, t, money.format, locale)}</p>
         </>
+      )}
+
+      {/*
+        Vergleichs-Antwort: Zwei Größen nebeneinander, darunter die Differenz.
+        Beide Beträge laufen durch den Sanften Modus — ein Vergleich, dessen
+        eine Hälfte maskiert und die andere sichtbar wäre, höbe das
+        Versprechen der Fläche auf. Die Labels sind NUTZERDATEN
+        (Händler-/Kategoriename, Zeitraum), hier wird nichts übersetzt.
+      */}
+      {antwort.art === 'vergleich' && antwort.vergleich && (
+        <dl className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <dt className="text-xs text-muted-foreground">{antwort.vergleich.labelWert}</dt>
+            <dd className="text-lg font-semibold tabular-nums">{money.format(antwort.wert ?? 0)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">{antwort.vergleich.labelReferenz}</dt>
+            <dd className="text-lg font-semibold tabular-nums">
+              {money.format(antwort.vergleich.referenz)}
+            </dd>
+          </div>
+          <div className="col-span-2 text-sm">
+            {t('financeQuestions.vergleichDifferenz')
+              .split('{differenz}')
+              .join(money.format(Math.abs(antwort.vergleich.differenz)))
+              .split('{prozent}')
+              .join(
+                antwort.vergleich.quote === null
+                  ? '—'
+                  : `${Math.abs(Math.round(antwort.vergleich.quote * 100))} %`,
+              )}
+          </div>
+        </dl>
       )}
 
       {/*

@@ -140,6 +140,118 @@ function gesamtSlot(jetzt: Date): ZeitraumSlot {
   return { von: '1970-01-01', bis: isoTag(jetzt), rangeToken: 'all', label: 'all' };
 }
 
+/**
+ * Worauf sich ein Vergleich bezieht (Welle 1).
+ *
+ * Die Unterscheidung ist keine Feinheit, sondern die halbe Antwort: „mehr
+ * als im Vorjahr?" meint bei einem Monatszeitraum DENSELBEN Monat ein Jahr
+ * früher (Juli gegen Juli), „mehr als im Monat davor?" den unmittelbar
+ * vorangehenden. Wer beides gleich behandelt, vergleicht Weihnachten mit
+ * November und nennt das Trend.
+ */
+export type VergleichsBezug = 'vorperiode' | 'vorjahr';
+
+/**
+ * Ein Zeitbezug allein ist KEIN Vergleich.
+ *
+ * Gemessen an der Router-Ratsche: „Wie viel habe ich letzten Monat
+ * insgesamt ausgegeben?" ist eine gewöhnliche Bestandsfrage — „letzten
+ * Monat" nennt den Zeitraum, nicht eine Referenz. Ein Vergleich braucht
+ * ein VERGLEICHENDES Wort davor („als", „gegenüber", „im Vergleich zu")
+ * oder eine Veränderungs-Formulierung („teurer geworden"). Ohne diese
+ * Enge beantwortete jede Frage mit Zeitangabe plötzlich eine
+ * Gegenüberstellung.
+ */
+const VERGLEICHS_SIGNALE: Record<string, readonly (readonly [RegExp, VergleichsBezug])[]> = {
+  de: [
+    [
+      /(?:als|gegenueber|gegenüber|vergleich zum|vergleich mit|verglichen mit)\s+(?:im\s+|dem\s+|das\s+|zum\s+)?(?:vorjahr|letzten jahr|letztes jahr|vergangenen jahr)|vorjahresvergleich/,
+      'vorjahr',
+    ],
+    [
+      /(?:als|gegenueber|gegenüber|vergleich zum|vergleich mit|verglichen mit)\s+(?:im\s+|dem\s+|der\s+|zum\s+)?(?:vormonat|vorperiode|monat davor|vorquartal)/,
+      'vorperiode',
+    ],
+    // Veränderungs-Formulierungen tragen ihren Bezug im Wort selbst:
+    // „teurer geworden" heisst „teurer als vorher".
+    [/teurer geworden|guenstiger geworden|günstiger geworden|gestiegen oder gefallen/, 'vorjahr'],
+  ],
+  en: [
+    [
+      /(?:than|versus|vs\.?|compared to|compared with)\s+(?:in\s+|the\s+)?(?:last year|previous year|the year before)|year-over-year/,
+      'vorjahr',
+    ],
+    [
+      /(?:than|versus|vs\.?|compared to|compared with)\s+(?:in\s+|the\s+)?(?:previous month|prior period|the month before)/,
+      'vorperiode',
+    ],
+    [/got more expensive|got cheaper|risen or fallen/, 'vorjahr'],
+  ],
+  ru: [
+    [/(?:чем|по сравнению с)\s+(?:в\s+)?(?:прошлым годом|прошлого года|прошлом году)/, 'vorjahr'],
+    [/(?:чем|по сравнению с)\s+(?:в\s+)?(?:прошлым месяцем|предыдущим периодом)/, 'vorperiode'],
+    [/подорожало|подешевело|выросли или снизились/, 'vorjahr'],
+  ],
+};
+
+/**
+ * Erkennt, ob eine Frage einen ZEITLICHEN Vergleich verlangt. `null`, wenn
+ * nicht — dann ist es eine gewöhnliche Bestandsfrage.
+ */
+export function erkenneVergleichsBezug(text: string, locale: string): VergleichsBezug | null {
+  const n = text.toLowerCase();
+  for (const [muster, bezug] of VERGLEICHS_SIGNALE[locale] ?? VERGLEICHS_SIGNALE.de) {
+    if (muster.test(n)) return bezug;
+  }
+  return null;
+}
+
+/**
+ * Der Referenz-Zeitraum zu einem erkannten Zeitraum.
+ *
+ * `null` für Tages-Zeiträume („letzte 30 Tage") und für „gesamt": Zu einer
+ * gleitenden Spanne gibt es keine Vorperiode, die ein Nutzer meint — und
+ * eine erfundene wäre eine falsche Bezugsgröße.
+ *
+ * **Der `rangeToken` der Referenz ist bewusst gültig**, damit er dieselbe
+ * Filterkodierung durchläuft wie jeder andere Zeitraum; verlinkt wird in
+ * der Antwort trotzdem die HAUPT-Menge, nie die Referenz.
+ */
+export function referenzZeitraum(
+  slot: ZeitraumSlot,
+  bezug: VergleichsBezug,
+  locale: string,
+): ZeitraumSlot | null {
+  const sprache = locale in MONATE ? locale : 'de';
+
+  // Monat: `yyyy-mm`
+  const monat = slot.rangeToken.match(/^(\d{4})-(\d{2})$/);
+  if (monat) {
+    const jahr = Number(monat[1]);
+    const index = Number(monat[2]) - 1;
+    const verschoben =
+      bezug === 'vorjahr'
+        ? new Date(Date.UTC(jahr - 1, index, 1))
+        : new Date(Date.UTC(jahr, index - 1, 1));
+    return monatsSlot(verschoben.getUTCFullYear(), verschoben.getUTCMonth(), sprache);
+  }
+
+  // Quartal: `yyyy-Qn`
+  const quartal = slot.rangeToken.match(/^(\d{4})-Q([1-4])$/);
+  if (quartal) {
+    const jahr = Number(quartal[1]);
+    const q = Number(quartal[2]);
+    if (bezug === 'vorjahr') return quartalsSlot(jahr - 1, q);
+    return q === 1 ? quartalsSlot(jahr - 1, 4) : quartalsSlot(jahr, q - 1);
+  }
+
+  // Jahr: `yyyy` — beide Bezüge meinen dasselbe.
+  const jahr = slot.rangeToken.match(/^(\d{4})$/);
+  if (jahr) return jahresSlot(Number(jahr[1]) - 1);
+
+  return null;
+}
+
 export interface ZeitraumTreffer {
   slot: ZeitraumSlot;
   /** Der erkannte Textausschnitt — damit der Matcher ihn nicht doppelt wertet. */

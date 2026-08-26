@@ -70,7 +70,11 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Wie viel habe ich dieses Jahr für Kraftstoff oder Strom ausgegeben?', 'ausgaben.kategorie'),
   z('Wie viel kosten mich Versicherung, Steuer, Werkstatt und Wartung zusammen?', 'ausgaben.kategorie'),
   z('Wie hoch waren meine durchschnittlichen Autokosten der letzten zwölf Monate?', 'luecke'),
-  z('Ist mein Auto in diesem Jahr teurer geworden?', 'luecke'),
+  // Kurations-Korrektur (Welle 1): war 'luecke', solange weder Oberbegriffe
+  // noch Zeitvergleiche existierten. Beides ist jetzt da — „Auto" löst sich
+  // in die Kategorienmenge auf (WP-G), „teurer geworden" in den Vergleich
+  // mit dem Vorjahr. Die Lücke ist GESCHLOSSEN, nicht umdefiniert.
+  z('Ist mein Auto in diesem Jahr teurer geworden?', 'vergleich.zeitraum'),
   z('Wie viel könnte ich sparen, wenn ich mein Auto abschaffe?', 'luecke'),
   z('Wie viel könnte ich sparen, wenn ich häufiger öffentliche Verkehrsmittel nutze?', 'luecke'),
   z('Was kostet mich mein Arbeitsweg durchschnittlich pro Monat?', 'luecke'),

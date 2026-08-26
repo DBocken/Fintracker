@@ -113,6 +113,46 @@ export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
     'run the numbers on a raise plus higher rent',
     'play through me quitting and starting something new',
   ],
+  'ausgaben.durchschnitt': [
+    'what does that cost me each month on average',
+    'monthly burden from these costs',
+    'average monthly spend on that',
+  ],
+  'ausgaben.anteil': [
+    'how big a slice of everything is that',
+    'what portion of my costs goes there',
+    'what percentage of the whole is that',
+  ],
+  'ausgaben.jeVorgang': [
+    'how pricey is one shop there on average',
+    'what do i drop per visit',
+    'typical size of a single payment there',
+  ],
+  'ausgaben.extremwert': [
+    'when did i pay the most for that',
+    'which month was the priciest',
+    'what was my single biggest expense',
+  ],
+  'ausgaben.trend': [
+    'is that getting more or less over time',
+    'is it going up or down',
+    'how does that run across the months',
+  ],
+  'vergleich.haendler': [
+    'which of the two shops costs me more',
+    'put the two merchants side by side',
+    'who is pricier of the two',
+  ],
+  'vergleich.kategorie': [
+    'which of the two areas costs me more',
+    'put the two areas side by side',
+    'which pot is bigger',
+  ],
+  'vergleich.zeitraum': [
+    'has that grown since back then',
+    'do i pay more today than before for that',
+    'difference to the same period before',
+  ],
   'budget.status': [
     'how are my budgets doing',
     'am i over budget',

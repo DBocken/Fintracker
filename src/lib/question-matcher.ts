@@ -30,7 +30,11 @@
  */
 import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
-import { parseZeitraum } from '@/lib/question-time-expressions';
+import {
+  erkenneVergleichsBezug,
+  parseZeitraum,
+  referenzZeitraum,
+} from '@/lib/question-time-expressions';
 import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-intent';
 import { extrahiereBudgetAktion } from '@/lib/budget-action-intent';
 
@@ -163,6 +167,16 @@ export function istSzenarioFrage(text: string): boolean {
   return SZENARIO_SIGNALE.some((signal) => n.includes(signal));
 }
 
+/**
+ * Bezugsperioden, die NICHT der Monat sind (Welle 1).
+ *
+ * „pro Nutzung", „pro Fahrt", „pro Woche" — wer so fragt, will keine
+ * Monatszahl. Der Ausdruck steht bewusst hier und nicht im Sprachbaum: Es
+ * sind Erkennungsdaten, dieselbe Einordnung wie die Zeitausdrücke.
+ */
+const ANDERE_BEZUGSPERIODE =
+  /\b(?:pro|je|eine|einen)\s+(?:nutzung|fahrt|benutzung|einsatz|woche|tag|kilometer|km|person|kopf|besuch)\b|\bwoechentlich\b|\btaeglich\b|\bper\s+(?:use|trip|ride|week|day)\b|\bза\s+(?:поездку|неделю|день)\b/;
+
 /** Ein einzelnes Wort, das allein keine Absicht ausweist. Für Kurations-Tests exportiert. */
 export function istStoppwort(wort: string): boolean {
   return STOPPWOERTER.has(normalisiere(wort.trim()));
@@ -194,6 +208,31 @@ function normalisiere(text: string): string {
     .replace(/ö/g, 'oe')
     .replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss');
+}
+
+/**
+ * ALLE Vokabeltreffer im Text, längster zuerst, je Wert nur einmal.
+ *
+ * Gegenstück zu {@link findeLaengsten}, das genau eine Größe sucht: Eine
+ * Vergleichsfrage braucht ZWEI („Aldi oder Lidl"), und die zweite ist nicht
+ * die mehrdeutige Alternative zur ersten, sondern eine eigene Aussage.
+ */
+function findeAlleTreffer(
+  text: string,
+  eintraege: readonly VokabelEintrag[],
+): VokabelEintrag[] {
+  const gefunden = new Map<string, VokabelEintrag>();
+  for (const eintrag of eintraege) {
+    const wort = normalisiere(eintrag.wort);
+    if (!wort || !text.includes(wort)) continue;
+    const bisher = gefunden.get(eintrag.wert);
+    if (!bisher || wort.length > normalisiere(bisher.wort).length) {
+      gefunden.set(eintrag.wert, eintrag);
+    }
+  }
+  return [...gefunden.values()].sort(
+    (a, b) => normalisiere(b.wort).length - normalisiere(a.wort).length,
+  );
 }
 
 /**
@@ -376,8 +415,13 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
     const szenario = istSzenarioFrage(text);
     const kandidaten: QuestionCandidate[] = [];
 
+    // Nennt die Frage eine andere Bezugsperiode als den Monat, scheiden
+    // monatsnormierte Einträge aus (Welle 1) — siehe `normiertAufMonat`.
+    const andereBezugsperiode = ANDERE_BEZUGSPERIODE.test(normalisiert);
+
     for (const entry of entries) {
       if (szenario && !entry.beantwortetSzenarien) continue;
+      if (andereBezugsperiode && entry.normiertAufMonat) continue;
       const worte = vokabular.ausloeser.get(entry.id) ?? [];
       const verstaerkerWorte = vokabular.verstaerker?.get(entry.id) ?? [];
       // Ein Auslöser ist eine PHRASE („kann ich mir leisten"), kein
@@ -552,6 +596,85 @@ const MIN_INTENT_MARGE_STICH = 0.05;
 const MIN_INTENT_MARGE_GELERNT = 0.25;
 
 /**
+ * Wörter, die zwei genannte Größen GEGENEINANDER stellen statt sie zu
+ * summieren.
+ *
+ * Die Unterscheidung hängt an genau diesen Wörtern: „bei Aldi UND Lidl"
+ * ist eine Summe, „bei Aldi ODER Lidl" eine Gegenüberstellung. Ohne das
+ * Signal wird nicht verglichen — eine als Vergleich gedeutete Summenfrage
+ * nennt die halbe Zahl und behauptet, sie sei die ganze.
+ */
+const VERGLEICHS_WOERTER = [
+  'oder', 'vs', 'versus', 'gegenueber', 'im vergleich', 'vergleiche', 'vergleich',
+  'teurer', 'guenstiger', 'mehr bei', 'weniger bei', 'hoeher als', 'niedriger als',
+  'or ', 'compare', 'compared to', 'more at', 'cheaper',
+  'или', 'сравни', 'по сравнению', 'дороже', 'дешевле',
+];
+
+/**
+ * Die zwei Größen einer Vergleichsfrage — oder `null`, wenn keine gestellt
+ * wurde.
+ *
+ * Drei Achsen, nie gemischt (siehe {@link VergleichsSlot}): zwei Händler,
+ * zwei Kategoriengruppen, oder ein Zeitraum gegen seine Vorperiode. Der
+ * Zeitvergleich braucht KEIN Wort aus {@link VERGLEICHS_WOERTER} — „höher
+ * als im Vorjahr" trägt seinen Bezug bereits im Zeitausdruck.
+ */
+export function extrahiereVergleich(
+  text: string,
+  vokabular: QuestionVocabulary,
+  locale: string,
+  jetzt: Date,
+): { achse: 'haendler' | 'kategorie' | 'zeitraum'; slots: QuestionSlots } | null {
+  const n = normalisiere(text);
+
+  // Zeitvergleich zuerst: Er ist der einzige, der ohne Vergleichswort
+  // auskommt, und „im Vorjahr" darf nicht als zweite Kategorie verrutschen.
+  const bezug = erkenneVergleichsBezug(text, locale);
+  if (bezug) {
+    const zeitraum = parseZeitraum(text, locale, jetzt);
+    if (zeitraum) {
+      const referenz = referenzZeitraum(zeitraum.slot, bezug, locale);
+      if (referenz) {
+        return {
+          achse: 'zeitraum',
+          slots: {
+            zeitraum: zeitraum.slot,
+            vergleich: { art: 'zeitraum', zeitraum: referenz },
+          },
+        };
+      }
+    }
+  }
+
+  if (!VERGLEICHS_WOERTER.some((w) => n.includes(normalisiere(w)))) return null;
+
+  const haendler = findeAlleTreffer(n, vokabular.haendler);
+  if (haendler.length >= 2) {
+    return {
+      achse: 'haendler',
+      slots: {
+        haendler: haendler[0].wert,
+        vergleich: { art: 'haendler', haendler: haendler[1].wert },
+      },
+    };
+  }
+
+  const kategorien = findeAlleTreffer(n, vokabular.kategorien);
+  if (kategorien.length >= 2) {
+    return {
+      achse: 'kategorie',
+      slots: {
+        kategorieIds: [kategorien[0].wert],
+        vergleich: { art: 'kategorie', kategorieIds: [kategorien[1].wert] },
+      },
+    };
+  }
+
+  return null;
+}
+
+/**
  * Trägt eine extrahierte Absicht genug Evidenz, um die Frage als
  * Kombinations-Szenario zu routen? Zwei erkannte Veränderungen sind
  * stärkere Evidenz als jedes einzelne Auslösewort (je Delta mussten
@@ -604,6 +727,25 @@ export function routeFrage(
       return {
         art: 'aufloesen',
         kandidat: { ...kandidat, slots: { ...kandidat.slots, szenario: absicht } },
+      };
+    }
+  }
+
+  // Stufe 0c (Welle 1): Zwei genannte Größen DERSELBEN Achse sind eine
+  // Gegenüberstellung, keine Summe. Die zweite Größe ist die Evidenz — sie
+  // steht in keiner gewöhnlichen Bestandsfrage, und ohne dieses Gate
+  // beantwortete „Aldi oder Lidl?" die Frage nach Aldi allein.
+  const vergleich = extrahiereVergleich(text, vokabular, locale, jetzt);
+  if (vergleich) {
+    const vergleichsEintrag = entries.find((e) => e.nimmtVergleich === vergleich.achse);
+    if (vergleichsEintrag) {
+      const kandidat = kandidatFuer(text, vokabular, vergleichsEintrag, locale, jetzt);
+      // Die extrahierten Vergleichs-Slots gewinnen gegen die Einzel-
+      // Extraktion: Sie kennt nur die längste Größe, nicht das Paar.
+      const slots = { ...kandidat.slots, ...vergleich.slots };
+      return {
+        art: 'aufloesen',
+        kandidat: { ...kandidat, slots, fehlend: fehlendeSlots(vergleichsEintrag, slots) },
       };
     }
   }
