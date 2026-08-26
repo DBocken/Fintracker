@@ -7,6 +7,15 @@ export type LiveBalance = {
   amount: number;
   balanceType?: "interimAvailable" | "interimBooked" | "closingBooked";
   currency?: string;
+  /**
+   * Der Tag, auf den sich der Saldo bezieht (`referenceDate` der Bank).
+   *
+   * Ohne ihn ist ein Saldo keine verwertbare Auskunft, sondern nur eine Zahl:
+   * Erst der Stichtag sagt, welche Buchungen bereits in ihm stecken und welche
+   * noch draufkommen. Genau daran hing der Fehler, dass ein einmal gesetzter
+   * Kontostand nie wieder mitwuchs.
+   */
+  referenceDate?: string;
 }
 
 type GoCardlessBalance = {
@@ -103,6 +112,7 @@ export async function getLiveBalancesForAccounts(accounts: Account[]): Promise<R
         amount,
         currency: preferred.balanceAmount.currency || acct.currency || 'EUR',
         balanceType: preferred.balanceType,
+        referenceDate: preferred.referenceDate || preferred.lastChangeDateTime,
       })
     }
   }
@@ -115,6 +125,16 @@ export async function getLiveBalancesForAccounts(accounts: Account[]): Promise<R
   }
 
   return out
+}
+
+/**
+ * Bank-Saldo EINES Kontos — die Einzelfall-Fassung von
+ * `getLiveBalancesForAccounts`, damit der Transaktions-Sync den echten
+ * Kontostand mitnehmen kann, ohne die Auswahl-Logik ein zweites Mal zu bauen.
+ */
+export async function getBankBalanceForAccount(account: Account): Promise<LiveBalance | null> {
+  const balances = await getLiveBalancesForAccounts([account])
+  return balances[account.id] ?? null
 }
 
 export type RefreshMode = "automatic" | "manual";
