@@ -162,6 +162,22 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **„Wie lange reicht mein Geld?" behauptete „Dazu gibt es keine Buchung" —
+  und nannte im selben Atemzug Guthaben und Monatsverbrauch.** Die Fläche
+  widersprach sich selbst: Sie las die 0 im Feld „wie viele Buchungen stehen
+  dahinter" als „nichts gefunden", obwohl diese Antwort aus Salden und
+  Durchschnitt entsteht und gar keine Trefferliste hat. Betroffen waren auch
+  die Übertrags-Antworten, deren eigener, genauerer Satz durch den allgemeinen
+  ersetzt wurde.
+
+- **„Wie hoch ist mein Vermögen?" wies zwei Konten als „2 Buchungen" aus.**
+  Der Zusatz unter der Zahl behauptete eine Buchungsmenge, wo Konten, Depots
+  oder EÜR-Zeilen gezählt waren. Er erscheint jetzt nur noch dort, wo der Link
+  wirklich auf genau diese Buchungen zeigt.
+
+- **„Wie viel Geld habe ich auf meinen Konten?" fragte zurück, welches Konto
+  gemeint sei.** Der Plural beantwortet das bereits.
+
 - **„Wie viel habe ich für <etwas Unbekanntes> ausgegeben?" wurde mit der
   Gesamtsumme beantwortet.** Wer nach einem Teil fragt und das Ganze bekommt,
   bekommt eine falsche Zahl mit richtigem Anstrich. Jetzt kommt die Rückfrage.
@@ -198,6 +214,16 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Antwort, „0,00 €" wo „keine Buchung" gemeint war.
 
 ### Intern
+
+- **Die tragende Register-Zusicherung sah 15 von 61 Einträgen gar nicht.** Der
+  Katalog-Test prüft, dass genannte Zahl und verlinkte Liste dieselbe Menge
+  zeigen — aber nur für Einträge, deren Daten die Test-Fixture bereitstellt.
+  Die fünf Kanäle der Welle 2 waren dort leer, also fiel jeder Eintrag darauf
+  in seinen „nichts da"-Zweig und lag ausserhalb jeder Prüfung. Die Fixture
+  belegt sie jetzt, ein eigener Wächter hält jeden angemeldeten Kanal dagegen,
+  und die Zusicherung wurde auf das zurückgeschnitten, was sie einlösen kann:
+  ein Quell-Link ist eine Buchungsliste, alles andere ist Kontext.
+
 
 - **Schreibende Chat-Einträge sind nur noch über ihre eigene Grammatik
   erreichbar.** Wortebene und Klassifikator konnten sie bisher ohne das

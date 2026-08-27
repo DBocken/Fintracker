@@ -4492,7 +4492,7 @@ export const en = {
       vermoegen: 'net worth, wealth, how rich, what am i worth',
       vermoegenAufteilung: 'made of, split, breakdown, composed, distributed, consists of, made up',
       saldoJetzt: 'balance, on my account, in my account, money do i have on',
-      geldGesamt: 'money in total, do i own, across all accounts, total balance',
+      geldGesamt: 'money in total, do i own, across all accounts, total balance, on my accounts, in my accounts',
       freiVerfuegbar: 'free to spend, can i still spend, can i spend, left until payday',
       uebrig: 'left over, still spend, remaining budget, budget for',
       taeglich: 'per day, daily, weekend',

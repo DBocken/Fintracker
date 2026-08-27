@@ -2,13 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { questionCatalog } from '../question-catalog';
 import { ERFRAGBARE_SLOTS } from '@/features/money-questions/application/use-money-questions';
 import { fehlendeSlots } from '@/lib/question-registry';
-import type { QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
+import type { DataNeed, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { decodeDashboardFilters, filterTransactions } from '@/features/shared/domain/dashboard-filtering';
 import { sumExpenses, sumIncome } from '@/lib/analysis-data';
 import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';
 import { istStoppwort, zerlegeAusloeser } from '@/lib/question-matcher';
 import type { Account, Category, Transaction } from '@/types';
 import type { Debt } from '@/lib/debt-types';
+import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
+import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
+import type { NetWorthBreakdown } from '@/lib/net-worth-types';
+import type { TaxReserveState } from '@/lib/tax-types';
 import { asTransactionId } from '@/lib/ids';
 
 const JETZT = new Date('2026-07-20T12:00:00Z');
@@ -32,7 +36,26 @@ function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Tran
 const categories: Category[] = [
   { id: 'local-cat-lebensmittel', name: 'Lebensmittel', filters: [] } as unknown as Category,
 ];
-const accounts: Account[] = [];
+function konto(id: string, name: string, type: Account['type'], saldo: number): Account {
+  return {
+    id,
+    user_id: 'local',
+    name,
+    type,
+    currency: 'EUR',
+    color: '#000000',
+    icon: 'wallet',
+    is_budget_pool_member: true,
+    order_index: 0,
+    opening_balance: saldo,
+    opening_balance_date: '2026-01-01',
+  };
+}
+
+const accounts: Account[] = [
+  konto('a1', 'Girokonto', 'checking', 2000),
+  konto('a2', 'Sparkonto', 'savings', 1200),
+];
 
 const transactions: Transaction[] = [
   tx({ id: 't1', payee: 'LIDL SAGT DANKE 1234', amount: -30, date: '2026-07-05' }),
@@ -58,6 +81,59 @@ const debts: Debt[] = [
   } as Debt,
 ];
 
+/**
+ * Die Kanäle der Welle 2 und 3 — bewusst ALLE belegt.
+ *
+ * Browser-Fund der Nach-Verifikation: Die Fixture kannte nur die fünf Kanäle
+ * der ersten Ausbaustufe. Jeder Eintrag, dessen Daten hier fehlten, fiel in
+ * seinen „nichts da"-Zweig — und lag damit ausserhalb der tragenden
+ * Invariante dieses Tests, ohne dass irgendetwas rot wurde. Gemessen betraf
+ * das 15 der 61 Einträge: Vermögen, Depots, Anlässe, Steuer, Reichweite,
+ * Überträge. Eine Invariante prüft nur, was die Fixture füllt.
+ */
+const specialCategories: SpecialCategory[] = [
+  { id: 'sc1', name: 'Urlaub Italien', start_date: '2026-07-01', end_date: '2026-07-31' },
+];
+const specialCategoryAssignments: SpecialCategoryAssignment[] = [
+  { id: 'sca1', special_category_id: 'sc1', transaction_id: 't1', source: 'manual' },
+];
+
+const portfolios: Portfolio[] = [
+  { id: 'p1', user_id: 'local', name: 'Depot', type: 'manual', currency: 'EUR', is_active: true },
+];
+const positionsByPortfolio = new Map<string, PortfolioPosition[]>([
+  [
+    'p1',
+    [
+      { id: 'pos1', portfolio_id: 'p1', symbol: 'ACME', quantity: 10, entry_price: 100, currency: 'EUR', last_price: 120 },
+    ],
+  ],
+]);
+
+const netWorth: NetWorthBreakdown = {
+  cash: 3200,
+  investments: 1200,
+  receivables: 0,
+  debts: 4800,
+  netWorth: 3200 + 1200 - 4800,
+  accountBalances: { a1: 2000, a2: 1200 },
+  accountSources: [
+    { id: 'a1', name: 'Girokonto', balance: 2000, source: 'local' },
+    { id: 'a2', name: 'Sparkonto', balance: 1200, source: 'local' },
+  ],
+  portfolioSources: [{ id: 'p1', name: 'Depot', value: 1200, positionsCount: 1 }],
+  unconvertedInvestments: [],
+  debtSources: [{ id: 'd1', name: 'Autokredit', balance: 4800 }],
+  receivableSources: [],
+};
+
+const taxReserve: TaxReserveState = {
+  id: 'tax-reserve-2026',
+  user_id: 'local',
+  year: 2026,
+  movements: [{ id: 'm1', date: '2026-07-01', amount: 200 }],
+};
+
 const daten: QuestionData = {
   transactions,
   categories,
@@ -65,6 +141,15 @@ const daten: QuestionData = {
   debts,
   budgets: [],
   contractDecisions: new Map(),
+  settings: null,
+  specialCategories,
+  specialCategoryAssignments,
+  portfolios,
+  positionsByPortfolio,
+  netWorth,
+  taxReserve,
+  merchantRules: [],
+  allocationsByTransaction: new Map(),
   jetzt: JETZT,
 };
 
@@ -276,6 +361,52 @@ describe('Abfrage-Register: Katalog', () => {
  * wird zur Quelle falscher Auskunft mit belastbar wirkendem Beleg — das
  * schlimmste denkbare Ergebnis dieses Pakets.
  */
+/**
+ * Der Wächter gegen den Fund, der diese Fixture überhaupt gefüllt hat.
+ *
+ * Die tragende Invariante darunter prüft nur, was hier belegt ist. Als Welle 2
+ * fünf neue Kanäle öffnete, blieben sie in der Fixture leer — jeder Eintrag
+ * darauf fiel in seinen „nichts da"-Zweig und lag damit ausserhalb JEDER
+ * Zusicherung, ohne dass etwas rot wurde. Aufgefallen ist es erst im Browser,
+ * an einer Antwort, die zwei Konten als „2 Buchungen" auswies.
+ *
+ * Dieser Test macht die nächste Kanal-Erweiterung sofort rot, statt sie
+ * stumm aus der Prüfung fallen zu lassen.
+ */
+describe('Abfrage-Register: die Fixture bedient jeden angemeldeten Kanal', () => {
+  const kanalBelegt: Record<DataNeed, boolean> = {
+    transactions: daten.transactions !== undefined,
+    categories: daten.categories !== undefined,
+    accounts: daten.accounts !== undefined,
+    allocations: daten.allocationsByTransaction !== undefined,
+    contractDecisions: daten.contractDecisions !== undefined,
+    debts: daten.debts !== undefined,
+    budgets: daten.budgets !== undefined,
+    settings: 'settings' in daten,
+    specialCategories: daten.specialCategories !== undefined,
+    portfolios: daten.portfolios !== undefined,
+    netWorth: daten.netWorth !== undefined,
+    taxReserve: daten.taxReserve !== undefined,
+    merchantRules: daten.merchantRules !== undefined,
+  };
+
+  it('sollte jeden Kanal belegen, den irgendein Eintrag anmeldet', () => {
+    const angemeldet = new Set<DataNeed>(questionCatalog.entries.flatMap((e) => [...e.needs]));
+    const unbelegt = [...angemeldet].filter((kanal) => !kanalBelegt[kanal]);
+    expect(unbelegt, 'Kanäle ohne Fixture-Beleg').toEqual([]);
+  });
+
+  it('sollte eine nicht-leere Menge je Kanal liefern, damit die Prüfung nicht trivial durchgeht', () => {
+    // Ein belegter, aber leerer Kanal ist derselbe blinde Fleck mit anderem
+    // Vorzeichen: Der Eintrag läuft wieder in seinen Leer-Zweig.
+    expect(daten.specialCategories?.length ?? 0).toBeGreaterThan(0);
+    expect(daten.portfolios?.length ?? 0).toBeGreaterThan(0);
+    expect(daten.accounts?.length ?? 0).toBeGreaterThan(0);
+    expect(daten.netWorth).not.toBeNull();
+    expect(daten.taxReserve).not.toBeNull();
+  });
+});
+
 describe('Abfrage-Register: Zahl und Deep-Link zeigen dieselbe Menge', () => {
   // Die harte Zusicherung gilt für Einträge, die ihren Link als QUELLE
   // ausweisen. `kontext` ist kein Schlupfloch, sondern eine echte

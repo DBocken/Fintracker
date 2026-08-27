@@ -75,7 +75,7 @@ const steuerGewinn: QuestionEntry = {
           : [{ key: 'financeQuestions.reason.euerParameterGeschaetzt', params: { jahr: bericht.paramsUsedYear } }]),
       ],
       deepLink: '/euer',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };

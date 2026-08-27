@@ -372,6 +372,58 @@ describe('Nachfragen-Fläche', () => {
     expect(screen.getByRole('link', { name: /Buchungen ansehen/i })).toBeInTheDocument();
   });
 
+  it('[REGRESSION] [ZUSTAND /fragen:geladen] sollte eine gerechnete Antwort nicht als „keine Buchung" ausgeben', async () => {
+    // Browser-Fund am Prod-Build: „Wie lange reicht mein Geld?" behauptete
+    // „Dazu gibt es keine Buchung", während direkt darunter Guthaben und
+    // Monatsverbrauch standen — die Fläche widersprach sich selbst.
+    //
+    // Ursache: Die Leer-Regel las `anzahl === 0` als „nichts gefunden". Bei
+    // diesem Eintrag ist die 0 aber Absicht: Der Wert entsteht aus Saldo und
+    // Schnitt, es gibt gar keine Treffermenge. Nur ein Quell-Link macht
+    // `anzahl` zu einer Buchungszahl.
+    getAccounts.mockResolvedValue([
+      {
+        id: 'a1',
+        user_id: 'local',
+        name: 'Girokonto',
+        type: 'checking',
+        currency: 'EUR',
+        color: '#000',
+        icon: 'wallet',
+        is_budget_pool_member: true,
+        order_index: 0,
+        opening_balance: 3000,
+        opening_balance_date: '2026-01-01',
+      },
+    ]);
+    getNetWorthBreakdown.mockResolvedValue({
+      cash: 3000,
+      investments: 0,
+      receivables: 0,
+      debts: 0,
+      netWorth: 3000,
+      accountBalances: { a1: 3000 },
+      accountSources: [{ id: 'a1', name: 'Girokonto', balance: 3000, source: 'local' }],
+      portfolioSources: [],
+      unconvertedInvestments: [],
+      debtSources: [],
+      receivableSources: [],
+    });
+
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wie lange reicht mein geld?');
+
+    expect(await screen.findByText(/So viele Monate reicht dein verfügbares Geld/i)).toBeInTheDocument();
+    expect(screen.queryByText(/keine Buchung/i)).not.toBeInTheDocument();
+    // Die Begründung nennt beide Größen, aus denen die Zahl entstand.
+    expect(screen.getByText(/Verfügbar auf Giro, Bar und Wallet/i)).toBeInTheDocument();
+    // Und die Zahl in deutscher Schreibweise: `String(1.5)` schrieb „1.5".
+    // Geprüft an der FORM, nicht am Wert — der hängt an den Demo-Buchungen.
+    expect(screen.getByText(/^\d+(,\d)?$/)).toBeInTheDocument();
+  });
+
   it('sollte bilingual funktionieren', async () => {
     renderWithProviders(<Fixture />, { locale: 'en', query: true });
 

@@ -480,10 +480,20 @@ export interface QuestionAnswer {
    * Was der Deep-Link zeigt — und damit, wie die Präsentation ihn beschriften
    * darf.
    *
-   * - `quelle`: GENAU die Menge, aus der `wert` entstand. Dafür gilt die harte
-   *   Invariante des Registers (Anzahl und Summe der verlinkten Liste stimmen
-   *   mit der Antwort überein), abgesichert durch einen generischen Test über
-   *   den ganzen Katalog.
+   * - `quelle`: GENAU die Menge, aus der `wert` entstand — und zwar als
+   *   BUCHUNGSLISTE unter `/transactions?…`. Dafür gilt die harte Invariante
+   *   des Registers (Anzahl und Summe der verlinkten Liste stimmen mit der
+   *   Antwort überein), abgesichert durch einen generischen Test über den
+   *   ganzen Katalog.
+   *
+   *   Die Einschränkung auf Buchungen ist keine Formalie, sondern der
+   *   Geltungsbereich der Zusicherung: Nur eine Buchungsliste lässt sich
+   *   nachrechnen. Welle 2 hat Einträge gebracht, die auf `/accounts`,
+   *   `/trading` oder `/euer` zeigen — dort IST der Link die Quelle, aber
+   *   niemand kann prüfen, ob er sie einlöst. Ein unprüfbares `quelle` ist
+   *   ein Versprechen ohne Wächter, und die Präsentation hat daraus prompt
+   *   „Aus 2 Buchungen" gemacht, wo zwei KONTEN gezählt waren. Solche Links
+   *   sind `kontext`.
    * - `kontext`: eine verwandte, aber NICHT identische Menge. Das ist kein
    *   Schlupfloch, sondern eine echte Unterscheidung: „Was kostet mich Netflix
    *   im Jahr?" beantwortet sich aus der erkannten Vertragsserie, während der

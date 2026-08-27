@@ -227,6 +227,36 @@ Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
 beantwortet), nicht die Funktion, die zufällig heute als einzige die
 Bedingung erfüllt.
 
+**Eine Invariante prüft nur, was die Fixture füllt.** Das Abfrage-Register hat
+eine tragende Zusicherung — genannte Zahl und verlinkte Liste zeigen dieselbe
+Menge — und einen generischen Test darüber. Als Welle 2 fünf neue Datenkanäle
+öffnete (Vermögen, Depots, Anlässe, Steuer, Konten), blieben sie in der
+Fixture leer: Jeder Eintrag darauf fiel in seinen „nichts da"-Zweig und lag
+damit ausserhalb JEDER Prüfung. Gemessen betraf das 15 von 61 Einträgen, und
+nichts wurde rot — ein Test, der nur den bequemen Zweig erreicht, ist grün aus
+demselben Grund, aus dem er nichts wert ist. Wer einen Kanal hinzufügt, füllt
+ihn in der Fixture; erzwungen wird das jetzt durch einen Wächter, der jeden
+von irgendeinem Eintrag angemeldeten Kanal gegen die Fixture hält.
+
+**Ein unprüfbares Versprechen wird zum Etikett.** Derselbe Fund, eine Ebene
+tiefer: `deepLinkArt: 'quelle'` heisst „das ist GENAU die Menge, aus der die
+Zahl entstand" — nachrechenbar nur, solange das Ziel eine Buchungsliste ist.
+Die Welle-2-Einträge zeigten auf `/accounts`, `/trading`, `/euer`; dort war
+der Link zwar die Quelle, aber niemand konnte es nachprüfen. Die Präsentation
+hat aus dem Etikett prompt „Aus 2 Buchungen" gemacht, wo zwei KONTEN gezählt
+waren. Ein Versprechen, das kein Wächter einlösen kann, wird auf das
+zurückgeschnitten, was er prüft — nicht umgekehrt.
+
+**Eine Leer-Regel gilt für das Feld, das sie liest — nicht für die Fläche.**
+`anzahl === 0` bedeutet „nichts gefunden", solange `anzahl` Buchungen zählt.
+Bei „Wie lange reicht mein Geld?" steht dort bewusst 0, weil die Antwort aus
+Saldo und Monatsschnitt entsteht und gar keine Treffermenge hat. Die Fläche
+behauptete deshalb „Dazu gibt es keine Buchung", während direkt darunter
+Guthaben und Verbrauch ausgewiesen waren — sie widersprach sich selbst.
+Dieselbe Bedingung stand zwei Absätze tiefer korrekt an der Zähl-Zeile: Eine
+Regel, die an einer von zwei Stellen gilt, ist keine Regel, sondern ein
+Zufall.
+
 **Eine Abbruchgrenze ist kein Ergebnis.** `calculatePayoffPlan` läuft
 höchstens 600 Monate; decken die Raten die Zinsen nicht, endet sie dort mit
 Zahlen ohne Aussagekraft (gemessen: 600 Monate, 399.575.500 € Zinsen). Wer

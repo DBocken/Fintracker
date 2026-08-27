@@ -79,7 +79,7 @@ const depotWert: QuestionEntry = {
       },
       begruendung: fremdwaehrungsHinweis(stand),
       deepLink: '/trading',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };
@@ -126,7 +126,7 @@ const depotRendite: QuestionEntry = {
         ...fremdwaehrungsHinweis(stand),
       ],
       deepLink: '/trading',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };
@@ -177,7 +177,7 @@ const depotPositionen: QuestionEntry = {
       aussage: { key: 'financeQuestions.answer.depotPositionen', params: {} },
       begruendung: fremdwaehrungsHinweis(stand),
       deepLink: '/trading',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };

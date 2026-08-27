@@ -59,7 +59,7 @@ const kontoSaldo: QuestionEntry = {
       anzahl: 1,
       aussage: { key: 'financeQuestions.answer.kontoSaldo', params: { konto: konto.name } },
       deepLink: `/accounts?account=${encodeURIComponent(konto.id)}`,
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };
@@ -85,7 +85,7 @@ const kontoGesamt: QuestionEntry = {
       anzahl: konten.length,
       aussage: { key: 'financeQuestions.answer.kontoGesamt', params: { anzahl: konten.length } },
       deepLink: '/accounts',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };
@@ -206,7 +206,7 @@ const vermoegenGesamt: QuestionEntry = {
         ? [{ key: 'financeQuestions.reason.fremdwaehrungNichtSummiert', params: { anzahl: offen } }]
         : [],
       deepLink: '/accounts',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };
@@ -250,7 +250,7 @@ const vermoegenAufteilung: QuestionEntry = {
       posten,
       aussage: { key: 'financeQuestions.answer.vermoegenAufteilung', params: {} },
       deepLink: '/accounts',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };

@@ -97,7 +97,7 @@ const anlassKosten: QuestionEntry = {
       aussage: { key: 'financeQuestions.answer.anlassKosten', params: { name: anlass.name } },
       begruendung,
       deepLink: `/special-categories?event=${encodeURIComponent(anlass.id)}`,
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };
@@ -134,7 +134,7 @@ const anlassListe: QuestionEntry = {
       posten: posten.slice(0, 10),
       aussage: { key: 'financeQuestions.answer.anlassListe', params: {} },
       deepLink: '/special-categories',
-      deepLinkArt: 'quelle',
+      deepLinkArt: 'kontext',
     };
   },
 };

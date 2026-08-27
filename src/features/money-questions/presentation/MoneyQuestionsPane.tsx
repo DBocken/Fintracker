@@ -432,7 +432,20 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
   // ausgegeben", einmal „dazu liegt mir nichts vor". Genau diese Verwechslung
   // ist der Grund, warum das Repo `check:state-coverage` hat. Der Deep-Link
   // bleibt trotzdem stehen — wer nachsehen will, soll es können.
-  const ohneTreffer = antwort.anzahl === 0 && (antwort.art === 'geld' || antwort.art === 'anzahl');
+  //
+  // NUR bei `deepLinkArt === 'quelle'`: Dort ist `anzahl` die Zahl der
+  // Buchungen hinter dem Wert, und 0 heisst wirklich „nichts gefunden".
+  // Sonst ist das Feld etwas ganz anderes — bei „Wie lange reicht mein
+  // Geld?" steht dort bewusst 0, weil die Antwort aus Salden und Schnitt
+  // gerechnet wird und gar keine Treffermenge hat. Im Browser stand deshalb
+  // „Dazu gibt es keine Buchung", während direkt darunter Guthaben und
+  // Monatsverbrauch ausgewiesen waren: eine Fläche, die sich selbst
+  // widerspricht. Dieselbe Regel steht schon bei der Zähl-Zeile weiter
+  // unten — sie galt nur an einer der beiden Stellen.
+  const ohneTreffer =
+    antwort.deepLinkArt === 'quelle' &&
+    antwort.anzahl === 0 &&
+    (antwort.art === 'geld' || antwort.art === 'anzahl');
 
   // Beträge laufen IMMER durch den Sanften Modus. Das Register liefert
   // bewusst eine rohe Zahl (docs/debt-avoidance-recovery.md) — ein einziger
@@ -444,7 +457,12 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
         ? money.format(antwort.wert)
         : antwort.art === 'quote'
           ? `${Math.round(antwort.wert * 100)} %`
-          : String(antwort.wert);
+          // Browser-Fund: `String(1.5)` schrieb „1.5" in eine deutsche
+          // Oberfläche. Eine Anzahl ist kein Betrag (der Sanfte Modus gilt
+          // ihr nicht), aber sie ist eine ZAHL und gehört in die Schreibweise
+          // der Sprache — „So viele Monate reicht dein Geld: 1.5" liest sich
+          // wie ein Tippfehler.
+          : new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(antwort.wert);
 
   return (
     <InfoGroup title={t('financeQuestions.answerTitle')}>

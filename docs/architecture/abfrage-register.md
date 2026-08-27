@@ -83,6 +83,25 @@ Drei Regeln dazu:
    Steuersatz hat mit „Wie viel habe ich bei Rewe ausgegeben?" nichts zu tun.
 3. **Eine unlesbare Quelle wird BENANNT** (Ausgang `quellenfehlt`), nicht als
    leer ausgegeben.
+4. **Ein neuer Kanal wird in der Katalog-Fixture belegt.** Die Zusicherung
+   unten prüft nur, was dort steht: Als Welle 2 fünf Kanäle öffnete, blieben
+   sie in `question-catalog.test.ts` leer, 15 von 61 Einträgen fielen in
+   ihren Leer-Zweig und lagen ausserhalb jeder Prüfung — aufgefallen ist es
+   erst im Browser. Ein eigener Wächter hält jetzt jeden angemeldeten Kanal
+   gegen die Fixture.
+
+## Deep-Link: `quelle` oder `kontext`
+
+`quelle` heisst: **eine Buchungsliste unter `/transactions?…`, deren Anzahl
+und Summe die genannte Zahl einlösen.** Nur dafür kann der Katalog-Test die
+Zusicherung nachrechnen, und nur dort ist `anzahl` eine Zahl von Buchungen —
+die Präsentation hängt beides daran (Zähl-Zeile und Leer-Aussage).
+
+Alles andere ist `kontext`: `/accounts`, `/trading`, `/euer`,
+`/special-categories`. Dort IST der Link zwar die Quelle der Zahl, aber
+niemand kann prüfen, ob er sie einlöst — und ein unprüfbares `quelle` wird
+zum Etikett. Es hat prompt „Aus 2 Buchungen" erzeugt, wo zwei Konten gezählt
+waren.
 
 ## Slots
 

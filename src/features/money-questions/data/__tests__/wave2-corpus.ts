@@ -29,6 +29,11 @@ export const WELLE2_KORPUS: readonly WelleZeile[] = [
   m('Wie viel Geld habe ich insgesamt?', 'konto.gesamt'),
   m('Wie viel liegt auf allen Konten zusammen?', 'konto.gesamt'),
   v('wieviel geld hab ich alles in allem', 'konto.gesamt'),
+  // Browser-Fund: Der PLURAL schliesst die Rückfrage „welches Konto?" aus —
+  // wer nach „meinen Konten" fragt, hat sich gerade nicht für eines
+  // entschieden. Bis dahin gewann der Auslöser „geld habe ich auf".
+  m('Wie viel Geld habe ich auf meinen Konten?', 'konto.gesamt'),
+  v('was liegt auf den konten', 'konto.gesamt'),
 
   // ── Frei verfügbar bis zum Gehalt ───────────────────────────────────────
   m('Wie viel Geld bleibt mir bis zum nächsten Gehalt?', 'verfuegbar.bisGehalt'),
