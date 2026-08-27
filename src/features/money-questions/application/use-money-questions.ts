@@ -12,6 +12,7 @@ import { specialCategoriesKeys } from '@/features/special-categories/data/specia
 import { getPortfolios, getPositions } from '@/services/portfolio-service';
 import { getPortfolioCashflows } from '@/services/portfolio-cashflow-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
+import { getNetWorthHistory } from '@/services/net-worth-history-service';
 import { getTaxReserveState } from '@/services/tax-reserve-service';
 import type { PortfolioPosition } from '@/lib/portfolio-types';
 import { getAccounts } from '@/services/account-service';
@@ -236,6 +237,20 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     },
   });
   const vermoegen = useQuery({ queryKey: ['net-worth'], queryFn: getNetWorthBreakdown });
+  // Die Zeitreihe (Welle 4) — eigene Abfrage, weil sie eine eigene Collection
+  // liest und nicht am Ist-Stand hängt.
+  const { data: historieDaten, isLoading: historieLaedt, isError: historieFehler } = useQuery({
+    queryKey: ['net-worth-history'],
+    queryFn: getNetWorthHistory,
+  });
+  const vermoegensHistorie = {
+    data: historieDaten,
+    isLoading: historieLaedt,
+    // Ausdrücklich gelesen: Ein Lesefehler der Zeitreihe darf nicht als
+    // „noch keine Historie" durchgehen — das wäre dieselbe Verwechslung von
+    // leer und kaputt, gegen die `check:query-errors` gebaut ist.
+    isError: historieFehler,
+  };
   const steuerJahr = jetzt.getFullYear();
   const steuerRuecklage = useQuery({
     queryKey: ['tax-reserve', steuerJahr],
@@ -286,6 +301,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     },
     portfolios: depots,
     netWorth: vermoegen,
+    netWorthHistory: vermoegensHistorie,
     taxReserve: steuerRuecklage,
     merchantRules: regeln,
   };
@@ -334,6 +350,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       positionsByPortfolio: depots.data?.positionen,
       portfolioCashflows: depots.data?.zahlungen,
       netWorth: vermoegen.data ?? null,
+      netWorthHistory: vermoegensHistorie.data,
       taxReserve: steuerRuecklage.data ?? null,
       merchantRules: regeln.data,
       jetzt,
@@ -351,6 +368,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       anlassZuordnungen.data,
       depots.data,
       vermoegen.data,
+      vermoegensHistorie.data,
       steuerRuecklage.data,
       regeln.data,
       jetzt,

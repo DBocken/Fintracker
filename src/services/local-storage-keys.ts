@@ -38,6 +38,9 @@ export const LOCAL_FINANCE_KEYS = {
   replacementPlans: 'fintracker_replacement_plans_v1',
   householdSettlements: 'fintracker_household_settlements_v1',
   contractRecords: 'fintracker_contract_records_v1',
+  // Monatliche Vermögens-Schnappschüsse (Welle 4). Fortschreibung, keine
+  // Rückrechnung — die Begründung steht in `lib/net-worth-history-types.ts`.
+  netWorthHistory: 'fintracker_net_worth_history_v1',
   // Ein-/Auszahlungen je Depot (Welle 4) — ohne sie gibt es keine echte
   // Rendite, nur Positionsbewertung.
   portfolioCashflows: 'fintracker_portfolio_cashflows_v1',

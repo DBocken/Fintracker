@@ -23,6 +23,7 @@ import { computeDisposableUntilPayday } from '@/lib/disposable-budget';
 import { detectSalarySeries } from '@/lib/salary-detection';
 import { findTransferCandidates } from '@/lib/transfer-detection';
 import { monatsDurchschnitt } from '@/lib/spending-metrics';
+import { entwicklung } from '@/lib/net-worth-history-types';
 
 const ISO = 'yyyy-MM-dd';
 
@@ -436,7 +437,63 @@ const transferAktion: QuestionEntry = {
   },
 };
 
+/**
+ * „Wie hat sich mein Vermögen entwickelt?" (Welle 4).
+ *
+ * Beantwortbar erst seit der Fortschreibung — und ehrlich nur mit ihrer
+ * Grenze: Die Reihe beginnt bei der Einführung, nicht bei der ersten
+ * Buchung. Rückrechnen liesse sich allein der Konto-Teil; eine Kurve, die
+ * für Konten echt und für Depots und Sachwerte geraten wäre, sähe genauso
+ * aus wie eine echte. Deshalb nennt die Antwort den Zeitraum, über den sie
+ * überhaupt etwas weiss.
+ */
+const vermoegenEntwicklung: QuestionEntry = {
+  id: 'vermoegen.entwicklung',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.vermoegenEntwicklung'],
+  verstaerker: ['financeQuestions.trigger.vermoegen'],
+  needs: ['netWorthHistory'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const verlauf = entwicklung(daten.netWorthHistory ?? []);
+
+    // Ein einzelner Punkt ist keine Entwicklung. „±0 €" zu melden wäre eine
+    // Aussage über eine Veränderung, die niemand beobachtet hat.
+    if (!verlauf) {
+      return {
+        ...KEIN_KONTO,
+        aussage: { key: 'financeQuestions.answer.vermoegenHistorieFehlt', params: {} },
+      };
+    }
+
+    return {
+      art: 'geld',
+      wert: verlauf.differenz,
+      anzahl: 0,
+      aussage: {
+        key:
+          verlauf.differenz < 0
+            ? 'financeQuestions.answer.vermoegenGesunken'
+            : 'financeQuestions.answer.vermoegenGewachsen',
+        params: { monate: verlauf.monate },
+      },
+      begruendung: [
+        { key: 'financeQuestions.reason.vermoegenVon', params: { betrag: verlauf.von.netWorth } },
+        { key: 'financeQuestions.reason.vermoegenBis', params: { betrag: verlauf.bis.netWorth } },
+        // Die Quote nur, wenn sie etwas aussagt: Beim Vorzeichenwechsel ist
+        // sie arithmetisch richtig und trotzdem wertlos.
+        ...(verlauf.quote !== null
+          ? [{ key: 'financeQuestions.reason.vermoegenQuote', params: { prozent: verlauf.quote * 100 } }]
+          : []),
+      ],
+      deepLink: '/accounts',
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
+  vermoegenEntwicklung,
   kontoSaldo,
   kontoGesamt,
   verfuegbarBisGehalt,

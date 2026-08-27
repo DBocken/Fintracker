@@ -340,3 +340,71 @@ describe('transfer.aktion', () => {
     expect(antwort.wert).toBe(0);
   });
 });
+
+describe('vermoegen.entwicklung', () => {
+  const eintrag = questionCatalog.byId('vermoegen.entwicklung')!;
+
+  function stand(month: string, netWorth: number) {
+    return {
+      month,
+      takenAt: `${month}-15`,
+      netWorth,
+      cash: netWorth,
+      investments: 0,
+      manualAssets: 0,
+      receivables: 0,
+      debts: 0,
+    };
+  }
+
+  it('sollte mit einem einzigen Stand KEINE Entwicklung behaupten', () => {
+    // „±0 €" wäre eine Aussage über eine Veränderung, die niemand beobachtet
+    // hat — und die Reihe wird fortgeschrieben, nicht rückgerechnet.
+    const antwort = eintrag.antwort(
+      {},
+      { netWorthHistory: [stand('2026-08', 1000)], jetzt: new Date('2026-08-27T12:00:00Z') },
+    );
+    expect(antwort.art).toBe('keine');
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.vermoegenHistorieFehlt');
+  });
+
+  it('sollte Wachstum mit Anfangs- und Endstand belegen', () => {
+    const antwort = eintrag.antwort(
+      {},
+      {
+        netWorthHistory: [stand('2026-02', 1000), stand('2026-08', 1500)],
+        jetzt: new Date('2026-08-27T12:00:00Z'),
+      },
+    );
+    expect(antwort.wert).toBe(500);
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.vermoegenGewachsen');
+    expect(antwort.aussage.params.monate).toBe(6);
+    expect(antwort.begruendung?.map((g) => g.key)).toContain('financeQuestions.reason.vermoegenQuote');
+  });
+
+  it('sollte einen Rückgang als solchen benennen', () => {
+    const antwort = eintrag.antwort(
+      {},
+      {
+        netWorthHistory: [stand('2026-02', 1500), stand('2026-08', 1000)],
+        jetzt: new Date('2026-08-27T12:00:00Z'),
+      },
+    );
+    expect(antwort.aussage.key).toBe('financeQuestions.answer.vermoegenGesunken');
+  });
+
+  it('[REGRESSION] sollte beim Vorzeichenwechsel keine Quote nennen', () => {
+    // „+250 %" vom Minus ins Plus ist arithmetisch richtig und als Aussage
+    // wertlos: Der Weg aus den Schulden heraus ist keine Rendite.
+    const antwort = eintrag.antwort(
+      {},
+      {
+        netWorthHistory: [stand('2026-02', -2000), stand('2026-08', 3000)],
+        jetzt: new Date('2026-08-27T12:00:00Z'),
+      },
+    );
+    expect(antwort.begruendung?.map((g) => g.key)).not.toContain(
+      'financeQuestions.reason.vermoegenQuote',
+    );
+  });
+});

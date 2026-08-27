@@ -22,6 +22,11 @@ const getPortfolios = vi.fn();
 const getPositions = vi.fn();
 const getNetWorthBreakdown = vi.fn();
 const getTaxReserveState = vi.fn();
+// Kanäle der Welle 4. Ohne Mock liefe der Dienst gegen IndexedDB — und weil
+// der Zahlungsstrom in DERSELBEN Abfrage wie die Depots liegt, riss er die
+// ganze Depot-Antwort mit. Genau der Grund, aus dem dieser Block existiert.
+const getPortfolioCashflows = vi.fn();
+const getNetWorthHistory = vi.fn();
 
 vi.mock('@/services/transaction-service', () => ({
   getTransactions: (...a: unknown[]) => getTransactions(...a),
@@ -42,6 +47,18 @@ vi.mock('@/services/portfolio-service', () => ({
 vi.mock('@/services/net-worth-service', () => ({
   getNetWorthBreakdown: () => getNetWorthBreakdown(),
 }));
+vi.mock('@/services/portfolio-cashflow-service', async () => {
+  const echt = await vi.importActual<typeof import('@/services/portfolio-cashflow-service')>(
+    '@/services/portfolio-cashflow-service',
+  );
+  return { ...echt, getPortfolioCashflows: () => getPortfolioCashflows() };
+});
+vi.mock('@/services/net-worth-history-service', async () => {
+  const echt = await vi.importActual<typeof import('@/services/net-worth-history-service')>(
+    '@/services/net-worth-history-service',
+  );
+  return { ...echt, getNetWorthHistory: () => getNetWorthHistory() };
+});
 vi.mock('@/services/tax-reserve-service', () => ({
   getTaxReserveState: (...a: unknown[]) => getTaxReserveState(...a),
 }));
@@ -122,6 +139,8 @@ beforeEach(() => {
   getPositions.mockResolvedValue([]);
   getNetWorthBreakdown.mockResolvedValue(null);
   getTaxReserveState.mockResolvedValue(null);
+  getPortfolioCashflows.mockResolvedValue([]);
+  getNetWorthHistory.mockResolvedValue([]);
 });
 
 describe('Nachfragen-Fläche', () => {

@@ -52,6 +52,7 @@ import type { TransferAktionsAbsicht } from '@/lib/transfer-action-intent';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
 import type { Portfolio, PortfolioCashflow, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';
+import type { NetWorthSnapshot } from '@/lib/net-worth-history-types';
 import type { TaxReserveState } from '@/lib/tax-types';
 import type { UserSettings } from '@/lib/settings-types';
 import type { MerchantRule } from '@/lib/categorization';
@@ -303,7 +304,9 @@ export type DataNeed =
   | 'netWorth'
   | 'taxReserve'
   /* Welle 3 — die gelernten Händlerregeln, damit der Chat eine Zuordnung ERKLÄREN kann. */
-  | 'merchantRules';
+  | 'merchantRules'
+  /* Welle 4 — die fortgeschriebene Vermögens-Zeitreihe. */
+  | 'netWorthHistory';
 
 /**
  * Was die `application`-Schicht bereitstellt. Optional, weil `needs` steuert.
@@ -345,6 +348,13 @@ export interface QuestionData {
   netWorth?: NetWorthBreakdown | null;
   /** Steuerrücklage des laufenden Veranlagungsjahres. */
   taxReserve?: TaxReserveState | null;
+  /**
+   * Monatliche Vermögens-Schnappschüsse (Welle 4). Fortschreibung, keine
+   * Rückrechnung: Die Reihe beginnt bei der Einführung — und der Eintrag
+   * darauf sagt das, statt eine Kurve zu zeigen, die älter aussieht als sie
+   * ist.
+   */
+  netWorthHistory?: readonly NetWorthSnapshot[];
   /**
    * Vom Nutzer gelernte Händlerregeln. Nur für die ERKLÄRUNG einer Zuordnung
    * (`explainCategorization`) — der Chat kategorisiert nichts, er legt offen,

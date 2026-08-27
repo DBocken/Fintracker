@@ -166,6 +166,13 @@ const daten: QuestionData = {
   netWorth,
   taxReserve,
   merchantRules: [],
+  // Zwei Stände, nicht einer: Mit nur einem Punkt fiele der Entwicklungs-
+  // Eintrag in seinen „noch keine Historie"-Zweig — und läge damit ausserhalb
+  // der Prüfung.
+  netWorthHistory: [
+    { month: '2026-02', takenAt: '2026-02-15', netWorth: 1000, cash: 1000, investments: 0, manualAssets: 0, receivables: 0, debts: 0 },
+    { month: '2026-07', takenAt: '2026-07-15', netWorth: 1500, cash: 1500, investments: 0, manualAssets: 0, receivables: 0, debts: 0 },
+  ],
   allocationsByTransaction: new Map(),
   jetzt: JETZT,
 };
@@ -405,6 +412,7 @@ describe('Abfrage-Register: die Fixture bedient jeden angemeldeten Kanal', () =>
     netWorth: daten.netWorth !== undefined,
     taxReserve: daten.taxReserve !== undefined,
     merchantRules: daten.merchantRules !== undefined,
+    netWorthHistory: daten.netWorthHistory !== undefined,
   };
 
   it('sollte jeden Kanal belegen, den irgendein Eintrag anmeldet', () => {

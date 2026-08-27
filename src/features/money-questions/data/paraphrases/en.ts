@@ -342,6 +342,16 @@ export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
     'how much monthly for the large items that come rarely',
     'what needs setting aside so annual fees do not hit me',
   ],
+  'vermoegen.entwicklung': [
+    'how has what i own moved over time',
+    'am i better off today than a year ago',
+    'has the bottom line grown since back then',
+    'show me the trajectory of what belongs to me',
+    'how much have i built up since the start',
+    'is my overall position going up or down',
+    'what has happened to my total position',
+    'have i become richer or poorer',
+  ],
   'abbuchung.naechste': [
     'what will be debited soon',
     'which debits are still coming',

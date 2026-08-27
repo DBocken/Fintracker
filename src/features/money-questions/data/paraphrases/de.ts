@@ -603,6 +603,16 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel monatlich fuer die grossen posten die nur selten kommen',
     'was muss weg damit mich die jaehrlichen beitraege nicht treffen',
   ],
+  'vermoegen.entwicklung': [
+    'wie hat sich mein besitz ueber die zeit bewegt',
+    'stehe ich heute besser da als vor einem jahr',
+    'ist unterm strich mehr geworden seit damals',
+    'zeig mir den verlauf von dem was mir gehoert',
+    'wie viel habe ich seit beginn aufgebaut',
+    'geht es mit meinem besitz aufwaerts oder abwaerts',
+    'was hat sich bei meinem gesamtstand getan',
+    'bin ich reicher geworden oder aermer',
+  ],
   'abbuchung.naechste': [
     'welche lastschriften stehen als nächstes an',
     'welche abbuchungen kommen noch',

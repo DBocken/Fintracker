@@ -108,11 +108,16 @@ export const WELLE2_KORPUS: readonly WelleZeile[] = [
   v('gibt es paare die eigentlich überträge sind', 'transfer.kandidaten'),
   v('was hat die hochzeit alles gekostet', 'anlass.kosten'),
 
+  // Welle 4 hat diese Lücke geschlossen — mit ihrer Grenze: Die Reihe wird
+  // FORTGESCHRIEBEN, nicht rückgerechnet, und beginnt bei der Einführung.
+  // Die Frage nach „den letzten Jahren" landet trotzdem richtig; was der
+  // Chat davon weiss, sagt seine Antwort.
+  m('Wie hat sich mein Vermögen über die letzten Jahre entwickelt?', 'vermoegen.entwicklung'),
+
   // ── Benannte Grenzen ────────────────────────────────────────────────────
   // Diese bleiben Lücke, und der Chat soll sich zurückhalten statt zu raten.
   // Sie stehen hier, damit die Zurückhaltung GEMESSEN ist und nicht behauptet.
   m('Wie viel Umsatzsteuer muss ich abführen?', 'luecke'),
   m('Was habe ich in fremden Währungen bezahlt?', 'luecke'),
-  m('Wie hat sich mein Vermögen über die letzten Jahre entwickelt?', 'luecke'),
   v('wieviel vorsteuer kann ich ziehen', 'luecke'),
 ];
