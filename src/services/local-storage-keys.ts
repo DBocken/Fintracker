@@ -38,6 +38,11 @@ export const LOCAL_FINANCE_KEYS = {
   replacementPlans: 'fintracker_replacement_plans_v1',
   householdSettlements: 'fintracker_household_settlements_v1',
   contractRecords: 'fintracker_contract_records_v1',
+  // Vermögenswerte ohne Buchung — Wohnung, Auto, Sachwerte (Welle 4).
+  // Sie tragen Namen und Schätzwerte des Nutzers und gehören damit hierher:
+  // verschlüsselt und im Backup, ohne dass eine zweite Stelle das nachziehen
+  // müsste.
+  manualAssets: 'fintracker_manual_assets_v1',
   // Bestätigte Frage→Familie-Zuordnungen des Routers (WP-F.5). Die Texte
   // sind getippte Fragen und enthalten Händlernamen — deshalb hier (und
   // damit automatisch in ENCRYPTED_STORAGE_KEYS und im Backup).

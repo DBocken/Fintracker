@@ -6,10 +6,13 @@ import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
 import { getDebts } from "./debt-service";
 import { totalOutstandingDebt } from "@/lib/debt-totals";
 import { getReceivables, getTotalReceivables } from "./receivable-service";
+import { getManualAssets } from "./manual-asset-service";
+import { istVeraltet, summeManuellerWerte } from "@/lib/manual-asset-types";
 import { eurContribution } from "@/lib/portfolio-currency";
 import type {
   AccountSource,
   DebtSource,
+  ManualAssetSource,
   NetWorthBreakdown,
   PortfolioSource,
   ReceivableSource,
@@ -22,6 +25,7 @@ import type {
 export type {
   AccountSource,
   DebtSource,
+  ManualAssetSource,
   NetWorthBreakdown,
   PortfolioSource,
   ReceivableSource,
@@ -48,11 +52,12 @@ const computeLocalBalance = computeAnchoredBalance;
  * to the sum of local transactions.
  */
 export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
-  const [accounts, transactions, debts, receivables] = await Promise.all([
+  const [accounts, transactions, debts, receivables, manualAssets] = await Promise.all([
     getAccounts(),
     getTransactions(10000),
     getDebts(),
     getReceivables(),
+    getManualAssets(),
   ]);
 
   const accountBalances: Record<string, number> = {};
@@ -132,17 +137,34 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     .filter((r) => !r.is_settled)
     .map((r) => ({ id: r.id, name: r.name, amount: Math.max(0, r.amount) }));
 
+  // Der Stichtag wird EINMAL genommen, nicht je Wert: Zwei Aufrufe von
+  // `new Date()` in derselben Aufstellung könnten über Mitternacht
+  // auseinanderfallen, und dann wäre derselbe Wert einmal frisch und einmal
+  // veraltet.
+  const jetzt = new Date();
+  const totalManualAssets = summeManuellerWerte(manualAssets);
+  const manualAssetSources: ManualAssetSource[] = manualAssets.map((a) => ({
+    id: a.id,
+    name: a.name,
+    value: a.value,
+    kind: a.kind,
+    valuedAt: a.valued_at,
+    stale: istVeraltet(a, jetzt),
+  }));
+
   return {
     cash,
     investments,
+    manualAssets: totalManualAssets,
     receivables: totalReceivables,
     debts: totalDebt,
-    netWorth: cash + investments + totalReceivables - totalDebt,
+    netWorth: cash + investments + totalManualAssets + totalReceivables - totalDebt,
     accountBalances,
     accountSources,
     portfolioSources,
     unconvertedInvestments,
     debtSources,
     receivableSources,
+    manualAssetSources,
   };
 }

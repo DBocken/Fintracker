@@ -115,7 +115,7 @@ const netWorth: NetWorthBreakdown = {
   investments: 1200,
   receivables: 0,
   debts: 4800,
-  netWorth: 3200 + 1200 - 4800,
+  netWorth: 3200 + 1200 + 15000 - 4800,
   accountBalances: { a1: 2000, a2: 1200 },
   accountSources: [
     { id: 'a1', name: 'Girokonto', balance: 2000, source: 'local' },
@@ -125,6 +125,12 @@ const netWorth: NetWorthBreakdown = {
   unconvertedInvestments: [],
   debtSources: [{ id: 'd1', name: 'Autokredit', balance: 4800 }],
   receivableSources: [],
+  // Gefüllt, nicht auf 0 gelassen — die Lehre der Nach-Verifikation: Eine
+  // Invariante prüft nur, was die Fixture füllt.
+  manualAssets: 15000,
+  manualAssetSources: [
+    { id: 'ma1', name: 'Auto', value: 15000, kind: 'vehicle', valuedAt: '2026-05-01', stale: false },
+  ],
 };
 
 const taxReserve: TaxReserveState = {

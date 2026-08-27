@@ -45,6 +45,8 @@ function daten(zusatz: Partial<QuestionData> = {}): QuestionData {
       unconvertedInvestments: [],
       debtSources: [],
       receivableSources: [],
+      manualAssets: 0,
+      manualAssetSources: [],
     },
     jetzt: JETZT,
     ...zusatz,
@@ -148,6 +150,8 @@ describe('vermoegen.gesamt und vermoegen.aufteilung', () => {
         unconvertedInvestments: [],
         debtSources: [],
         receivableSources: [],
+        manualAssets: 0,
+        manualAssetSources: [],
       },
     });
 

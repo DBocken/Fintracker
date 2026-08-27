@@ -197,14 +197,24 @@ const vermoegenGesamt: QuestionEntry = {
       return { ...KEIN_KONTO, aussage: { key: 'financeQuestions.answer.vermoegenKeines', params: {} } };
     }
     const offen = aufstellung.unconvertedInvestments.length;
+    const veraltete = aufstellung.manualAssetSources.filter((q) => q.stale).length;
     return {
       art: 'geld',
       wert: aufstellung.netWorth,
       anzahl: aufstellung.accountSources.length + aufstellung.portfolioSources.length,
       aussage: { key: 'financeQuestions.answer.vermoegenGesamt', params: {} },
-      begruendung: offen
-        ? [{ key: 'financeQuestions.reason.fremdwaehrungNichtSummiert', params: { anzahl: offen } }]
-        : [],
+      // Zwei Vorbehalte, beide gemessen statt verschwiegen: nicht summierte
+      // Fremdwährung (VE-1) und Schätzungen, die älter als ein Jahr sind.
+      // Eine Vermögenszahl, die auf einer drei Jahre alten Fahrzeugschätzung
+      // ruht, ist keine Aussage über heute.
+      begruendung: [
+        ...(offen
+          ? [{ key: 'financeQuestions.reason.fremdwaehrungNichtSummiert', params: { anzahl: offen } }]
+          : []),
+        ...(veraltete > 0
+          ? [{ key: 'financeQuestions.reason.schaetzungVeraltet', params: { anzahl: veraltete } }]
+          : []),
+      ],
       deepLink: '/accounts',
       deepLinkArt: 'kontext',
     };
@@ -233,6 +243,9 @@ const vermoegenAufteilung: QuestionEntry = {
     const posten = [
       { label: '', labelKey: 'financeQuestions.vermoegen.cash', betrag: aufstellung.cash },
       { label: '', labelKey: 'financeQuestions.vermoegen.investments', betrag: aufstellung.investments },
+      // Welle 4: Wohnung, Auto, Sachwerte als EIGENE Rubrik — nicht in `cash`
+      // versteckt. Wer sein Haus mitzählt, soll sehen, dass es mitgezählt ist.
+      { label: '', labelKey: 'financeQuestions.vermoegen.manualAssets', betrag: aufstellung.manualAssets },
       { label: '', labelKey: 'financeQuestions.vermoegen.receivables', betrag: aufstellung.receivables },
       { label: '', labelKey: 'financeQuestions.vermoegen.debts', betrag: -aufstellung.debts },
     ].filter((p) => p.betrag !== 0);

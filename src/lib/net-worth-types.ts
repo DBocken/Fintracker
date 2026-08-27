@@ -58,16 +58,40 @@ export interface ReceivableSource {
   amount: number;
 }
 
+/**
+ * Ein Vermögenswert ohne Buchung — Wohnung, Auto, Sachwerte (Welle 4).
+ *
+ * `valuedAt` und `stale` reisen bis in die Darstellung mit: Ein manuell
+ * gepflegter Wert veraltet, und ihn ohne sein Alter auszuweisen wäre dieselbe
+ * stille Falschaussage wie ein Kontostand ohne Anker.
+ */
+export interface ManualAssetSource {
+  id: string;
+  name: string;
+  value: number;
+  kind: string;
+  /** Stichtag der Schätzung (ISO `YYYY-MM-DD`). */
+  valuedAt: string;
+  /** Schätzung älter als ein Jahr — die Fläche muss das sagen. */
+  stale: boolean;
+}
+
 export interface NetWorthBreakdown {
   /** Sum of all account balances (cash) */
   cash: number;
   /** Total value of all portfolios */
   investments: number;
+  /**
+   * Summe der manuell gepflegten Werte (Welle 4) — eigene Rubrik, nicht in
+   * `cash` oder `investments` versteckt: Wer sein Haus mitzählt, soll sehen,
+   * dass es mitgezählt ist, und wie alt die Schätzung war.
+   */
+  manualAssets: number;
   /** Total outstanding money lent out (receivables) */
   receivables: number;
   /** Total outstanding debt */
   debts: number;
-  /** cash + investments + receivables - debts */
+  /** cash + investments + manualAssets + receivables - debts */
   netWorth: number;
   /** Per-account balances */
   accountBalances: Record<string, number>;
@@ -84,4 +108,6 @@ export interface NetWorthBreakdown {
   debtSources: DebtSource[];
   /** Details on each receivable's contribution to total receivables */
   receivableSources: ReceivableSource[];
+  /** Details je manuell gepflegtem Wert, inklusive Alter der Schätzung. */
+  manualAssetSources: ManualAssetSource[];
 }
