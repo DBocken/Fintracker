@@ -4710,6 +4710,8 @@ export const ru = {
       budgetAktionStattdessenAnlegen: 'Для «{name}» бюджета ещё нет. Создать его?',
     },
     reason: {
+      proMonat: 'Это {monatlich} в месяц.',
+      bestandsSpanne: 'Расчёт за {monate} мес. — настолько хватает твоих данных ({vonMonat} — {bisMonat}).',
       kategorieAbweichung: 'Автоматика сегодня выбрала бы другую категорию — твоё решение в силе.',
       kategorieGrund: 'Причина: {grund}',
       schuldenBudget: 'Посчитано по минимальным платежам: {betrag} в месяц',

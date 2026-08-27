@@ -4710,6 +4710,8 @@ export const en = {
       budgetAktionStattdessenAnlegen: 'There is no budget for {name} yet. Shall I create one?',
     },
     reason: {
+      proMonat: 'That is {monatlich} per month.',
+      bestandsSpanne: 'Calculated over {monate} months — that is how far your data goes ({vonMonat} to {bisMonat}).',
       kategorieAbweichung: 'The automation would pick a different category today — your assignment stands.',
       kategorieGrund: 'Reason: {grund}',
       schuldenBudget: 'Computed with your minimum payments: {betrag} per month',

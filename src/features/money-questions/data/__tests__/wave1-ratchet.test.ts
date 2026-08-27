@@ -187,5 +187,8 @@ describe('Welle-1-Ratsche', () => {
 //      statt zur Historie. „Verlauf" trägt beide Bedeutungen; sie sauber zu
 //      trennen braucht die Bezugsgrößen-Prüfung, die Welle 3 mitbringt.
 const MIN_MUSTER = 1;
-const MIN_VARIANTE = 0.88;
+// 0.88 → 0.90: gemessen nach dem Satzklammer-Fix (27.08.). Eine Schwelle
+// unter dem Stand misst nichts — sie dokumentiert nur, dass jemand
+// einmal vorsichtig war (AGENTS.md §3).
+const MIN_VARIANTE = 0.9;
 const MAX_FALSCH = 1;

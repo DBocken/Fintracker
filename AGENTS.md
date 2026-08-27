@@ -321,6 +321,42 @@ fertig". Dieselbe Idee wie die Grenzkonstante ohne Prüfstelle weiter oben,
 nur andersherum: Diese Grenze WIRKT, und genau deshalb muss ihr Erreichen
 sichtbar werden.
 
+**Ein Korpus prüft die Formulierungen, die er ENTHÄLT.** Fünf Ratschen
+standen bei 99–100 %, und „Wie viel gebe ich für Netflix aus?" — die
+einfachste Frage, die diese App überhaupt kennt — blieb unbeantwortet. Der
+Grund war nicht der Router, sondern die Frageliste: Jede Zeile fragte im
+Perfekt („habe ich ausgegeben") oder in einer Kennzahl-Wendung
+(„durchschnittlicher Einkauf bei"). Die **Satzklammer des Präsens** kam in
+keinem der fünf Korpora vor, und damit lag die häufigste Sprechweise
+ausserhalb JEDER Messung. Wer eine Familie baut, nimmt ihre schlichteste
+Formulierung zuerst auf — die exotische fällt beim Testen ohnehin auf, die
+selbstverständliche nie. Dieselbe Lehre wie bei der Fixture ohne
+Welle-2-Kanäle und der Disjunktheits-Regel über nur einem Korpus, zum
+vierten Mal: **eine Prüfung deckt ab, was sie LIEST.**
+
+**Eine Beugungsform wird normalisiert, nicht in die Auslöserliste geflickt.**
+Der Auslöser für Ausgaben lautete `ausgegeben, ausgaben, gekostet, …` — im
+deutschen Hauptsatz kommt keines dieser Wörter vor, weil das trennbare Verb
+auseinandersteht: „gebe" vorn, „aus" am Satzende, dazwischen der Slot. Die
+Reparatur gehört vor alle Router-Stufen (`normalisiereFrage`), nicht in den
+Sprachbaum: Ein Eintrag je finiter Form wäre je Verb ein halbes Dutzend, in
+jeder Sprache neu, und der Klassifikator der Stufe 2 sähe die Frage weiterhin
+zerlegt. Gegenprobe mitgemessen: Die nächstliegende Abkürzung — `kostet`,
+`zahle` als zusätzliche Auslöser — liess neun Ratschen-Tests fallen, weil
+generische Verben spezifischeren Familien (`ausgaben.durchschnitt`,
+`schulden.zinsen`) ihre Fragen wegnehmen und sogar eine benannte Lücke
+beantworteten. Sie sind deshalb NICHT im Baum; dass „was kostet mich X"
+nachfragt statt zu raten, ist das richtige Verhalten.
+
+**Eine Summe ohne Zeitraum ist eine stille Behauptung.** „248 €" heisst über
+drei Monate etwas anderes als über drei Jahre, und wer im Präsens fragt
+(„gebe ich"), will die laufende Belastung wissen, nicht die Lebenssumme.
+Ohne genannten Zeitraum nennt eine Summen-Antwort deshalb beides: den
+Monatswert und die Spanne, die der Datenbestand abdeckt. Der Nenner ist der
+BESTAND, nicht die Spanne der Treffer — sonst bekommt ein Händler, bei dem
+jemand zweimal war, einen Zwei-Monats-Schnitt. Dieselbe Familie wie der
+manuell geschätzte Wert ohne Stichtag.
+
 **Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
 gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche

@@ -406,8 +406,14 @@ const PROZENT_PLATZHALTER = new Set(['prozent']);
 /** Platzhalter, deren Wert ein ISO-Datum ist — formatiert wird je Sprache. */
 const DATUM_PLATZHALTER = new Set(['datum']);
 
-/** Platzhalter, deren Wert ein Monat (`yyyy-mm`) ist. */
-const MONATS_PLATZHALTER = new Set(['monat']);
+/**
+ * Platzhalter, deren Wert ein Monat (`yyyy-mm`) ist.
+ *
+ * `vonMonat`/`bisMonat` kamen mit der Bestands-Spanne dazu. Ohne sie stünde
+ * „so weit reicht dein Datenbestand (2026-01 bis 2026-04)" auf dem
+ * Bildschirm — genau der rohe Monat, der hier schon einmal ein Fund war.
+ */
+const MONATS_PLATZHALTER = new Set(['monat', 'vonMonat', 'bisMonat']);
 
 /**
  * yyyy-mm → sprachrichtiger Monatsname. Das Register liefert den Monat roh

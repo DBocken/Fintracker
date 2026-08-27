@@ -13,6 +13,7 @@
  * zur Quelle falscher Auskunft mit belastbar wirkendem Beleg.
  */
 import type {
+  Aussage,
   QuestionAnswer,
   QuestionData,
   QuestionEntry,
@@ -20,11 +21,64 @@ import type {
 } from '@/lib/question-registry';
 import { filterTransactions, buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import { sumExpenses, sumIncome, topHaendler, topKategorien } from '@/lib/analysis-data';
+import { monateImBestand, monatsDurchschnitt } from '@/lib/spending-metrics';
+import type { Transaction } from '@/types';
 import { computeIncomeContracts } from '@/lib/contract-derivation';
 import { durchschnittlichesMonatsEinkommen, einkommensSchwankung } from '@/lib/income-stats';
 import { findeAusreisser, type MonatsPunkt } from '@/features/shared/domain/unusual-expenses';
 import { erlaubteSlots, filterAusSlots, vollstaendig } from './question-filters';
 import { metricQuestions } from './metric-questions';
+
+/**
+ * Was eine Summe ohne genannten Zeitraum zusätzlich sagen MUSS.
+ *
+ * Browser-Fund vom 27.08.: „Wie viel gebe ich für Netflix aus?" beantwortete
+ * sich mit einer nackten Gesamtsumme. Wer im Präsens fragt, meint aber die
+ * laufende Belastung — und eine Summe ohne Spanne ist ohnehin eine stille
+ * Behauptung: 248 € heissen über drei Monate etwas anderes als über drei
+ * Jahre. Dieselbe Sorte Lücke wie der manuell geschätzte Wert ohne Stichtag
+ * (AGENTS.md §3).
+ *
+ * **Der Nenner ist der BESTAND, nicht die Spanne der Treffer.** Wer zweimal
+ * bei einem Händler war, den Bestand aber über zwölf Monate führt, belastet
+ * seinen Haushalt über zwölf Monate; über die eigenen zwei gerechnet käme
+ * eine systematisch zu hohe Zahl heraus (`monatsDurchschnitt`).
+ *
+ * Nennt die Frage einen Zeitraum, entfällt der Beleg: Dann hat der Fragende
+ * den Nenner selbst gesetzt, und ein zweiter, anders gerechneter Monatswert
+ * daneben wäre Widerspruch statt Beleg.
+ */
+function bestandsBelege(
+  slots: QuestionSlots,
+  daten: QuestionData,
+  gefiltert: readonly Transaction[],
+  richtung: 'ausgaben' | 'einnahmen',
+): Aussage[] {
+  if (slots.zeitraum || gefiltert.length === 0 || richtung !== 'ausgaben') return [];
+
+  const bestand = [...(daten.transactions ?? [])];
+  const monate = monateImBestand(bestand);
+  if (monate === 0) return [];
+
+  const belege: Aussage[] = [];
+  const proMonat = monatsDurchschnitt(gefiltert, monate);
+  if (proMonat !== null) {
+    belege.push({ key: 'financeQuestions.reason.proMonat', params: { monatlich: proMonat } });
+  }
+
+  const monatsWerte = bestand.map((t) => t.date?.slice(0, 7) ?? '').filter(Boolean).sort();
+  if (monatsWerte.length > 0) {
+    belege.push({
+      key: 'financeQuestions.reason.bestandsSpanne',
+      params: {
+        monate,
+        vonMonat: monatsWerte[0],
+        bisMonat: monatsWerte[monatsWerte.length - 1],
+      },
+    });
+  }
+  return belege;
+}
 
 function summenAntwort(
   entry: Pick<QuestionEntry, 'slots'>,
@@ -53,10 +107,13 @@ function summenAntwort(
       params: {
         haendler: slots.haendler ?? '',
         // Ohne Zeitraum-Slot ist die Antwort der Gesamtbestand — das gehört
-        // gesagt, nicht als leere Stelle im Satz verschluckt.
-        zeitraum: slots.zeitraum?.label ?? '',
+        // gesagt, nicht als leere Stelle im Satz verschluckt. `all` ist die
+        // Kennung dafür, aus der die Präsentation Sprache macht; ein leerer
+        // String liess „Bei Netflix, ." auf dem Bildschirm stehen.
+        zeitraum: slots.zeitraum?.label ?? 'all',
       },
     },
+    begruendung: bestandsBelege(slots, daten, gefiltert, richtung),
     deepLink: buildTransactionsHref(teilFilter),
     // Gerechnet wurde mit GENAU diesem Filter — Zahl und Link können nicht
     // auseinanderlaufen, weil beide aus `teilFilter` entstehen.

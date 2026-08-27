@@ -4722,6 +4722,8 @@ export const de = {
       budgetAktionStattdessenAnlegen: 'Für {name} gibt es noch kein Budget. Soll ich eines anlegen?',
     },
     reason: {
+      proMonat: 'Das sind {monatlich} pro Monat.',
+      bestandsSpanne: 'Gerechnet über {monate} Monate — so weit reicht dein Datenbestand ({vonMonat} bis {bisMonat}).',
       kategorieAbweichung: 'Die Automatik käme heute zu einer anderen Kategorie — deine Zuordnung gilt.',
       kategorieGrund: 'Grund: {grund}',
       schuldenBudget: 'Gerechnet mit deinen Mindestraten: {betrag} im Monat',

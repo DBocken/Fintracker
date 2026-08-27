@@ -22,6 +22,22 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Behoben
+
+- **„Wie viel gebe ich für Netflix aus?" wird verstanden.** Die einfachste
+  Frage der App blieb unbeantwortet, während „Wie viel habe ich für Netflix
+  ausgegeben" sofort traf. Ursache war die deutsche Satzklammer: Im
+  Hauptsatz steht der Verbstamm vorn und die Partikel am Satzende („gebe …
+  aus"), und das Auslösewort „ausgegeben" kommt darin nie vor. Die Klammer
+  wird jetzt vor allen Router-Stufen geschlossen — das wirkt für jede Person
+  und jede Zeitform der Frage, auch für Kategorien („Was gebe ich für
+  Lebensmittel aus?").
+
+- **Eine Ausgabensumme sagt jetzt, worüber sie rechnet.** Ohne genannten
+  Zeitraum stand hinter dem Betrag nur „Bei Netflix, ." — die Spanne fehlte
+  ganz. Genannt wird jetzt beides: was das im Monat kostet und über wie viele
+  Monate der eigene Datenbestand reicht.
+
 ### Neu
 
 - **Wohnung, Auto und Sachwerte zählen jetzt zum Vermögen.** Unter „Konten"

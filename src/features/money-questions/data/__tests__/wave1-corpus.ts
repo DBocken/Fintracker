@@ -34,6 +34,28 @@ const m = (frage: string, familie: string): WelleZeile => ({ frage, familie, art
 const v = (frage: string, familie: string): WelleZeile => ({ frage, familie, art: 'variante' });
 
 export const WELLE1_KORPUS: readonly WelleZeile[] = [
+  // ── Die EINFACHSTE Händler- und Kategoriefrage überhaupt ────────────────
+  //
+  // Browser-Fund vom 27.08.: „Wie viel gebe ich für Netflix aus?" blieb
+  // unbeantwortet — und KEIN Korpus hat es je bemerkt, weil keiner die Frage
+  // in ihrer natürlichsten Form stellte. Alle Zeilen fragten „habe ich
+  // ausgegeben" (Perfekt) oder „durchschnittlicher Einkauf bei"; die
+  // Satzklammer des Präsens („gebe ich … aus") kam nirgends vor. Vier
+  // Ratschen standen bei 99–100 %, während die Grundfrage der ganzen App
+  // nicht ging.
+  //
+  // Dieselbe Lehre wie bei der Katalog-Fixture ohne Welle-2-Kanäle und der
+  // Disjunktheits-Regel über nur einem Korpus: **Eine Prüfung deckt ab, was
+  // sie LIEST** — hier war der blinde Fleck nicht der Router, sondern die
+  // Frageliste.
+  m('Wie viel gebe ich für Netflix aus?', 'ausgaben.haendler'),
+  m('Wie viel gebe ich bei Rewe aus?', 'ausgaben.haendler'),
+  m('Was gebe ich für Lebensmittel aus?', 'ausgaben.kategorie'),
+  m('Wie viel geben wir für Freizeit aus?', 'ausgaben.kategorie'),
+  v('wieviel gebe ich für netflix aus', 'ausgaben.haendler'),
+  v('was gebe ich bei aldi aus', 'ausgaben.haendler'),
+  v('wieviel gebe ich für lebensmittel aus', 'ausgaben.kategorie'),
+
   // ── Händlerausgaben: Durchschnitt je Vorgang ────────────────────────────
   m('Wie hoch war mein durchschnittlicher Einkauf bei Aldi in den letzten 90 Tagen?', 'ausgaben.jeVorgang'),
   m('Wie hoch war mein durchschnittlicher Einkauf bei Rewe in den letzten 90 Tagen?', 'ausgaben.jeVorgang'),
