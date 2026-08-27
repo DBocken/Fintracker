@@ -32,26 +32,31 @@ import type { ManualAssetKind } from '@/lib/manual-asset-types';
 import { MANUAL_ASSET_ICONS } from '@/services/manual-asset-service';
 import { useManualAssets } from '../application/use-manual-assets';
 
-/**
- * Statische Schlüssel je Art — kein `t(`…${art}`)`.
- *
- * Ein zusammengesetzter Key ist für die Aufrufstellen-Ratsche unsichtbar
- * (`call-site-keys.test`): Sie könnte einen Tippfehler dann nicht mehr
- * finden, und ein vertippter Key rendert den rohen Punkt-String.
- */
-const ART_LABEL_KEYS: Record<ManualAssetKind, string> = {
-  property: 'manualAssets.kindProperty',
-  vehicle: 'manualAssets.kindVehicle',
-  valuables: 'manualAssets.kindValuables',
-  other: 'manualAssets.kindOther',
-};
-
 const ARTEN: readonly ManualAssetKind[] = ['property', 'vehicle', 'valuables', 'other'];
 
 export function ManualAssetsSection() {
   const { t, locale } = useI18n();
   const money = useMoneyFormat();
   const model = useManualAssets();
+
+  /**
+   * Beschriftungen je Art — als AUSGESCHRIEBENE `t()`-Aufrufe, nicht über
+   * einen zusammengesetzten Schlüssel.
+   *
+   * Ein Key aus einer Variablen ist für die Aufrufstellen-Ratsche unsichtbar
+   * (`call-site-keys.test` zählt genau diesen blinden Fleck); ein Tippfehler
+   * darin rendert den rohen Punkt-String, ohne dass etwas rot wird. Die
+   * Funktion wird bei jedem Rendern aufgerufen, damit ein Sprachwechsel
+   * durchschlägt — eine Modul-Konstante fröre den Text ein (§6).
+   */
+  const artLabel = (art: ManualAssetKind): string =>
+    art === 'property'
+      ? t('manualAssets.kindProperty')
+      : art === 'vehicle'
+        ? t('manualAssets.kindVehicle')
+        : art === 'valuables'
+          ? t('manualAssets.kindValuables')
+          : t('manualAssets.kindOther');
 
   const datum = (iso: string) =>
     new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${iso}T00:00:00`));
@@ -168,7 +173,7 @@ export function ManualAssetsSection() {
                   aria-label={t('manualAssets.kindLabel')}
                   options={ARTEN.map((art) => ({
                     value: art,
-                    label: t(ART_LABEL_KEYS[art]),
+                    label: artLabel(art),
                   }))}
                 />
               </div>

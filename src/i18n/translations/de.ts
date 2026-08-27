@@ -4719,6 +4719,8 @@ export const de = {
       schaetzungVeraltet: 'Bei {anzahl} Posten ist die Schätzung älter als ein Jahr.',
       depotEingesetzt: 'Eingesetztes Kapital: {betrag}',
       depotProzent: 'Das sind {prozent} Prozent.',
+      depotGeldgewichtet: 'Geldgewichtete Rendite: {prozent} % pro Jahr',
+      depotOhneZahlungen: 'Für eine echte Rendite fehlen mir deine Ein- und Auszahlungen — das hier ist der Stand der Positionen.',
       operativesGuthaben: 'Verfügbar auf Giro, Bar und Wallet: {betrag}',
       faelligeAbbuchungen: 'Bis dahin fällige Abbuchungen: {betrag}',
       tagesrateBasis: 'Basis: {rest} Rest im Budget.',

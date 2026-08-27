@@ -140,6 +140,16 @@ const taxReserve: TaxReserveState = {
   movements: [{ id: 'm1', date: '2026-07-01', amount: 200 }],
 };
 
+/**
+ * Der Zahlungsstrom reist im KANAL `portfolios` mit (Welle 4) und ist damit
+ * kein eigener `DataNeed` — der Kanal-Wächter unten sieht ihn also nicht.
+ * Gefüllt gehört er trotzdem: Sonst fiele die Rendite-Antwort in ihren
+ * „ohne Zahlungen"-Zweig, und der läge ausserhalb der Prüfung.
+ */
+const portfolioCashflows = [
+  { id: 'cf1', portfolio_id: 'p1', date: '2025-08-01', amount: 1000, direction: 'deposit' as const },
+];
+
 const daten: QuestionData = {
   transactions,
   categories,
@@ -152,6 +162,7 @@ const daten: QuestionData = {
   specialCategoryAssignments,
   portfolios,
   positionsByPortfolio,
+  portfolioCashflows,
   netWorth,
   taxReserve,
   merchantRules: [],

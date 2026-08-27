@@ -10,6 +10,7 @@ import {
 } from '@/services/special-category-service';
 import { specialCategoriesKeys } from '@/features/special-categories/data/special-categories-query-keys';
 import { getPortfolios, getPositions } from '@/services/portfolio-service';
+import { getPortfolioCashflows } from '@/services/portfolio-cashflow-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { getTaxReserveState } from '@/services/tax-reserve-service';
 import type { PortfolioPosition } from '@/lib/portfolio-types';
@@ -217,6 +218,9 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
   // Depots UND ihre Positionen in einer Abfrage: Getrennt wären es n+1
   // Abfragen, deren Ladezustände einzeln auf die Antwort wirken — ein Depot,
   // dessen Positionen noch fehlen, ist schlicht falsch bewertet.
+  // Der ZAHLUNGSSTROM (Welle 4) liegt in derselben Abfrage: Getrennt hinge
+  // die Rendite an zwei Ladezuständen, und ein Depot, dessen Einzahlungen
+  // noch fehlen, weist eine Rendite aus, die es nicht hat.
   const depots = useQuery({
     queryKey: ['portfolios', 'mit-positionen'],
     queryFn: async () => {
@@ -224,7 +228,11 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       const paare = await Promise.all(
         portfolios.map(async (p) => [p.id, await getPositions(p.id)] as const),
       );
-      return { portfolios, positionen: new Map<string, PortfolioPosition[]>(paare) };
+      return {
+        portfolios,
+        positionen: new Map<string, PortfolioPosition[]>(paare),
+        zahlungen: await getPortfolioCashflows(),
+      };
     },
   });
   const vermoegen = useQuery({ queryKey: ['net-worth'], queryFn: getNetWorthBreakdown });
@@ -324,6 +332,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       specialCategoryAssignments: anlassZuordnungen.data,
       portfolios: depots.data?.portfolios,
       positionsByPortfolio: depots.data?.positionen,
+      portfolioCashflows: depots.data?.zahlungen,
       netWorth: vermoegen.data ?? null,
       taxReserve: steuerRuecklage.data ?? null,
       merchantRules: regeln.data,

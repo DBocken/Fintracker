@@ -16,6 +16,7 @@ import type { Portfolio, PortfolioPosition, PortfolioSummary } from '@/types';
 import type { Aussage, ListenPosten, QuestionAnswer, QuestionData, QuestionEntry } from '@/lib/question-registry';
 import { summarizePortfolio } from '@/features/trading/domain/portfolio-summary';
 import { currentPriceOf } from '@/features/trading/domain/position-metrics';
+import { geldgewichteteRendite, zahlungsreihe } from '@/lib/money-weighted-return';
 
 const KEIN_DEPOT: Omit<QuestionAnswer, 'aussage'> = {
   art: 'keine',
@@ -107,6 +108,16 @@ const depotRendite: QuestionEntry = {
       };
     }
 
+    // Die ECHTE Rendite (Welle 4), sobald Ein- und Auszahlungen erfasst sind:
+    // Marktwert minus Einstand sagt nichts darüber, WANN wie viel Geld
+    // drinsteckte. Ohne Zahlungen bleibt es bei der Positionsbewertung — und
+    // die Antwort sagt das, statt eine Rendite zu behaupten, die sie nicht
+    // gerechnet hat.
+    const marktwert = stand.summen.reduce((s, d) => s + d.total_value, 0);
+    const rendite = geldgewichteteRendite(
+      zahlungsreihe(daten.portfolioCashflows ?? [], marktwert, daten.jetzt.toISOString().slice(0, 10)),
+    );
+
     return {
       art: 'geld',
       wert: gewinn,
@@ -123,6 +134,14 @@ const depotRendite: QuestionEntry = {
           // Register liefert nie fertigen Text (AGENTS.md, Register-Regel 1).
           params: { prozent: (gewinn / eingesetzt) * 100 },
         },
+        ...(rendite.art === 'rendite'
+          ? [
+              {
+                key: 'financeQuestions.reason.depotGeldgewichtet',
+                params: { prozent: rendite.jaehrlich * 100 },
+              },
+            ]
+          : [{ key: 'financeQuestions.reason.depotOhneZahlungen', params: {} }]),
         ...fremdwaehrungsHinweis(stand),
       ],
       deepLink: '/trading',

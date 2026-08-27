@@ -4707,6 +4707,8 @@ export const en = {
       schaetzungVeraltet: 'For {anzahl} items the estimate is more than a year old.',
       depotEingesetzt: 'Capital put in: {betrag}',
       depotProzent: 'That is {prozent} percent.',
+      depotGeldgewichtet: 'Money-weighted return: {prozent}% per year',
+      depotOhneZahlungen: 'For a real return I am missing your deposits and withdrawals — this is the position value.',
       operativesGuthaben: 'Available in current, cash and wallet: {betrag}',
       faelligeAbbuchungen: 'Charges due before then: {betrag}',
       tagesrateBasis: 'Basis: {rest} left in the budget.',

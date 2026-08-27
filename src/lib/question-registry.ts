@@ -50,7 +50,7 @@ import type { KategorieAktionsAbsicht } from '@/lib/categorize-action-intent';
 import type { AnlassAktionsAbsicht } from '@/lib/anlass-action-intent';
 import type { TransferAktionsAbsicht } from '@/lib/transfer-action-intent';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
-import type { Portfolio, PortfolioPosition } from '@/lib/portfolio-types';
+import type { Portfolio, PortfolioCashflow, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';
 import type { TaxReserveState } from '@/lib/tax-types';
 import type { UserSettings } from '@/lib/settings-types';
@@ -334,6 +334,13 @@ export interface QuestionData {
   /** Depots samt Positionen — je Depot ein Eintrag in der Map. */
   portfolios?: readonly Portfolio[];
   positionsByPortfolio?: ReadonlyMap<string, PortfolioPosition[]>;
+  /**
+   * Ein- und Auszahlungen je Depot (Welle 4) — Grundlage der echten Rendite.
+   * Reist im SELBEN Kanal wie die Depots (`portfolios`): Ein eigener Kanal
+   * hiesse ein eigener Ladezustand, und ein Depot ohne seine Einzahlungen
+   * weist eine Rendite aus, die es nicht hat.
+   */
+  portfolioCashflows?: readonly PortfolioCashflow[];
   /** Vermögensaufstellung inkl. Kontosalden aus den Ankern. */
   netWorth?: NetWorthBreakdown | null;
   /** Steuerrücklage des laufenden Veranlagungsjahres. */

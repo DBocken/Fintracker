@@ -28,10 +28,14 @@ function pos(over: Partial<PortfolioPosition>): PortfolioPosition {
   } as PortfolioPosition;
 }
 
-function daten(positionen: PortfolioPosition[]): QuestionData {
+function daten(
+  positionen: PortfolioPosition[],
+  zahlungen: QuestionData['portfolioCashflows'] = [],
+): QuestionData {
   return {
     portfolios: [DEPOT],
     positionsByPortfolio: new Map([['p1', positionen]]),
+    portfolioCashflows: zahlungen,
     jetzt: new Date('2026-08-20T12:00:00Z'),
   };
 }
@@ -84,6 +88,52 @@ describe('depot.rendite', () => {
     const antwort = eintrag.antwort({}, daten([pos({ id: 'a', quantity: 10, entry_price: 100, last_price: 80 })]));
     expect(antwort.wert).toBe(-200);
     expect(antwort.aussage.key).toBe('financeQuestions.answer.depotVerlust');
+  });
+
+  it('sollte ohne Ein- und Auszahlungen sagen, dass dies nur der Positionsstand ist', () => {
+    // Marktwert minus Einstand sagt nichts darüber, WANN wie viel Geld
+    // drinsteckte. Eine „Rendite" daraus wäre eine Behauptung über eine
+    // Rechnung, die gar nicht stattgefunden hat.
+    const antwort = eintrag.antwort({}, daten([pos({ id: 'a', quantity: 10, entry_price: 100, last_price: 120 })]));
+    const gruende = (antwort.begruendung ?? []).map((g) => g.key);
+    expect(gruende).toContain('financeQuestions.reason.depotOhneZahlungen');
+    expect(gruende).not.toContain('financeQuestions.reason.depotGeldgewichtet');
+  });
+
+  it('sollte mit Zahlungen die geldgewichtete Rendite ausweisen', () => {
+    const antwort = eintrag.antwort(
+      {},
+      daten([pos({ id: 'a', quantity: 10, entry_price: 100, last_price: 120 })], [
+        { id: 'c1', portfolio_id: 'p1', date: '2025-08-20', amount: 1000, direction: 'deposit' },
+      ]),
+    );
+    const geldgewichtet = (antwort.begruendung ?? []).find(
+      (g) => g.key === 'financeQuestions.reason.depotGeldgewichtet',
+    );
+    // 1.000 € rein, ein Jahr später 1.200 € wert → rund 20 % pro Jahr.
+    expect(geldgewichtet?.params.prozent).toBeCloseTo(20, 0);
+  });
+
+  it('[REGRESSION] sollte den ZEITPUNKT der Einzahlung berücksichtigen', () => {
+    // Genau darin unterscheidet sich die geldgewichtete von der schlichten
+    // Differenz „Marktwert minus Einstand": Wer erst kürzlich eingezahlt hat,
+    // hat für denselben Gewinn eine höhere Jahresrendite.
+    const spaet = eintrag.antwort(
+      {},
+      daten([pos({ id: 'a', quantity: 10, entry_price: 100, last_price: 120 })], [
+        { id: 'c1', portfolio_id: 'p1', date: '2026-02-20', amount: 1000, direction: 'deposit' },
+      ]),
+    );
+    const frueh = eintrag.antwort(
+      {},
+      daten([pos({ id: 'a', quantity: 10, entry_price: 100, last_price: 120 })], [
+        { id: 'c1', portfolio_id: 'p1', date: '2024-08-20', amount: 1000, direction: 'deposit' },
+      ]),
+    );
+    const p = (a: typeof spaet) =>
+      (a.begruendung ?? []).find((g) => g.key === 'financeQuestions.reason.depotGeldgewichtet')
+        ?.params.prozent as number;
+    expect(p(spaet)).toBeGreaterThan(p(frueh));
   });
 
   it('sollte ohne eingesetztes Kapital keine Rendite behaupten', () => {

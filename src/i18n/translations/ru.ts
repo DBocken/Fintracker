@@ -4707,6 +4707,8 @@ export const ru = {
       schaetzungVeraltet: 'У {anzahl} позиций оценка старше года.',
       depotEingesetzt: 'Вложенный капитал: {betrag}',
       depotProzent: 'Это {prozent} процентов.',
+      depotGeldgewichtet: 'Доходность с учётом вложений: {prozent} % годовых',
+      depotOhneZahlungen: 'Для настоящей доходности не хватает твоих взносов и снятий — здесь оценка позиций.',
       operativesGuthaben: 'Доступно на текущих счетах, наличными и в кошельке: {betrag}',
       faelligeAbbuchungen: 'Списания до этого дня: {betrag}',
       tagesrateBasis: 'База: {rest} остатка в бюджете.',

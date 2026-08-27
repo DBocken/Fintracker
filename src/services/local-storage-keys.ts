@@ -38,6 +38,9 @@ export const LOCAL_FINANCE_KEYS = {
   replacementPlans: 'fintracker_replacement_plans_v1',
   householdSettlements: 'fintracker_household_settlements_v1',
   contractRecords: 'fintracker_contract_records_v1',
+  // Ein-/Auszahlungen je Depot (Welle 4) — ohne sie gibt es keine echte
+  // Rendite, nur Positionsbewertung.
+  portfolioCashflows: 'fintracker_portfolio_cashflows_v1',
   // Vermögenswerte ohne Buchung — Wohnung, Auto, Sachwerte (Welle 4).
   // Sie tragen Namen und Schätzwerte des Nutzers und gehören damit hierher:
   // verschlüsselt und im Backup, ohne dass eine zweite Stelle das nachziehen
