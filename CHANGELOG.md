@@ -35,6 +35,10 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   sie sich nicht erfinden — für Depots und Sachwerte gibt es keine
   historischen Werte, und eine halb geratene Kurve sähe aus wie eine echte.
 
+- **Ein- und Auszahlungen je Depot lassen sich erfassen.** Unter „Trading →
+  Performance" — und die geldgewichtete Rendite steht direkt daneben, damit
+  sichtbar ist, wofür man sie pflegt.
+
 - **Echte Depot-Rendite statt Positionsbewertung.** Wer seine Ein- und
   Auszahlungen erfasst, bekommt die geldgewichtete Rendite: Sie beantwortet
   „was hat mein Geld gebracht" und berücksichtigt, WANN wie viel drinsteckte.
@@ -241,6 +245,19 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Antwort, „0,00 €" wo „keine Buchung" gemeint war.
 
 ### Intern
+
+- **Vier Befunde aus der Konsolidierungs-Prüfung der sechs offenen PRs.**
+  Nachgemessen statt angenommen: (1) Der Depot-Zahlungsstrom war gebaut,
+  gespeichert und im Chat ausgewertet — aber ohne Oberfläche, also für
+  niemanden erreichbar; die Rendite fiel für jeden Nutzer in ihren „ohne
+  Zahlungen"-Zweig. Genau der Fehler, den dieselbe Welle bei den manuellen
+  Werten vermieden hatte. (2) `reviseManualAssetValue` war ein Export ohne
+  Aufrufer — entfernt (#297: „Ein Export ohne Aufrufer sieht wie eine
+  öffentliche Zusage aus, die niemand eingelöst hat"). (3) Die Ratschen der
+  Wellen 3 und 5 standen auf 0.8, gemessen waren sie 1.0 — zwanzig
+  Prozentpunkte Verfall wären grün durchgegangen, während die PR-Texte
+  „100 %" behaupteten. (4) Zwei grosse Bündel liefen ohne Deckel; sie sind
+  aufgenommen, **ohne** dass eine bestehende Grenze angehoben wurde.
 
 - **Welle 4 des Frage-Programms hat eine Datengrundlage NICHT gebaut.** Der
   Aufriss (#333) verlangte ein eigenes Sparziel-Modell für die Rücklage auf

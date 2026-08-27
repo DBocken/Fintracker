@@ -227,6 +227,21 @@ Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
 beantwortet), nicht die Funktion, die zufällig heute als einzige die
 Bedingung erfüllt.
 
+**Eine Datengrundlage ohne Erzeuger ist keine.** Der Depot-Zahlungsstrom war
+vollständig gebaut — Typ, Collection, verschlüsselt, im Backup, im Chat
+ausgewertet, mit neun Tests auf der Rechnung. Nur konnte ihn niemand
+ERFASSEN, und damit fiel die Rendite für jeden Nutzer in ihren
+„keine Zahlungen"-Zweig. Alle Prüfungen waren grün, weil sie die Rechnung
+prüfen und nicht den Weg zu ihren Daten. Wer eine Collection anlegt, baut im
+selben Zug die Stelle, an der sie entsteht — oder benennt ausdrücklich, wer
+sie später füllt.
+
+**Eine Ratsche steht auf dem GEMESSENEN Stand, nicht darunter.** Zwei der
+fünf Router-Ratschen standen auf 0.8, während sie 1.0 maßen: Zwanzig
+Prozentpunkte Verfall wären grün durchgegangen, und die PR-Texte behaupteten
+derweil „100 %". Eine Schwelle unter dem Stand misst nichts — sie
+dokumentiert nur, dass jemand einmal vorsichtig war.
+
 **Eine neue Datengrundlage wird erst gebaut, wenn die Frage sie WIRKLICH
 braucht.** Welle 4 sollte laut Aufriss vier Grundlagen bauen; eine davon war
 keine. „Wie viel muss ich monatlich für die Jahresrechnungen zurücklegen?"

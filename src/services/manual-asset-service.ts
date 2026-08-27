@@ -11,7 +11,6 @@ import type { ManualAsset, ManualAssetKind } from '@/lib/manual-asset-types';
 import { getCurrentUserId } from './auth-service';
 import {
   deleteLocalFinanceItem,
-  mutateLocalFinanceList,
   readLocalFinanceList,
   upsertLocalFinanceItem,
 } from './local-finance-store';
@@ -64,26 +63,4 @@ export async function upsertManualAsset(asset: Partial<ManualAsset>): Promise<Ma
 
 export async function deleteManualAsset(id: string): Promise<void> {
   await deleteLocalFinanceItem('manualAssets', id);
-}
-
-/**
- * Nur den Wert und den Stichtag fortschreiben — der übliche Vorgang, wenn
- * jemand neu schätzt.
- *
- * Läuft über `mutateLocalFinanceList`, weil zwischen Lesen und Schreiben ein
- * echtes `await` liegt (AGENTS.md §2): Zwei gleichzeitige Aufrufe läsen
- * denselben Stand, und der zweite schriebe eine Fassung ohne den ersten.
- */
-export async function reviseManualAssetValue(
-  id: string,
-  value: number,
-  valuedAt: string,
-): Promise<void> {
-  await mutateLocalFinanceList<ManualAsset>('manualAssets', (items) =>
-    items.map((item) =>
-      item.id === id
-        ? { ...item, value, valued_at: valuedAt, updated_at: new Date().toISOString() }
-        : item,
-    ),
-  );
 }

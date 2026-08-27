@@ -180,5 +180,9 @@ describe('Welle-3-Ratsche', () => {
 
 // Erstmessung nach dem Bau der Welle-3-Einträge. Gemessen, nicht gewünscht.
 const MIN_MUSTER = 1;
-const MIN_VARIANTE = 0.8;
+// Gemessen 1.0 — und hier steht der GEMESSENE Stand, nicht ein bequemer
+// darunter. Die Schwelle lag bis zur Konsolidierungs-Prüfung auf 0.8: Zwanzig
+// Prozentpunkte Verfall wären grün durchgegangen, während der PR-Text „100 %"
+// behauptet. Eine Ratsche, die unter ihrem Stand steht, misst nichts.
+const MIN_VARIANTE = 1;
 const MAX_FALSCH = 0;

@@ -31,6 +31,7 @@ import EtoroTabPanels from './tabs/EtoroTabPanels';
 import TradingPositionsTab from './tabs/TradingPositionsTab';
 import TradingPerformanceTab from './tabs/TradingPerformanceTab';
 import TradingPortfoliosTab from './tabs/TradingPortfoliosTab';
+import PortfolioCashflowsCard from './PortfolioCashflowsCard';
 import EtoroConnectDialog from './dialogs/EtoroConnectDialog';
 import AddPositionDialog from './dialogs/AddPositionDialog';
 import OcrImportDialog from './dialogs/OcrImportDialog';
@@ -141,6 +142,15 @@ export default function TradingDashboard() {
               onRetry: () => etoro.refetchBalancesHistory(),
               series: etoro.performanceSeries,
             }}
+          />
+
+          {/* Der ERZEUGER des Zahlungsstroms (Welle 4, Nachtrag): Ohne ihn war
+              die geldgewichtete Rendite gebaut und unerreichbar, weil sich
+              keine Einzahlung erfassen liess. Er steht im Performance-Tab,
+              weil die Rendite eine Performance-Frage ist. */}
+          <PortfolioCashflowsCard
+            portfolioId={portfolio.activePortfolio?.id}
+            marktwert={portfolio.summary?.total_value ?? 0}
           />
         </TabsContent>
 
