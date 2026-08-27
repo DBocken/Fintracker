@@ -24,6 +24,27 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Wohnung, Auto und Sachwerte zählen jetzt zum Vermögen.** Unter „Konten"
+  lassen sie sich mit Wert und Schätzdatum erfassen — bisher fehlte den
+  meisten Menschen damit der größte Posten. Wird eine Schätzung älter als ein
+  Jahr, sagt die App das, statt sie als heutigen Wert auszugeben.
+
+- **„Wie hat sich mein Vermögen entwickelt?" ist beantwortbar.** Die App legt
+  ab sofort je Monat einen Stand ab und nennt Anfang, Ende und Veränderung.
+  Ehrlich mit ihrer Grenze: Die Aufzeichnung beginnt jetzt, rückwirkend lässt
+  sie sich nicht erfinden — für Depots und Sachwerte gibt es keine
+  historischen Werte, und eine halb geratene Kurve sähe aus wie eine echte.
+
+- **Echte Depot-Rendite statt Positionsbewertung.** Wer seine Ein- und
+  Auszahlungen erfasst, bekommt die geldgewichtete Rendite: Sie beantwortet
+  „was hat mein Geld gebracht" und berücksichtigt, WANN wie viel drinsteckte.
+  Ohne Zahlungen sagt der Chat, dass es beim Positionsstand bleibt.
+
+- **„Wie viel muss ich monatlich für die Jahresrechnungen zurücklegen?"**
+  Versicherungen, Beiträge und andere Posten, die seltener als monatlich
+  kommen, verteilt der Chat auf Monate. Laufende Kosten zählen nicht mit — wer
+  sie mitnähme, legte dieselbe Zahl zweimal zurück.
+
 - **Der Chat kann jetzt auch kategorisieren, Anlässe anlegen und Überträge
   markieren.** „Ordne die Rewe-Buchungen Lebensmitteln zu", „Merk dir, Rewe
   ist immer Lebensmittel", „Leg einen Anlass Urlaub Italien an", „Markiere die
@@ -220,6 +241,15 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Antwort, „0,00 €" wo „keine Buchung" gemeint war.
 
 ### Intern
+
+- **Welle 4 des Frage-Programms hat eine Datengrundlage NICHT gebaut.** Der
+  Aufriss (#333) verlangte ein eigenes Sparziel-Modell für die Rücklage auf
+  Jahresrechnungen. Nachgemessen war die Frage aus dem Bestand rechenbar: Die
+  Vertragsableitung kennt die Zyklen längst. Gebaut wurden die drei
+  Grundlagen, die wirklich fehlten — manuelle Vermögenswerte, Depot-
+  Zahlungsstrom, Vermögens-Zeitreihe. Die beiden offenen Entscheidungen des
+  Aufrisses sind getroffen und begründet: Fortschreibung statt Rückrechnung,
+  geldgewichtete statt zeitgewichteter Rendite.
 
 - **18 Trainingssätze des Frage-Routers standen wortgleich in seinen eigenen
   Testkorpora.** Die Regel „wer auf dem Test trainiert, misst Auswendiglernen"

@@ -1809,7 +1809,6 @@ export const en = {
     discrepancyWarning: 'Discrepancies with the banking app usually occur due to pending or pre-booked transactions.',
     manageAccounts: 'Manage accounts',
     investments: 'Investments',
-    manualAssets: 'Home, car and valuables',
     portfolio: 'Portfolio',
     portfolioDesc: 'Current market value of all portfolio positions.',
     portfolioDetailedDescription: 'Sum of the current market value of all positions per portfolio (quantity × last known price).',
@@ -4454,6 +4453,7 @@ export const en = {
     vermoegen: {
       cash: 'Cash and accounts',
       investments: 'Portfolios',
+      manualAssets: 'Home, car and valuables',
       receivables: 'Lent out',
       debts: 'Debts',
     },

@@ -227,6 +227,29 @@ Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
 beantwortet), nicht die Funktion, die zufällig heute als einzige die
 Bedingung erfüllt.
 
+**Eine neue Datengrundlage wird erst gebaut, wenn die Frage sie WIRKLICH
+braucht.** Welle 4 sollte laut Aufriss vier Grundlagen bauen; eine davon war
+keine. „Wie viel muss ich monatlich für die Jahresrechnungen zurücklegen?"
+liess sich aus dem Bestand rechnen — die Vertragsableitung kennt
+`Vierteljährlich`, `Halbjährlich`, `Jährlich`, und `yearlyEquivalent` rechnet
+sie um. Ein zweites Sparziel-Modell neben `SinkingFund` wäre genau der
+Doppelbestand, gegen den dieses Programm viermal reine Funktionen aus
+Diensten gezogen hat. Die Prüfreihenfolge ist dieselbe wie bei den Ebenen:
+erst rechnen, dann schliessen, und ein neues Datenmodell zuletzt.
+
+**Ein manuell gepflegter Wert braucht seinen Stichtag.** Eine drei Jahre alte
+Fahrzeugschätzung als heutigen Wert auszugeben ist dieselbe stille
+Falschaussage wie ein Kontostand ohne Anker. Wo ein Mensch eine Zahl schätzt,
+gehört das Datum der Schätzung zur Zahl — und die Fläche sagt, wenn sie alt
+ist.
+
+**Eine Kennzahl folgt der gewohnten Konvention, nicht der genaueren.** Der
+interne Zinsfuß rechnet mit 365 Tagen wie XIRR in Tabellenkalkulationen; mit
+365,25 ergäbe eine Verdopplung über ein Kalenderjahr 100,09 % statt 100 %.
+Beides ist vertretbar, aber eine Zahl, die um Zehntelprozent von der
+abweicht, die der Nutzer anderswo sieht, kostet mehr Vertrauen, als die
+Genauigkeit wert ist.
+
 **Eine Disjunktheits-Regel gilt für die Korpora, die sie LIEST.** Der Grundsatz
 „wer auf dem Test trainiert, misst Auswendiglernen" stand seit WP-F als Test —
 er verglich die Paraphrasen aber nur mit dem 243er-Bestandskorpus, obwohl es

@@ -72,6 +72,7 @@ lädt sie und prüft **genau diese** auf Lade- und Fehlerzustand.
 | `netWorth` | `getNetWorthBreakdown()` | Welle 2 |
 | `taxReserve` | Rücklage des laufenden Jahres | Welle 2 |
 | `merchantRules` | Gelernte Händlerregeln — nur zum ERKLÄREN | Welle 3 |
+| `netWorthHistory` | Fortgeschriebene Vermögens-Zeitreihe | Welle 4 |
 
 Drei Regeln dazu:
 

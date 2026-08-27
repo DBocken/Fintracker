@@ -278,6 +278,15 @@ describe('Abfrage-Register: Katalog', () => {
         // (`t(antwort.deepLinkLabelKey)`) und stünde sonst als roher
         // Punkt-String auf dem Bildschirm.
         ...(antwort.deepLinkLabelKey ? [antwort.deepLinkLabelKey] : []),
+        // Und die Rubriken einer Listen-Antwort. Sie waren hier NICHT
+        // geprüft, und genau das ist im Browser aufgeschlagen: Die neue
+        // Vermögens-Rubrik der Welle 4 landete beim Einsetzen im falschen
+        // Sprachbaum-Block, und auf dem Bildschirm stand
+        // `financeQuestions.vermoegen.manualAssets`. Ein `labelKey` ist ein
+        // DATENFELD, kein `t()`-Aufruf — die Aufrufstellen-Ratsche kann ihn
+        // strukturell nicht sehen, und diese Prüfung sah ihn bis hierher
+        // auch nicht.
+        ...(antwort.posten ?? []).flatMap((p) => (p.labelKey ? [p.labelKey] : [])),
       ];
       for (const locale of SUPPORTED_LOCALES) {
         for (const key of keys) {

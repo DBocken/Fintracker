@@ -1810,7 +1810,6 @@ export const de = {
     discrepancyWarning: 'Abweichungen zur Banking-App entstehen meist durch noch nicht abgerufene oder vorgemerkte Buchungen.',
     manageAccounts: 'Konten verwalten',
     investments: 'Investitionen',
-    manualAssets: 'Wohnung, Auto und Sachwerte',
     portfolio: 'Portfolio',
     portfolioDesc: 'Aktueller Marktwert aller Portfolio-Positionen.',
     portfolioDetailedDescription: 'Summe des aktuellen Marktwerts aller Positionen je Portfolio (Stückzahl × letzter bekannter Kurs).',
@@ -4466,6 +4465,7 @@ export const de = {
     vermoegen: {
       cash: 'Bar und Konten',
       investments: 'Depots',
+      manualAssets: 'Wohnung, Auto und Sachwerte',
       receivables: 'Ausgeliehen',
       debts: 'Schulden',
     },
