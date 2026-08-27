@@ -19,14 +19,11 @@
  * liegt nur, was für alle gilt.
  */
 
+import { normalisiereFrage } from '@/lib/text-normalisierung';
+
 /** Dieselbe Faltung wie Matcher und Szenario-Grammatik. */
 export function normalisiereAktion(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss');
+  return normalisiereFrage(text);
 }
 
 /**

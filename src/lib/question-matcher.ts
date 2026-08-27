@@ -29,6 +29,7 @@
  * Zahlen.
  */
 import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
+import { normalisiereFrage } from '@/lib/text-normalisierung';
 import { fehlendeSlots, istAktionsEintrag } from '@/lib/question-registry';
 import {
   erkenneVergleichsBezug,
@@ -211,12 +212,7 @@ export function zerlegeAusloeser(text: string): string[] {
 
 /** Kleinschreibung plus Umlaut-Faltung, damit „Bäckerei" auch „baeckerei" trifft. */
 function normalisiere(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss');
+  return normalisiereFrage(text);
 }
 
 /**

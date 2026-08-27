@@ -123,7 +123,14 @@ describe('Welle-3-Ratsche', () => {
   });
 
   it('[REGRESSION] die Mustersätze des Auftrags dürfen nur besser werden', () => {
-    expect(quote('muster')).toBeGreaterThanOrEqual(MIN_MUSTER);
+    // Beim Fallen NENNT die Ratsche die Zeile. Eine Quote allein sagt „97 %"
+    // und lässt den nächsten Leser suchen; die Zeile sagt, WAS der Router
+    // nicht mehr trifft — und ob das eine Regression oder eine ehrlichere
+    // Messung ist.
+    const gefallen = ausgaenge
+      .filter((x) => x.art === 'muster' && x.ausgang !== 'richtig' && x.ausgang !== 'sicher')
+      .map((x) => `${x.frage} -> ${x.familie} (${x.ausgang})`);
+    expect(quote('muster'), gefallen.join(' | ')).toBeGreaterThanOrEqual(MIN_MUSTER);
   });
 
   it('[REGRESSION] die getippten Varianten dürfen nur besser werden', () => {

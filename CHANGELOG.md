@@ -175,6 +175,12 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   oder EÜR-Zeilen gezählt waren. Er erscheint jetzt nur noch dort, wo der Link
   wirklich auf genau diese Buchungen zeigt.
 
+- **„Wieviel geld habe ich" blieb unbeantwortet, „wie viel geld habe ich"
+  nicht.** Der Unterschied war ein Leerzeichen. „wieviel" ist bis zur
+  Rechtschreibreform die Regelform gewesen und heute noch verbreitet — wer so
+  tippt, meint nichts anderes. Der Chat liest die Zusammenschreibung jetzt wie
+  die getrennte Form, und zwar auf allen Erkennungsstufen.
+
 - **„Wie viel Geld habe ich auf meinen Konten?" fragte zurück, welches Konto
   gemeint sei.** Der Plural beantwortet das bereits.
 
@@ -214,6 +220,21 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   Antwort, „0,00 €" wo „keine Buchung" gemeint war.
 
 ### Intern
+
+- **18 Trainingssätze des Frage-Routers standen wortgleich in seinen eigenen
+  Testkorpora.** Die Regel „wer auf dem Test trainiert, misst Auswendiglernen"
+  gab es seit dem ersten Router-Ausbau, sie verglich aber nur mit dem
+  Bestandskorpus — die vier Wellen-Korpora kamen später dazu und blieben
+  ungeprüft. An diesen Zeilen maßen die Ratschen Wiedererkennung statt
+  Erkennung. Alle 18 sind umformuliert; nachgemessen trug der Router 17 davon
+  auch ohne Vorlage, die eine verbliebene ist jetzt über die Wortebene
+  getragen statt über ein knappes Modellurteil. Die Prüfung liest ab sofort
+  alle fünf Korpora, und eine fallende Ratsche nennt die betroffene Frage.
+
+- **Die vier Normalisierungen des Routers waren wortgleiche Kopien.** Solange
+  sie nur Umlaute falteten, war das folgenlos; der erste Zusatz wäre an einer
+  Stelle gelandet und an drei nicht — dann sähe die Wortebene eine andere
+  Frage als der Klassifikator. Sie liegen jetzt in einer Datei.
 
 - **Die tragende Register-Zusicherung sah 15 von 61 Einträgen gar nicht.** Der
   Katalog-Test prüft, dass genannte Zahl und verlinkte Liste dieselbe Menge

@@ -4,6 +4,10 @@ import { questionCatalog } from '../question-catalog';
 import { LUECKE_KLASSE } from '@/lib/question-intent-model';
 import { istAktionsEintrag } from '@/lib/question-registry';
 import { EVAL_KORPUS } from './question-eval-corpus';
+import { WELLE1_KORPUS } from './wave1-corpus';
+import { WELLE2_KORPUS } from './wave2-corpus';
+import { WELLE3_KORPUS } from './wave3-corpus';
+import { WELLE5_KORPUS } from './wave5-corpus';
 
 /**
  * Kurations-Wächter des Paraphrasen-Korpus. Die zwei Regeln aus dem Kopf von
@@ -51,10 +55,24 @@ describe('Paraphrasen-Korpus', () => {
     }
   });
 
-  it('[REGRESSION] sollte KEINEN Satz aus dem Eval-Korpus enthalten', () => {
+  it('[REGRESSION] sollte KEINEN Satz aus einem der fünf Korpora enthalten', () => {
     // Der Korpus ist der TEST der Stufe 2. Wer auf dem Test trainiert, misst
     // Auswendiglernen statt Verstehen — die Ratsche wäre ab dann bedeutungslos.
-    const verboten = new Set(EVAL_KORPUS.map((z) => z.frage.toLowerCase().replace(/[^a-zäöüß0-9]+/g, ' ').trim()));
+    //
+    // Bis hierher prüfte die Regel NUR den 243er-Bestandskorpus, obwohl es
+    // seit Welle 1 fünf gibt: Eine Paraphrase, die eine Welle-1-Musterzeile
+    // wortgleich abschreibt, wäre unbemerkt durchgegangen — und genau das ist
+    // beim Nachschärfen dieser Familie beinahe passiert. Dieselbe Klasse
+    // Fehler wie die Katalog-Fixture, die die neuen Datenkanäle nicht füllte:
+    // Eine Regel gilt für das, was sie liest, nicht für das, was sie meint.
+    const alleKorpora = [
+      ...EVAL_KORPUS.map((z) => z.frage),
+      ...WELLE1_KORPUS.map((z) => z.frage),
+      ...WELLE2_KORPUS.map((z) => z.frage),
+      ...WELLE3_KORPUS.map((z) => z.frage),
+      ...WELLE5_KORPUS.map((z) => z.frage),
+    ];
+    const verboten = new Set(alleKorpora.map((f) => f.toLowerCase().replace(/[^a-zäöüß0-9]+/g, ' ').trim()));
     for (const locale of Object.keys(MINDESTZAHL)) {
       for (const texte of Object.values(paraphrasenFuer(locale))) {
         for (const text of texte) {

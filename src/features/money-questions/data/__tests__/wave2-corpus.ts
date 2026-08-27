@@ -34,6 +34,10 @@ export const WELLE2_KORPUS: readonly WelleZeile[] = [
   // entschieden. Bis dahin gewann der Auslöser „geld habe ich auf".
   m('Wie viel Geld habe ich auf meinen Konten?', 'konto.gesamt'),
   v('was liegt auf den konten', 'konto.gesamt'),
+  // Browser-Fund am Prod-Build: Die Zusammenschreibung „wieviel" fiel durch,
+  // die getrennte Form traf. Der Unterschied war ein Leerzeichen.
+  v('wieviel geld habe ich', 'konto.gesamt'),
+  v('wieviel geld hab ich', 'konto.gesamt'),
 
   // ── Frei verfügbar bis zum Gehalt ───────────────────────────────────────
   m('Wie viel Geld bleibt mir bis zum nächsten Gehalt?', 'verfuegbar.bisGehalt'),

@@ -282,6 +282,16 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel kostet mich wasser im monat',
     'was kostet mich kleidung pro monat',
     'wie viel kostet mich sport im monat so',
+    // Die Kostenfrage mit nackter Monatsangabe trug bisher nur eine hauchdünne
+    // Modellmarge — dieselbe Bauform („kostet mich X im Monat") ist die
+    // Beispielfrage der ganzen Welle 1. Zwei weitere Bezugsgrößen und die
+    // Zahlform daneben geben ihr die Trennschärfe, die sie verdient. Ein
+    // Auslöser „im Monat" wäre der naheliegende Griff gewesen und ist
+    // gemessen gescheitert: „Was habe ich im Monat August ausgegeben?" trägt
+    // denselben Wortlaut und meint einen Zeitraum.
+    'wie viel kostet mich die heizung im monat',
+    'was zahle ich fuer strom im monat',
+    'wie teuer ist mich mobilfunk im monat',
   ],
   'ausgaben.anteil': [
     'wie gross ist der anteil davon an allem',
@@ -427,7 +437,10 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie hoch ist das guthaben auf dem konto',
   ],
   'konto.gesamt': [
-    'wie viel geld habe ich insgesamt',
+    // Stand hier bis zur Disjunktheits-Ausweitung WORTGLEICH wie die
+    // Welle-2-Musterzeile — die Ratsche maß an dieser Stelle also
+    // Wiedererkennung statt Erkennung. Ersetzt durch eine echte Variante.
+    'wie viel geld habe ich unterm strich',
     'was liegt auf allen konten zusammen',
     'wie viel besitze ich an bargeld und guthaben',
     'summe über alle meine konten',
@@ -437,7 +450,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel ist auf meinen konten zusammengerechnet',
   ],
   'depot.wert': [
-    'wie viel ist mein depot wert',
+    'was steht aktuell im depot drin',
     'was steckt insgesamt in meinen aktien',
     'wert meiner wertpapiere',
     'wie viel geld liegt im portfolio',
@@ -470,7 +483,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
   ],
   'vermoegen.gesamt': [
     'wie viel bin ich wert',
-    'wie hoch ist mein nettovermögen',
+    'was bleibt mir nach abzug aller schulden',
     'was habe ich unterm strich',
     'wie viel vermögen habe ich',
     'was bleibt nach abzug der schulden',
@@ -479,9 +492,9 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viel besitze ich netto',
   ],
   'vermoegen.aufteilung': [
-    'woraus besteht mein vermögen',
-    'wie setzt sich mein vermögen zusammen',
-    'wie ist mein vermögen aufgeteilt',
+    'aus welchen bausteinen besteht mein besitz',
+    'welche posten stecken in meinem besitz',
+    'wie verteilt sich mein besitz auf die posten',
     'wie viel davon ist bar und wie viel angelegt',
     'zusammensetzung meines besitzes',
     'aufteilung zwischen konten und depots',
@@ -501,7 +514,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
   'anlass.liste': [
     'welche anlässe habe ich',
     'zeig mir meine ereignisse',
-    'welcher anlass war am teuersten',
+    'welches ereignis hat mich am meisten gekostet',
     'übersicht über meine projekte',
     'was für events habe ich angelegt',
     'meine anlässe mit kosten',
@@ -520,7 +533,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
   ],
   'transfer.kandidaten': [
     'habe ich umbuchungen die nicht erkannt sind',
-    'gibt es überträge zwischen meinen konten',
+    'sind da umbuchungen zwischen meinen eigenen konten',
     'welche buchungen sind eigentlich eigenüberträge',
     'unerkannte umbuchungen finden',
     'zeig mir mögliche interne überweisungen',
@@ -529,7 +542,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'suche nach nicht verknüpften umbuchungen',
   ],
   'steuer.gewinn': [
-    'wie viel gewinn habe ich dieses jahr gemacht',
+    'was ist dieses jahr an überschuss übrig geblieben',
     'was bleibt nach abzug der betriebsausgaben',
     'mein überschuss aus der selbständigkeit',
     'wie viel habe ich als selbständiger verdient',
@@ -539,8 +552,8 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie hoch ist mein betrieblicher gewinn',
   ],
   'steuer.ruecklage': [
-    'wie viel muss ich für steuern zurücklegen',
-    'reicht meine steuerrücklage',
+    'welchen betrag lege ich fürs finanzamt beiseite',
+    'komme ich mit dem beiseitegelegten fürs finanzamt hin',
     'was fehlt noch für das finanzamt',
     'habe ich genug für die steuer beiseite',
     'wie viel sollte ich fürs finanzamt sparen',
@@ -550,7 +563,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
   ],
   'ziel.obergrenze': [
     'wie teuer darf mein urlaub höchstens werden',
-    'was darf ich maximal ausgeben ohne ins minus zu rutschen',
+    'welche obergrenze hält mein puffer gerade noch aus',
     'wie hoch darf die anschaffung sein damit der puffer hält',
     'obergrenze für meine nächste größere ausgabe',
     'bis zu welchem betrag komme ich noch klar',
@@ -569,7 +582,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie hoch müsste meine sparrate sein',
   ],
   'liquiditaet.reichweite': [
-    'wie lange reicht mein geld noch',
+    'für wie viele monate trägt mein guthaben',
     'wie viele monate komme ich damit hin',
     'wie lange halte ich mit dem guthaben durch',
     'reicht mein erspartes für ein halbes jahr',
@@ -577,9 +590,11 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viele monate polster habe ich',
     'wie weit komme ich mit dem was da ist',
     'wie lange trägt mein guthaben',
+    'wie lange reicht das geld denn noch',
+    'wie lange komme ich mit dem geld hin',
   ],
   'abbuchung.naechste': [
-    'was wird demnächst abgebucht',
+    'welche lastschriften stehen als nächstes an',
     'welche abbuchungen kommen noch',
     'was geht in den nächsten wochen vom konto',
     'zeig mir die nächsten fälligkeiten',
@@ -589,8 +604,8 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'was zieht mir demnächst jemand ab',
   ],
   'abbuchung.letzte': [
-    'wann war ich zuletzt bei rewe',
-    'wann habe ich zuletzt bei aldi eingekauft',
+    'wann habe ich dort das letzte mal etwas gekauft',
+    'wann lag mein letzter einkauf dort',
     'letzter einkauf bei dm',
     'wann das letzte mal bei lidl',
     'wann habe ich netflix zuletzt bezahlt',
@@ -599,7 +614,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wann war mein letzter besuch bei edeka',
   ],
   'einkommen.arten': [
-    'woher kommt mein geld',
+    'aus welchen quellen speisen sich meine einnahmen',
     'welche einnahmen habe ich überhaupt',
     'woraus besteht mein einkommen',
     'welche einnahmequellen habe ich',
@@ -609,7 +624,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'welche arten von einkommen habe ich',
   ],
   'schulden.dauer': [
-    'wie lange zahle ich noch an meinen schulden',
+    'wann bin ich mit dem abbezahlen durch',
     'wann bin ich endlich schuldenfrei',
     'wie viele monate brauche ich noch zum abbezahlen',
     'wann habe ich alles zurückgezahlt',
@@ -619,7 +634,7 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie viele jahre zahle ich noch ab',
   ],
   'schulden.zinsen': [
-    'wie viel zinsen zahle ich insgesamt',
+    'was kosten mich die zinsen über die ganze laufzeit',
     'was kosten mich meine schulden an zinsen',
     'wie hoch ist meine zinslast bis zum schluss',
     'wie viel geht für zinsen drauf',

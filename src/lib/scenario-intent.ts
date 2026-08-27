@@ -31,6 +31,7 @@
  * `category-concepts.ts`).
  */
 import { findeKonzeptImText } from './category-concepts';
+import { normalisiereFrage } from '@/lib/text-normalisierung';
 
 /** Eine erkannte Veränderung gegenüber dem Ist-Zustand. */
 export type SzenarioDelta =
@@ -101,12 +102,7 @@ export interface ZukunftTreffer {
 
 /** Dieselbe Faltung wie im Matcher — beide sehen denselben Text. */
 function normalisiere(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss');
+  return normalisiereFrage(text);
 }
 
 /**

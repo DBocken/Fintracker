@@ -227,6 +227,23 @@ Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
 beantwortet), nicht die Funktion, die zufällig heute als einzige die
 Bedingung erfüllt.
 
+**Eine Disjunktheits-Regel gilt für die Korpora, die sie LIEST.** Der Grundsatz
+„wer auf dem Test trainiert, misst Auswendiglernen" stand seit WP-F als Test —
+er verglich die Paraphrasen aber nur mit dem 243er-Bestandskorpus, obwohl es
+seit Welle 1 fünf gibt. Nachgemessen standen **18 Paraphrasen wortgleich in den
+Wellen-2/3-Korpora**: An diesen Zeilen maßen die Ratschen Wiedererkennung. Nach
+der Bereinigung fiel genau eine Musterzeile — die übrigen 17 trug der Router
+auch ohne Vorlage, und die eine ist inzwischen deterministisch getragen. Die
+Prüfung liest jetzt alle fünf Korpora; wer einen sechsten anlegt, nimmt ihn
+dort auf.
+
+**Eine Ratsche, die fällt, NENNT die Zeile.** „97 %" schickt den nächsten Leser
+auf die Suche und lässt offen, ob eine Regression vorliegt oder bloß eine
+ehrlichere Messung. Die vier Wellen-Ratschen geben die gefallene Frage samt
+Zielfamilie in der Fehlermeldung aus — das kostet vier Zeilen und hat in
+derselben Sitzung zweimal die Ursache in Minuten statt in Stunden sichtbar
+gemacht.
+
 **Eine Invariante prüft nur, was die Fixture füllt.** Das Abfrage-Register hat
 eine tragende Zusicherung — genannte Zahl und verlinkte Liste zeigen dieselbe
 Menge — und einen generischen Test darüber. Als Welle 2 fünf neue Datenkanäle

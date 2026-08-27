@@ -27,6 +27,8 @@
  * Slots validiert der deterministische Matcher, `antwort()` inferiert nie.
  */
 
+import { normalisiereFrage } from '@/lib/text-normalisierung';
+
 /** Klassenname für „das kann keine Funktion seriös beantworten". */
 export const LUECKE_KLASSE = '__luecke__';
 
@@ -56,12 +58,7 @@ export interface IntentPrediction {
 }
 
 function normalisiere(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss');
+  return normalisiereFrage(text);
 }
 
 /**

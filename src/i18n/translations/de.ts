@@ -4504,7 +4504,7 @@ export const de = {
       vermoegen: 'vermögen, nettovermögen, wie reich, was bin ich wert, mein besitz',
       vermoegenAufteilung: 'woraus besteht, setzt sich, aufgeteilt, aufteilung, zusammensetzung, verteilt sich',
       saldoJetzt: 'guthaben, saldo, auf meinem konto, auf dem konto, geld habe ich auf',
-      geldGesamt: 'insgesamt geld, geld besitze ich, auf allen konten, gesamtguthaben, auf meinen konten, auf den konten',
+      geldGesamt: 'insgesamt geld, geld habe ich insgesamt, geld hab ich insgesamt, geld besitze ich, auf allen konten, gesamtguthaben, auf meinen konten, auf den konten',
       freiVerfuegbar: 'frei verfügbar, kann ich noch ausgeben, kann ich ausgeben, bleibt mir bis, bis zum gehalt übrig',
       uebrig: 'übrig, noch ausgeben, restbudget, budget für',
       taeglich: 'täglich, pro tag, tagesbudget, wochenende',
