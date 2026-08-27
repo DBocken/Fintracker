@@ -59,10 +59,13 @@ export const WELLE3_KORPUS: readonly WelleZeile[] = [
   m('Warum ist die Buchung bei Rewe in Lebensmittel?', 'kategorie.begruendung'),
   v('wieso wurde aldi so einsortiert', 'kategorie.begruendung'),
 
+  // Welle 4 hat diese Lücke GESCHLOSSEN — und zwar ohne das Sparziel-
+  // Datenmodell, das #333 dafür vorsah: Die Vertragsableitung kennt die
+  // Zyklen, `jahresRuecklage` verteilt sie auf Monate. Der Prüfpunkt bleibt
+  // derselbe, nur andersherum: Die Frage nennt keinen Zielbetrag, also darf
+  // sie auch jetzt nicht bei `ziel.sparrate` landen.
+  m('Wie viel sollte ich monatlich zurücklegen, damit jährliche Rechnungen mich nicht überraschen?', 'ruecklage.jahresrechnungen'),
+
   // ── Benannte Grenzen ────────────────────────────────────────────────────
-  // Der Sinking Fund kommt erst mit Welle 4; bis dahin darf keine
-  // Sparraten-Familie danach greifen — sie fragte nach einem Zielbetrag, den
-  // der Fragende gar nicht hat. Gemessen statt behauptet.
-  m('Wie viel sollte ich monatlich zurücklegen, damit jährliche Rechnungen mich nicht überraschen?', 'luecke'),
   m('Was kostet mich mein Auto pro Fahrt?', 'luecke'),
 ];

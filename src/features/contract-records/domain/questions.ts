@@ -13,6 +13,7 @@ import { computeContracts, yearlyEquivalent, monthlyEquivalent } from '@/lib/con
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getUpcomingCharges } from '@/lib/upcoming-charges';
 import { buildRecurringFlows } from '@/lib/forecast-flows';
+import { jahresRuecklage } from '@/lib/annual-reserve';
 
 const vertragJahreskosten: QuestionEntry = {
   id: 'vertrag.jahreskosten',
@@ -339,7 +340,61 @@ const abbuchungNaechste: QuestionEntry = {
   },
 };
 
+/**
+ * „Wie viel muss ich monatlich für die Jahresrechnungen zurücklegen?" (Welle 4).
+ *
+ * Die Frage stand in ZWEI Korpora als Lücke, und in Welle 3 musste der
+ * Auslöser von `ziel.sparrate` eigens verengt werden, damit er nicht danach
+ * griff — er hätte nach einem Zielbetrag gefragt, den der Fragende gar nicht
+ * hat. Genau das ist der Unterschied: Bei der Zielrückrechnung NENNT jemand
+ * einen Betrag, hier ergibt er sich aus dem Bestand.
+ *
+ * #333 verlangte dafür ein neues Sparziel-Datenmodell. Gebraucht wird keines:
+ * Die Vertragsableitung kennt die Zyklen, `jahresRuecklage` verteilt sie auf
+ * Monate. Ein eigenes Ziel bleibt für Vorhaben sinnvoll, die in keiner
+ * Buchung stehen — dafür gibt es `SinkingFund`.
+ */
+const ruecklageJahresrechnungen: QuestionEntry = {
+  id: 'ruecklage.jahresrechnungen',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.ruecklageJahr'],
+  verstaerker: ['financeQuestions.trigger.abos'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const ruecklage = jahresRuecklage(aktiveVertraege(daten));
+
+    if (ruecklage.posten.length === 0) {
+      return {
+        ...KEINE_VERTRAEGE,
+        aussage: { key: 'financeQuestions.answer.ruecklageKeine', params: {} },
+      };
+    }
+
+    return {
+      art: 'liste',
+      wert: ruecklage.monatlich,
+      anzahl: ruecklage.posten.length,
+      // Die Zeilen tragen den ANTEIL an der Monatsrücklage, nicht den
+      // Rechnungsbetrag: Wer 1.200 € im Jahr zahlt, legt 100 € im Monat
+      // zurück, und danach ist gefragt.
+      posten: ruecklage.posten.map((p) => ({ label: p.name, betrag: p.monatlich })),
+      aussage: {
+        key: 'financeQuestions.answer.ruecklageJahr',
+        params: { anzahl: ruecklage.posten.length },
+      },
+      begruendung: [
+        { key: 'financeQuestions.reason.ruecklageProJahr', params: { betrag: ruecklage.proJahr } },
+      ],
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContracts',
+    };
+  },
+};
+
 export const questions: readonly QuestionEntry[] = [
+  ruecklageJahresrechnungen,
   vertragJahreskosten,
   abosListe,
   abosSumme,

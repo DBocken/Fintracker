@@ -332,6 +332,16 @@ export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
     'how far do i get with what is there',
     'how long does my balance carry me',
   ],
+  'ruecklage.jahresrechnungen': [
+    'what should i put aside each month for the big bills',
+    'how much do i need monthly for the rare items',
+    'monthly reserve for insurance and memberships',
+    'what should i park so the car bill is covered',
+    'how much per month for the items due once a year',
+    'what amount should i hold back for irregular costs',
+    'how much monthly for the large items that come rarely',
+    'what needs setting aside so annual fees do not hit me',
+  ],
   'abbuchung.naechste': [
     'what will be debited soon',
     'which debits are still coming',

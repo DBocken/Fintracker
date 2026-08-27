@@ -593,6 +593,16 @@ export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
     'wie lange reicht das geld denn noch',
     'wie lange komme ich mit dem geld hin',
   ],
+  'ruecklage.jahresrechnungen': [
+    'was muss ich im monat beiseitelegen fuer die grossen rechnungen',
+    'wie viel brauche ich monatlich fuer die seltenen posten',
+    'monatliche ruecklage fuer versicherungen und beitraege',
+    'was lege ich am besten weg damit die kfz rechnung passt',
+    'wie viel pro monat sparen fuer die einmal im jahr faelligen posten',
+    'welchen betrag sollte ich monatlich fuer unregelmaessige kosten parken',
+    'wie viel monatlich fuer die grossen posten die nur selten kommen',
+    'was muss weg damit mich die jaehrlichen beitraege nicht treffen',
+  ],
   'abbuchung.naechste': [
     'welche lastschriften stehen als nächstes an',
     'welche abbuchungen kommen noch',

@@ -178,12 +178,12 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Welche wiederkehrenden Zahlungen haben sich möglicherweise verändert, ohne dass ich es bemerkt habe?', 'vertraege.teurer'),
   z('Wie viel meines Einkommens gebe ich durchschnittlich für notwendige und wie viel für freiwillige Ausgaben aus?', 'luecke'),
   z('Wie hoch ist meine tatsächliche Sparquote nach Berücksichtigung unregelmäßiger Jahreskosten?', 'luecke'),
-  // BLEIBT Lücke — und das ist der Prüfpunkt: Hier ist kein Zielbetrag
+  // Seit Welle 4 beantwortet — der Prüfpunkt bleibt: Hier ist KEIN Zielbetrag
   // genannt, weil die Frage nach einer laufenden Rücklage für WIEDERKEHRENDE
-  // Jahresrechnungen sucht (Sinking Fund, Welle 4). `ziel.sparrate` griff
-  // danach, bis sein Auslöser enger wurde — es hätte nach einem Betrag
-  // gefragt, den der Fragende gar nicht hat.
-  z('Wie viel sollte ich monatlich zurücklegen, damit jährliche Versicherungen und andere einmalige Rechnungen mich nicht überraschen?', 'luecke'),
+  // Jahresrechnungen sucht. `ziel.sparrate` griff danach, bis sein Auslöser
+  // enger wurde; es hätte nach einem Betrag gefragt, den der Fragende gar
+  // nicht hat.
+  z('Wie viel sollte ich monatlich zurücklegen, damit jährliche Versicherungen und andere einmalige Rechnungen mich nicht überraschen?', 'ruecklage.jahresrechnungen'),
   z('Welche Ausgaben müsste ich reduzieren, um meine Sparrate um 300 Euro pro Monat zu erhöhen?', 'luecke'),
   z('Kann ich mein Freizeitbudget erhöhen, wenn ich gleichzeitig mein Restaurantbudget reduziere?', 'luecke'),
   z('Wie viel kann ich dieses Wochenende ausgeben, wenn mein Budget trotzdem bis zum Monatsende reichen soll?', 'budget.tagesrate'),
