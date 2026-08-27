@@ -166,10 +166,18 @@ export function ManualAssetsSection() {
 
               <div className="space-y-1">
                 <Label htmlFor="manual-asset-kind">{t('manualAssets.kindLabel')}</Label>
-                <TypedSelect<ManualAssetKind>
+                {/* OHNE ausgeschriebenen Typ-Parameter (`<TypedSelect<Art>`):
+                    Der Dev-Server hängt jedem JSX-Tag Attribute an
+                    (`@dyad-sh/react-vite-component-tagger`) und setzt sie VOR
+                    den Parameter — daraus wird `<TypedSelect data-…="…"<Art>`,
+                    und der Parser bricht ab. Im Produktions-Build fällt das
+                    nicht auf, weil das Plugin dort nicht läuft; die E2E-Suite
+                    fährt gegen den Dev-Server und hat es gefunden. `T` leitet
+                    sich ohnehin aus `value` und `options` ab. */}
+                <TypedSelect
                   id="manual-asset-kind"
                   value={entwurf.kind}
-                  onValueChange={(kind) => model.entwurfAendern({ kind })}
+                  onValueChange={(kind: ManualAssetKind) => model.entwurfAendern({ kind })}
                   aria-label={t('manualAssets.kindLabel')}
                   options={ARTEN.map((art) => ({
                     value: art,
