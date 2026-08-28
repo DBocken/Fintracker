@@ -13,11 +13,54 @@
  * richtige Antwort, nicht der Umzug einer Service-Funktion.
  */
 import { format } from 'date-fns';
-import type { QuestionAnswer, QuestionEntry } from '@/lib/question-registry';
+import type {
+  QuestionAnswer,
+  QuestionData,
+  QuestionEntry,
+  QuestionSlots,
+} from '@/lib/question-registry';
 import { computeBudgetStatus } from '@/lib/budget-logic';
+import type { Budget } from '@/lib/budget-types';
 
 function monatsschluessel(jetzt: Date): string {
   return format(jetzt, 'yyyy-MM');
+}
+
+/**
+ * Die Budgets, die zu den gefragten Kategorien gehören — über die
+ * HAUPTKATEGORIE, nicht über die rohe ID.
+ *
+ * Nutzerfund (28.08.): „Welches budget für wohnung?" wurde richtig
+ * verstanden und antwortete trotzdem „kein Budget angelegt", während auf
+ * der Budget-Seite ein gefüllter Tank stand. Die Ursache ist eine
+ * Asymmetrie aus zwei je für sich richtigen Entscheidungen:
+ * `suggestBudgets` hängt jedes Budget an `cat.parent_id ?? cat.id`, also
+ * immer an eine Hauptkategorie — und die Stichwort-Kaskade der Frage löst
+ * laut eigener Dokumentation ausschliesslich auf der Unterkategorie-Ebene
+ * auf. Der Vergleich roher IDs konnte deshalb strukturell nie treffen.
+ *
+ * Gemappt wird die FRAGE auf die Hauptkategorie, nicht das Budget nach
+ * unten aufgelöst: Ein Budget kennt über `subcategory_ids` bereits seine
+ * eigene Teilmenge, und die wertet `computeBudgetStatus` aus. Wer nach
+ * einer Unterkategorie fragt, meint den Tank, in den sie fliesst.
+ *
+ * Ohne Kategorienliste bleibt es beim rohen Vergleich — dann ist die
+ * Hauptkategorie schlicht nicht bestimmbar, und Raten wäre schlechter als
+ * die alte Auskunft.
+ */
+function passendeBudgets(
+  slots: QuestionSlots,
+  daten: QuestionData,
+): Budget[] {
+  const budgets = [...(daten.budgets ?? [])];
+  const gefragt = slots.kategorieIds;
+  if (!gefragt?.length) return budgets;
+
+  const nachId = new Map((daten.categories ?? []).map((c) => [c.id, c]));
+  const hauptId = (id: string): string => nachId.get(id)?.parent_id ?? id;
+  const gesucht = new Set(gefragt.map(hauptId));
+
+  return budgets.filter((b) => b.category_id != null && gesucht.has(hauptId(b.category_id)));
 }
 
 const budgetStatus: QuestionEntry = {
@@ -27,10 +70,7 @@ const budgetStatus: QuestionEntry = {
   needs: ['budgets', 'transactions', 'categories', 'allocations'],
   aufwand: 'guenstig',
   antwort: (slots, daten): QuestionAnswer => {
-    const budgets = [...(daten.budgets ?? [])];
-    const passend = slots.kategorieIds?.length
-      ? budgets.filter((b) => b.category_id != null && slots.kategorieIds!.includes(b.category_id))
-      : budgets;
+    const passend = passendeBudgets(slots, daten);
 
     if (!passend.length) {
       return {
@@ -83,10 +123,7 @@ const budgetStatus: QuestionEntry = {
 
 /** Stände aller (oder der passenden) Budgets im laufenden Monat. */
 function budgetStaende(slots: Parameters<QuestionEntry['antwort']>[0], daten: Parameters<QuestionEntry['antwort']>[1]) {
-  const budgets = [...(daten.budgets ?? [])];
-  const passend = slots.kategorieIds?.length
-    ? budgets.filter((b) => b.category_id != null && slots.kategorieIds!.includes(b.category_id))
-    : budgets;
+  const passend = passendeBudgets(slots, daten);
   const allocations = daten.allocationsByTransaction
     ? new Map(daten.allocationsByTransaction)
     : undefined;
