@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -210,6 +212,37 @@ export function ContractsDashboard() {
     setDetailRow(row);
     setDetailOpen(true);
   };
+
+  /**
+   * Deep-Link `?merchant=<normalisierter Händlername>` öffnet direkt den
+   * betroffenen Vertrag.
+   *
+   * Ohne ihn hatte die Fläche gar keinen URL-Zustand — der Registereintrag
+   * `vertrag.jahreskosten` (Fläche „Nachfragen") musste deshalb ersatzweise
+   * auf die Buchungsliste verlinken, also auf eine ANDERE Menge als die, aus
+   * der seine Zahl stammt.
+   *
+   * Bewusst der normalisierte NAME und nicht der Fingerprint: `iban:de89…|out`
+   * wäre eine IBAN in einer teilbaren URL — dieselbe Entscheidung wie beim
+   * Händlerfilter der Buchungsliste.
+   *
+   * Einmalig beim ersten Treffer: Ein `useEffect`, das bei jeder Neuberechnung
+   * erneut öffnete, liesse den Dialog nicht mehr schliessen.
+   */
+  const [suchParameter] = useSearchParams();
+  const gesuchterHaendler = suchParameter.get('merchant')?.trim().toLowerCase() ?? '';
+  const deepLinkVerbraucht = useRef(false);
+
+  useEffect(() => {
+    if (!gesuchterHaendler || deepLinkVerbraucht.current || contractsAll.length === 0) return;
+    const treffer = contractsAll.find((row) => {
+      const name = normalizeMerchantName(row.payee) || row.payee.toLowerCase().trim();
+      return name.includes(gesuchterHaendler);
+    });
+    if (!treffer) return;
+    deepLinkVerbraucht.current = true;
+    openDetail(treffer);
+  }, [gesuchterHaendler, contractsAll]);
 
   const renderRow = (row: ContractRow) => (
     <TableRow key={row.key} onClick={() => openDetail(row)} className="cursor-pointer hover:bg-muted/50">

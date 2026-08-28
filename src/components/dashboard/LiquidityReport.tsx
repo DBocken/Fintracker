@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
 import { parseISO, differenceInDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import { useScenarioRisk } from '@/hooks/useScenarioRisk';
 import { useLumpyRisk } from '@/hooks/useLumpyRisk';
 import { subscribeToDarkModeChanges } from '@/lib/chart-theme';
 import { buildBaseCheckPayload } from '@/lib/finrisk/scenario-questions';
+import { decodeScenarioParam } from '@/lib/finrisk/scenario-payload-link';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
 import StressPresetQuickAdd from '@/components/dashboard/StressPresetQuickAdd';
 import RiskDensityChart from '@/components/dashboard/finrisk/RiskDensityChart';
@@ -159,6 +161,29 @@ export default function LiquidityReport() {
   // Dichte-Heatmap, Pufferbruch- und Stress-Kennzahlen in einem Lauf. Speist
   // sowohl die Linien- als auch die Heatmap-Ansicht – kein zweiter MC-Apparat.
   const startISO = forecast?.config.startDate;
+
+  // Deep-Link-Parameter (WP-H.5). Datengrenze: Jeder kann eine URL tippen —
+  // das Szenario läuft durch zod (`decodeScenarioParam`), die Zahlen durch
+  // ein striktes Muster; Unlesbares fällt still auf den Normalzustand zurück.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chatSzenario = useMemo(
+    () => decodeScenarioParam(searchParams.get('szenario')),
+    [searchParams],
+  );
+  const zahlParam = (name: string): number | undefined => {
+    const roh = searchParams.get(name);
+    if (roh === null || !/^\d{1,7}(\.\d{1,2})?$/.test(roh)) return undefined;
+    const wert = Number(roh);
+    return Number.isFinite(wert) && wert > 0 ? wert : undefined;
+  };
+  const prefillBetrag = zahlParam('betrag');
+  const prefillTage = zahlParam('inTagen');
+  const verwerfeChatSzenario = () => {
+    const naechste = new URLSearchParams(searchParams);
+    naechste.delete('szenario');
+    setSearchParams(naechste, { replace: true });
+  };
+
   const basePayload = useMemo(
     () => buildBaseCheckPayload({ horizonDays: Math.max(months, 6) * 30, thresholdAmount: safetyBuffer }),
     [months, safetyBuffer],
@@ -177,10 +202,13 @@ export default function LiquidityReport() {
     [months, safetyBuffer, bufferBasis, startISO, discipline, disciplineStrength],
   );
   const { lumpy } = useLumpyRisk();
+  // Ein aus dem Chat mitgebrachtes Szenario ERSETZT den Basislauf: Die ganze
+  // Fläche (Band, Heatmap, Kennzahlen) zeigt dann die veränderte Welt — genau
+  // das verspricht der Link „volle Analyse". Verwerfen führt zurück zur Basis.
   const { result: risk, isCalculating: isRiskCalculating } = useScenarioRisk(
     input,
     riskConfig,
-    basePayload,
+    chatSzenario ?? basePayload,
     {
       monteCarlo: { trials, seed: 1, incomeVolatility: incomeUncertain ? 0.08 : 0 },
       lumpy: lumpy ?? undefined,
@@ -358,8 +386,30 @@ export default function LiquidityReport() {
       <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)_minmax(300px,360px)]">
         {/* SEHEN: Ergebnis (Chart, KPIs) – mobil zuerst, auf Desktop in die Mitte. */}
         <div className="order-1 min-w-0 space-y-4 xl:order-2">
+          {chatSzenario && (
+            <Alert>
+              <Lightbulb className="h-4 w-4" />
+              <AlertTitle>{t('finrisk.chatScenarioTitle')}</AlertTitle>
+              <AlertDescription className="flex flex-wrap items-center gap-2">
+                {t('finrisk.chatScenarioActive')}
+                <button
+                  type="button"
+                  onClick={verwerfeChatSzenario}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {t('finrisk.chatScenarioClear')}
+                </button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Hero: „Frag dein Geld" – inverse Simulation (kann ich mir X leisten?). */}
-          <AskYourMoney input={input ?? null} config={riskConfig} />
+          <AskYourMoney
+            input={input ?? null}
+            config={riskConfig}
+            initialAmount={prefillBetrag}
+            initialDays={prefillTage}
+          />
 
           {/* Insight nur bei echtem Risiko als Box – „stabil" steht kompakt im Chart-Label. */}
           {insights[0] && insights[0].kind === 'below_buffer' && (

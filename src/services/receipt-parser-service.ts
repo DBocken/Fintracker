@@ -28,6 +28,30 @@ export interface ReceiptLineItem {
   raw: string;
 }
 
+/**
+ * Urteil der Summenprüfung: ergeben die erkannten Produktzeilen den
+ * Gesamtbetrag?
+ *
+ * Die **Richtung** des Widerspruchs entscheidet, und nur eine der beiden
+ * Richtungen ist ein Befund:
+ *
+ * - `confirmed` — Zeilensumme ≈ Gesamtbetrag. Zwei unabhängig gelesene Größen
+ *   stimmen überein; das ist der stärkste Beleg, den ein Beleg über sich
+ *   selbst liefern kann.
+ * - `exceeds` — Zeilensumme ÜBER dem Gesamtbetrag. Echter Widerspruch:
+ *   entweder ist ein Betrag zu hoch gelesen oder eine Nicht-Produktzeile
+ *   mitgezählt worden.
+ * - `incomplete` — Zeilensumme UNTER dem Gesamtbetrag. Der Normalfall, kein
+ *   Fehler: Die Zeilenerkennung lässt bewusst aus, was sie nicht sicher
+ *   erkennt. Hier zu warnen hiesse, bei fast jedem Beleg zu warnen — und eine
+ *   Warnung, die immer kommt, wird nicht mehr gelesen.
+ * - `unknown` — keine Zeilen oder kein Gesamtbetrag, also nichts zu vergleichen.
+ */
+export type ReceiptTotalCheck = 'confirmed' | 'exceeds' | 'incomplete' | 'unknown';
+
+/** Dieselbe Toleranz wie die Zeilenprüfung — ein gerundeter Stückpreis ist kein Befund. */
+const TOTAL_TOLERANCE = 0.02;
+
 export interface ParsedReceipt {
   merchant?: ReceiptField;
   /** Gesamtbetrag (positiv). */
@@ -36,6 +60,17 @@ export interface ParsedReceipt {
   date?: ReceiptField;
   /** Optionale Produktzeilen (konservativ erkannt; im Zweifel leer). */
   lineItems?: ReceiptLineItem[];
+  /** Summe der erkannten Produktzeilen — nur gesetzt, wenn es welche gibt. */
+  lineItemSum?: number;
+  /** Halten Zeilensumme und Gesamtbetrag einander stand? */
+  totalCheck: ReceiptTotalCheck;
+  /**
+   * Die eine Zeile, deren Entfernen den Widerspruch aufgelöst hat — nur
+   * gesetzt, wenn die Selbstkorrektur gegriffen hat. Sie wird ausgewiesen und
+   * nicht verschwiegen: Die Fläche soll zeigen können, was die App
+   * weggelassen hat.
+   */
+  discardedLine?: ReceiptLineItem;
 }
 
 /** Felder unterhalb dieser Schwelle sollte das UI zur Bestätigung markieren. */
@@ -192,14 +227,93 @@ export function parseReceipt(ocrText: string): ParsedReceipt {
     .filter((l) => l.length > 0);
   if (lines.length > MAX_RECEIPT_LINES) throw new Error(t("receiptParserService.tooManyLines", "Beleg enthält zu viele Zeilen."));
 
-  const lineItems = extractLineItems(lines);
+  const total = extractTotal(lines);
+  const { items, discarded } = korrigiereUeberzaehligeZeile(total, extractLineItems(lines));
+  const { check, sum, total: geprueftesTotal } = pruefeSumme(total, items, discarded !== undefined);
 
   return {
     merchant: extractMerchant(lines),
-    total: extractTotal(lines),
+    total: geprueftesTotal,
     date: extractDate(ocrText),
-    ...(lineItems.length > 0 ? { lineItems } : {}),
+    ...(items.length > 0 ? { lineItems: items, lineItemSum: sum } : {}),
+    totalCheck: check,
+    ...(discarded ? { discardedLine: discarded } : {}),
   };
+}
+
+/**
+ * Selbstkorrektur mit der Summe als Verifizierer.
+ *
+ * Nachgemessen an realistischen Bons entsteht ein `exceeds` nicht durch eine
+ * falsch gelesene Ziffer, sondern durch EINE Zeile zu viel: Pfand, Rabatt,
+ * eine unbenannte Zwischensumme — Formen, die `NON_ITEM_LABEL_RE` nicht kennt
+ * und auch nie vollständig kennen wird, weil jede Kasse anders beschriftet.
+ *
+ * Deshalb wird hier keine Ziffernverwechslung geraten (dafür gibt es keine
+ * gemessene Verwechslungstabelle, und eine erfundene erzeugt zuversichtlich
+ * falsche Beträge). Stattdessen entscheidet die Rechnung selbst: Eine
+ * Korrektur zählt nur, wenn sie den Widerspruch auflöst — und nur, wenn sie
+ * die EINZIGE ist, die das tut. Bei zwei gleichwertigen Kandidaten bleibt der
+ * Widerspruch stehen, dieselbe Regel wie bei der Kategorie-Auflösung:
+ * Mehrdeutigkeit ⇒ kein Ergebnis, nicht das erstbeste.
+ */
+function korrigiereUeberzaehligeZeile(
+  total: ReceiptField<number> | undefined,
+  items: ReceiptLineItem[],
+): { items: ReceiptLineItem[]; discarded?: ReceiptLineItem } {
+  // Nur gegen einen UNABHÄNGIG gelesenen Gesamtbetrag. Stammt er aus dem
+  // Rückfall „größter Betrag auf dem Beleg", ist er selbst eine der
+  // Produktzeilen — dann bestätigt die Prüfung nur noch sich selbst und
+  // entfernt fröhlich die übrigen Posten, bis die Rechnung aufgeht. Genau das
+  // tat sie im Bestandstest „falls back to the largest plausible amount".
+  if (!total || total.confidence < RECEIPT_LOW_CONFIDENCE_THRESHOLD) return { items };
+  if (items.length < 2) return { items };
+
+  const summe = items.reduce((s, i) => s + i.total, 0);
+  const ueberschuss = summe - total.value;
+  if (ueberschuss < TOTAL_TOLERANCE) return { items };
+
+  const kandidaten = items.filter((i) => Math.abs(i.total - ueberschuss) < TOTAL_TOLERANCE);
+  if (kandidaten.length !== 1) return { items };
+
+  const weg = kandidaten[0];
+  return { items: items.filter((i) => i !== weg), discarded: weg };
+}
+
+/**
+ * Hält Zeilensumme und Gesamtbetrag gegeneinander und schreibt das Ergebnis in
+ * die Confidence des Gesamtbetrags zurück.
+ *
+ * Genau das ist der Gewinn: Die beiden Größen entstehen aus **verschiedenen
+ * Zeilen** desselben Belegs. Stimmen sie überein, ist das ein unabhängiger
+ * Beleg, den keine der beiden Erkennungen allein liefern kann; widersprechen
+ * sie sich nach oben, ist mindestens eine von beiden falsch gelesen — und
+ * welche, ist von hier aus nicht entscheidbar. Deshalb wird der Gesamtbetrag
+ * dann unter die Schwelle gesetzt und nicht etwa durch die Zeilensumme
+ * ersetzt: Eine geratene Korrektur wäre schlimmer als ein benannter Zweifel.
+ */
+function pruefeSumme(
+  total: ReceiptField<number> | undefined,
+  lineItems: ReceiptLineItem[],
+  nachKorrektur: boolean,
+): { check: ReceiptTotalCheck; sum?: number; total?: ReceiptField<number> } {
+  if (!total || lineItems.length === 0) return { check: 'unknown', total };
+  // Dieselbe Bedingung wie bei der Korrektur: Ein geratener Gesamtbetrag kann
+  // von den Zeilen, aus denen er stammt, nicht bestätigt werden.
+  if (total.confidence < RECEIPT_LOW_CONFIDENCE_THRESHOLD) return { check: 'unknown', total };
+
+  const sum = Math.round(lineItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
+  const differenz = sum - total.value;
+
+  if (Math.abs(differenz) < TOTAL_TOLERANCE) {
+    // Eine hergeleitete Übereinstimmung ist schwächer als eine gefundene: Die
+    // Zeilen wurden passend gemacht, nicht unabhängig bestätigt.
+    return { check: 'confirmed', sum, total: { ...total, confidence: nachKorrektur ? 0.85 : 0.98 } };
+  }
+  if (differenz > 0) {
+    return { check: 'exceeds', sum, total: { ...total, confidence: 0.5 } };
+  }
+  return { check: 'incomplete', sum, total };
 }
 
 /** Liefert die Namen der Felder, die unter der Confidence-Schwelle liegen oder fehlen. */

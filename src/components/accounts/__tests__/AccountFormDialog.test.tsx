@@ -238,3 +238,69 @@ describe('AccountFormDialog – Dezimaleingaben (AGENTS.md §8)', () => {
     );
   });
 });
+
+describe('IBAN-Prüfsumme', () => {
+  it('sollte eine prüfsummenungültige IBAN benennen, statt sie stillschweigend zu übernehmen', async () => {
+    // Eine vertippte IBAN ist syntaktisch einwandfrei. Sie bricht nichts
+    // sichtbar — sie sorgt nur dafür, dass interne Überträge nie erkannt
+    // werden, und zwar wortlos. Genau dafür gibt es die Prüfsumme.
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText(/IBAN/i), 'DE89370400440532013001');
+
+    // Geprüft wird der Text, den der Nutzer WIRKLICH sieht: Vorgabe ist der
+    // Sprachstil `everyday`, dessen Overlay „Prüfsumme" durch „Tippfehler"
+    // ersetzt. Auf den Fachbegriff zu prüfen hiesse, eine Fassung zu testen,
+    // die standardmäßig niemand zu Gesicht bekommt.
+    expect(screen.getByText(/Tippfehler/i)).toBeInTheDocument();
+  });
+
+  it('sollte bei gültiger IBAN keine Warnung zeigen', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText(/IBAN/i), 'DE89 3704 0044 0532 0130 00');
+
+    expect(screen.queryByText(/Tippfehler/i)).not.toBeInTheDocument();
+  });
+
+  it('sollte während der Eingabe noch nicht warnen', async () => {
+    // Ein Feld, das beim dritten Zeichen rot wird, erzieht dazu, die Warnung
+    // zu ignorieren. Gewarnt wird erst, wenn die Eingabe lang genug ist, um
+    // überhaupt eine IBAN sein zu können.
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText(/IBAN/i), 'DE89 3704');
+
+    expect(screen.queryByText(/Tippfehler/i)).not.toBeInTheDocument();
+  });
+
+  it('sollte das Speichern NICHT blockieren', async () => {
+    // Das Feld ist optional und dient dem Erkennen von Überträgen, nicht dem
+    // Auslösen einer Zahlung. Wer eine Kontonummer aus einem Land ohne IBAN
+    // notiert, soll das dürfen — die App sagt, was sie weiß, und entscheidet
+    // nicht an seiner Stelle. Für den Zahlungsweg gilt das Gegenteil:
+    // `buildGirocodePayload` wirft bei ungültiger IBAN.
+    const user = userEvent.setup();
+    const { onSave } = renderDialog();
+
+    await user.type(screen.getByLabelText(/Name/i), 'Auslandskonto');
+    await user.type(screen.getByLabelText(/IBAN/i), 'DE89370400440532013001');
+    fireEvent.submit(screen.getByRole('button', { name: /speichern|anlegen/i }).closest('form')!);
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ iban: 'DE89370400440532013001' }),
+    );
+  });
+
+  it('sollte die Warnung auch auf Englisch zeigen', async () => {
+    const user = userEvent.setup();
+    renderDialog({}, 'en');
+
+    await user.type(screen.getByLabelText(/IBAN/i), 'DE89370400440532013001');
+
+    expect(screen.getByText(/typo/i)).toBeInTheDocument();
+  });
+});

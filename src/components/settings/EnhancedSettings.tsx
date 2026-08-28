@@ -7,6 +7,8 @@ import { CategoryManager } from './CategoryManager';
 import { CategoryPreview } from './CategoryPreview';
 import { TimeRangeSettings } from './TimeRangeSettings';
 import { AutoCategorizationSettings } from './AutoCategorizationSettings';
+import { LearnedCategorizationSettings } from './LearnedCategorizationSettings';
+import { QuestionLearningSettings } from './QuestionLearningSettings';
 import TaxReserveSettings from './TaxReserveSettings';
 import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
@@ -210,6 +212,8 @@ export function EnhancedSettings() {
               autoConfirm={settings.autoConfirmMapping}
               onAutoConfirmChange={settings.setAutoConfirmMapping}
             />
+            <LearnedCategorizationSettings />
+            <QuestionLearningSettings />
             <BulkAssignment
               status={settings.bulk.status}
               results={settings.bulk.results}

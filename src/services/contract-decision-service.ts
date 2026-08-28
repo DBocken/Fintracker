@@ -3,6 +3,7 @@ import { safeAudit, redactForAudit } from './audit-log-service';
 import { t } from '@/i18n/serviceT';
 import type { Rhythmus } from '@/types';
 import type { ContractDecision, ContractStatus } from '@/lib/contract-types';
+import { indexContractDecisions } from '@/lib/contract-decision-index';
 
 export function getContractStatusLabels(): Record<ContractStatus, string> {
   return {
@@ -19,12 +20,17 @@ export async function getContractDecisions(): Promise<ContractDecision[]> {
   return readLocalFinanceList<ContractDecision>('contractDecisions');
 }
 
-/** Liefert eine Map fingerprint -> Entscheidung für schnellen Lookup beim Ableiten. */
+/**
+ * Liefert eine Map fingerprint -> Entscheidung für schnellen Lookup beim Ableiten.
+ *
+ * Der Index läuft über `indexContractDecisions`, damit eine Entscheidung auch
+ * unter ihrem HEUTIGEN Fingerprint gefunden wird, wenn sie vor der
+ * verschärften Händler-Normalisierung gespeichert wurde. Ohne das käme eine
+ * ausdrücklich abgelehnte Vertragsfamilie still zurück — die Entscheidung
+ * stünde weiter im Speicher, sie würde nur nicht mehr gefunden.
+ */
 export async function getContractDecisionMap(): Promise<Map<string, ContractDecision>> {
-  const decisions = await getContractDecisions();
-  const map = new Map<string, ContractDecision>();
-  decisions.forEach((d) => map.set(d.fingerprint, d));
-  return map;
+  return indexContractDecisions(await getContractDecisions());
 }
 
 export interface ContractDecisionInput {

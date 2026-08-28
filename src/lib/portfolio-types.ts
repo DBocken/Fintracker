@@ -48,6 +48,33 @@ export interface PortfolioPosition {
   updated_at?: string;
 }
 
+/**
+ * Ein- und Auszahlung eines Depots (Welle 4).
+ *
+ * Ohne sie gibt es keine echte Rendite, nur Positionsbewertung: Marktwert
+ * minus Einstandskosten sagt nichts darüber, WANN wie viel Geld drinsteckte.
+ * Wer nachkauft oder entnimmt, bekommt sonst eine Zahl, die die eigene
+ * Leistung nicht abbildet.
+ */
+export interface PortfolioCashflow {
+  id: string;
+  portfolio_id: string;
+  /** ISO `YYYY-MM-DD`. */
+  date: string;
+  /**
+   * Betrag POSITIV, die Richtung steht in `direction`.
+   *
+   * Ein vorzeichenbehafteter Betrag plus Richtungsfeld wäre zweimal dieselbe
+   * Information — und zwei Quellen für eine Aussage sind zwei Orte, an denen
+   * sie auseinanderlaufen kann.
+   */
+  amount: number;
+  direction: 'deposit' | 'withdrawal';
+  note?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface QuoteData {
   symbol: string;
   name?: string;

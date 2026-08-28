@@ -2,6 +2,7 @@
 // Arbeitet rein auf OCR-Text — komplett lokal, keine Netzwerk-Zugriffe.
 
 import { t } from "../i18n/serviceT";
+import { ibanLengthFor, isValidIban } from "@/lib/iban";
 
 // -----------------------------------------------------------------------------
 // Typen
@@ -95,28 +96,8 @@ export function parseGermanAmount(raw: string): number | null {
 }
 
 // -----------------------------------------------------------------------------
-// IBAN (Mod-97)
+// IBAN
 // -----------------------------------------------------------------------------
-
-const IBAN_LENGTHS: Record<string, number> = {
-  DE: 22, AT: 20, CH: 21, NL: 18, FR: 27, BE: 16, LU: 20, ES: 24, IT: 27, PL: 28,
-};
-
-export function isValidIban(iban: string): boolean {
-  const s = iban.replace(/\s+/g, "").toUpperCase();
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(s)) return false;
-  const expected = IBAN_LENGTHS[s.slice(0, 2)];
-  if (expected && s.length !== expected) return false;
-  if (s.length < 15 || s.length > 34) return false;
-  // Mod-97: erste 4 Zeichen ans Ende, Buchstaben → Zahlen (A=10 … Z=35)
-  const rearranged = s.slice(4) + s.slice(0, 4);
-  let remainder = 0;
-  for (const ch of rearranged) {
-    const part = ch >= "A" ? String(ch.charCodeAt(0) - 55) : ch;
-    for (const d of part) remainder = (remainder * 10 + Number(d)) % 97;
-  }
-  return remainder === 1;
-}
 
 function extractIban(text: string): ExtractedField | undefined {
   // Kandidaten: Ländercode + 2 Prüfziffern (inkl. OCR-Verwechsler), dann Restfolge.
@@ -131,7 +112,7 @@ function extractIban(text: string): ExtractedField | undefined {
     const body = country === "DE" ? fixOcrDigits(compact.slice(2)) : compact.slice(2);
     for (let len = Math.min(body.length, 32); len >= 13; len--) {
       const candidate = country + body.slice(0, len);
-      const expected = IBAN_LENGTHS[country];
+      const expected = ibanLengthFor(country);
       if (expected && candidate.length !== expected) continue;
       if (isValidIban(candidate)) {
         const repaired = compact !== country + body.slice(0, len);

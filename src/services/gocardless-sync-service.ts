@@ -9,6 +9,7 @@ import {
 import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
 import { createCategorizer } from '@/lib/categorization';
+import { buildCategoryModel } from '@/lib/category-model-evaluation';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { applyDetectedContracts } from './contract-detection-service';
@@ -293,8 +294,13 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
     const categories = await getCategories();
     const learnedRules = await getMerchantRules();
+    // Modell EINMAL vor der Buchungsschleife, trainiert auf dem BESTAND
+    // (`existingTransactions` ist oben schon geladen). Die frisch von der Bank
+    // geholten Buchungen tragen nichts bei — sie haben noch keine bestätigte
+    // Kategorie.
+    const categorizationContext = { model: buildCategoryModel(existingTransactions, learnedRules) };
     // Kategorie-Index EINMAL für den ganzen Sync-Lauf, nicht je Bankbuchung.
-    const categorizer = createCategorizer(categories, learnedRules);
+    const categorizer = createCategorizer(categories, learnedRules, categorizationContext);
     const userSettings = await getUserSettings();
 
     // Startsaldo aus der ersten Buchung des Fensters zurueckrechnen — als

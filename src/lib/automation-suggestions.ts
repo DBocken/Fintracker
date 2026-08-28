@@ -10,7 +10,7 @@ import { createCategorizer } from "@/lib/categorization";
 import { buildCategorySuggestionFromResult } from "@/lib/automation-suggestion-model";
 import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import type { Category, Transaction } from "@/types";
-import type { MerchantRule } from "@/lib/categorization";
+import type { CategorizationContext, MerchantRule } from "@/lib/categorization";
 
 /** Schwächste Confidence, die wir noch als Vorschlag zeigen (Regex-Fallback = 0,55). */
 export const MIN_SUGGEST_CONFIDENCE = 0.5;
@@ -37,9 +37,10 @@ export function buildPendingCategorySuggestions(
   learnedRules: MerchantRule[],
   decidedSuggestions: AutomationSuggestion[],
   limit = 20,
+  context?: CategorizationContext,
 ): AutomationSuggestion[] {
   const decidedById = new Map(decidedSuggestions.map((s) => [s.id, s.status]));
-  const categorizer = createCategorizer(categories, learnedRules);
+  const categorizer = createCategorizer(categories, learnedRules, context);
   const out: AutomationSuggestion[] = [];
 
   for (const tx of transactions) {

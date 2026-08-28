@@ -48,6 +48,7 @@ export const DEFAULT_DASHBOARD_FILTERS = {
   essential: 'all' as EssentialFilter,
   ausgabenklasse: 'all' as AusgabenklasseFilter,
   search: '',
+  merchant: '',
   range: 'Gesamt' as DashboardRange,
   customDays: DEFAULT_CUSTOM_DAYS,
   customGranularity: DEFAULT_CUSTOM_GRANULARITY,
@@ -56,11 +57,38 @@ export const DEFAULT_DASHBOARD_FILTERS = {
 
 export interface DashboardFilterState {
   category: string;
+  /**
+   * Kategorien-MENGE (WP-G) — gesetzt, wenn eine Frage einen Oberbegriff
+   * auflöst („Essen" = Lebensmittel ∪ Essen & Trinken ∪ …). Additiv und
+   * optional wie `merchant`: Ein Pflichtfeld berührte über hundert Stellen,
+   * und ein fehlendes Feld bedeutet hier schlicht „keine Mengenauswahl" —
+   * die richtige Vorgabe.
+   *
+   * Vorrang vor `category`, wenn nichtleer. Beide zugleich zu setzen wäre
+   * zwei Wahrheiten für dieselbe Frage; `aktiveKategorien()` ist die eine
+   * Stelle, die das auflöst.
+   */
+  categories?: readonly string[];
   account: string;
   contract: ContractFilter;
   essential: EssentialFilter;
   ausgabenklasse: AusgabenklasseFilter;
   search: string;
+  /**
+   * Händlerfamilie (normalisierter Händlername, z. B. `lidl sagt danke`).
+   *
+   * Eigene Achse neben `search`, weil `search` bewusst breit sucht — auch in
+   * Beschreibung, Originaltext und Notizen. Für eine Freitextsuche ist dieser
+   * Übertreffer richtig; als Antwort auf „Wieviel habe ich bei Lidl
+   * ausgegeben?" wäre er eine falsche Zahl mit vollem Selbstbewusstsein.
+   *
+   * Der Wert ist der normalisierte NAME, nicht der Fingerprint: `iban:de89…|out`
+   * wäre eine IBAN in einer teilbaren URL und zusätzlich richtungsgebunden.
+   *
+   * Optional wie `customPeriod` — eine meist abwesende Achse, und ein
+   * fehlender Wert bedeutet genau die richtige Vorgabe: kein Händlerfilter.
+   */
+  merchant?: string;
   range: DashboardRange;
   customDays: number;
   /** Konkrete Periode für Jahr/Quartal/Monat (z.B. `2026-Q2`); sonst leer. */

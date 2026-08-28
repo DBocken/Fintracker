@@ -95,7 +95,7 @@ weggeht → was steuerbar bleibt → was vorausliegt → worauf es hinausläuft.
 | 6 | `accounts` | `/accounts` | Salden verankern die Buchungen in der Wirklichkeit; Voraussetzung für jede Vorschau. | ≥ 1 Konto |
 | **Teil 2 — Der Euro durch den Monat** (je nach Bereichsauswahl) |
 | 7 | `income` | `/income` | Woher kommt es. | `detectSalarySeries`: **3 Monate** |
-| 8 | `contracts` | `/contracts` | Was ohne Zutun weggeht. Wird *gefunden*, nicht eingegeben — hoher Ertrag ohne Arbeit. | `detectRecurringTransactions`: **3 gleiche Buchungen** je Zahlungsempfänger |
+| 8 | `contracts` | `/contracts` | Was ohne Zutun weggeht. Wird *gefunden*, nicht eingegeben — hoher Ertrag ohne Arbeit. | `computeContracts`: **3 gleiche Buchungen** je Händlerfamilie (Fingerprint: Gegen-IBAN, sonst normalisierter Händlername — nicht je Zahlungsempfänger-Schreibweise) |
 | 9 | `budgets` | `/budgets` | Erst wenn die Fixkosten stehen, ist der Rest steuerbar. Vorher wäre jedes Limit geraten. | `buildAdaptiveBaseLimit`: **3 Monate**, sonst „lernend" |
 | 10 | `liquidity` | `/liquidity` | Die Vorschau lebt von 7–9: Wiederkehrendes plus Saldo. | Saldo + ≥ 1 Wiederkehrendes |
 | 11 | `milestones` | `/milestones` | Worauf es hinausläuft — das Ziel nach dem Überblick, nicht davor. | Kapitel 9 durchlaufen |

@@ -22,6 +22,7 @@ import { getCategories, getTransactions } from './transaction-service';
 import { currentMonthKey, getBudgetOverview, lastNMonths } from './budget-service';
 import { getWaterfallPlan } from './waterfall-service';
 import { getUserSettings } from './user-settings-service';
+import { findeAusreisser } from '@/features/shared/domain/unusual-expenses';
 import { t } from '@/i18n/serviceT';
 
 export const MCP_SNAPSHOT_SCHEMA_VERSION = 1 as const;
@@ -160,53 +161,37 @@ function spendingForMonth(
   };
 }
 
-function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
 /**
- * Ausreißer rein aus Aggregaten: Eine Kategorie-Monatssumme gilt als
- * ungewöhnlich, wenn sie deutlich über dem eigenen Median der betrachteten
- * Monate liegt. So bleiben Einzeltransaktionen auf dem Gerät.
+ * Ausreißer rein aus Aggregaten — die Statistik liegt seit WP-F.3 geteilt in
+ * `features/shared/domain/unusual-expenses.ts` (zweiter Nutzer: der
+ * Registereintrag `ausgaben.ungewoehnlich`). Hier bleibt nur die Übersetzung
+ * in die Snapshot-Form; das FORMAT ist unangetastet, und Einzeltransaktionen
+ * bleiben weiterhin auf dem Gerät.
  */
 function detectUnusual(monthly: McpMonthlySpending[]): McpUnusualExpense[] {
-  const seriesByCategory = new Map<string, { name: string; points: { month: string; amount: number }[] }>();
+  const serien = new Map<string, { monat: string; betrag: number }[]>();
+  const nameByKey = new Map<string, string>();
   for (const m of monthly) {
     for (const c of m.by_category) {
-      const s = seriesByCategory.get(c.category_id) ?? { name: c.name, points: [] };
-      s.points.push({ month: m.month, amount: c.amount });
-      seriesByCategory.set(c.category_id, s);
+      const punkte = serien.get(c.category_id) ?? [];
+      punkte.push({ monat: m.month, betrag: c.amount });
+      serien.set(c.category_id, punkte);
+      nameByKey.set(c.category_id, c.name);
     }
   }
 
-  const unusual: McpUnusualExpense[] = [];
-  for (const { name, points } of seriesByCategory.values()) {
-    if (points.length < 3) continue; // zu wenig Historie für eine robuste Aussage
-    const med = median(points.map((p) => p.amount));
-    if (med <= 0) continue;
-    for (const p of points) {
-      // Schwelle: > 50 % über Median UND mind. 50 € absoluter Mehraufwand.
-      if (p.amount > med * 1.5 && p.amount - med >= 50) {
-        const percent = Math.round(((p.amount - med) / med) * 100);
-        const median_val = round2(med);
-        const reason = t('mcpService.unusualExpenseReason')
-          .replace('{percent}', String(percent))
-          .replace('{median}', String(median_val));
-        unusual.push({
-          month: p.month,
-          category: name,
-          amount: p.amount,
-          median: median_val,
-          reason,
-        });
-      }
-    }
-  }
-
-  return unusual.sort((a, b) => b.amount - a.amount);
+  return findeAusreisser(serien).map((fund) => {
+    const median_val = round2(fund.median);
+    return {
+      month: fund.monat,
+      category: nameByKey.get(fund.schluessel) ?? fund.schluessel,
+      amount: fund.betrag,
+      median: median_val,
+      reason: t('mcpService.unusualExpenseReason')
+        .replace('{percent}', String(fund.prozent))
+        .replace('{median}', String(median_val)),
+    };
+  });
 }
 
 /**

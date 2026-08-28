@@ -110,4 +110,83 @@ describe('payloadToScenario', () => {
       expect(payloadToScenario(payload, START).modifiers).toHaveLength(1);
     });
   });
+
+  describe('Flow-Ereignisse (WP-H)', () => {
+    it('sollte flow_change als flow-Modifikator mit Selector, Faktor und fromDate übersetzen', () => {
+      // Der Fall „Auto verkauft: Werkstatt/Versicherung/Kraftstoff entfallen
+      // ab Tag 30" — die Bauform, für die das Ereignis existiert.
+      const payload: ScenarioPayload = {
+        scenarioId: 's8',
+        scenarioType: 'custom_combination',
+        timeHorizonDays: 180,
+        events: [
+          {
+            eventType: 'flow_change',
+            amount: 0,
+            flowSelector: { kind: 'ids', ids: ['contract-werkstatt', 'contract-kfz'] },
+            factor: 0,
+            dayIndex: 30,
+          },
+        ],
+      };
+      const scenario = payloadToScenario(payload, START);
+      expect(scenario.modifiers).toHaveLength(1);
+      expect(scenario.modifiers[0]).toMatchObject({
+        type: 'flow',
+        flowSelector: { kind: 'ids', ids: ['contract-werkstatt', 'contract-kfz'] },
+        factor: 0,
+        fromDate: '2026-01-31',
+      });
+    });
+
+    it('sollte flow_change ohne dayIndex KEIN fromDate setzen — sofort wirksam ohne Flow-Split', () => {
+      const payload: ScenarioPayload = {
+        scenarioId: 's9',
+        scenarioType: 'custom_combination',
+        timeHorizonDays: 90,
+        events: [
+          {
+            eventType: 'flow_change',
+            amount: 0,
+            flowSelector: { kind: 'largestIncome' },
+            factor: 1.1,
+          },
+        ],
+      };
+      const scenario = payloadToScenario(payload, START);
+      expect(scenario.modifiers[0].fromDate).toBeUndefined();
+      expect(scenario.modifiers[0].factor).toBe(1.1);
+    });
+
+    it('sollte flow_change ohne Selector oder Faktor verwerfen statt zu raten', () => {
+      const payload: ScenarioPayload = {
+        scenarioId: 's10',
+        scenarioType: 'custom_combination',
+        timeHorizonDays: 90,
+        events: [{ eventType: 'flow_change', amount: 0, factor: 0 }],
+      };
+      expect(payloadToScenario(payload, START).modifiers).toHaveLength(0);
+    });
+
+    it('sollte recurring_flow als monatlichen recurring-Modifikator mit Vorzeichen übersetzen', () => {
+      const payload: ScenarioPayload = {
+        scenarioId: 's11',
+        scenarioType: 'custom_combination',
+        timeHorizonDays: 180,
+        events: [
+          { eventType: 'recurring_flow', amount: 200, direction: 'expense', dayIndex: 14 },
+          { eventType: 'recurring_flow', amount: 400, direction: 'income' },
+        ],
+      };
+      const scenario = payloadToScenario(payload, START);
+      expect(scenario.modifiers).toHaveLength(2);
+      expect(scenario.modifiers[0]).toMatchObject({
+        type: 'recurring',
+        amount: -200,
+        cadence: 'monthly',
+        anchorDate: '2026-01-15',
+      });
+      expect(scenario.modifiers[1]).toMatchObject({ amount: 400, anchorDate: '2026-01-01' });
+    });
+  });
 });

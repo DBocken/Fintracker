@@ -9,6 +9,7 @@ import type {
   EssentialFilter,
 } from '@/features/shared/domain/dashboard-filters';
 import { resolveAusgabenklasse, resolveEssenziell, isCategoryInFilter } from '@/lib/analysis-data';
+import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
 import { resolvePeriodRange } from './period-options';
 import type { ContractDecision } from '@/lib/contract-types';
@@ -109,22 +110,36 @@ function allocationCategoryId(allocation: TransactionAllocation): string | null 
  * aufgeteilt ist, erscheint damit auch unter dem Filter „Kleidung" — sonst
  * wäre der aufgeteilte Anteil in der Buchungsliste unauffindbar.
  */
+/**
+ * Die EINE Stelle, die „welche Kategorien sind gefragt?" beantwortet.
+ *
+ * Vorrang für die Menge (`categories`), Rückfall auf die Einzelauswahl
+ * (`category`). Zwei Felder, aber nur eine Wahrheit — jede Auswertung geht
+ * hierdurch, damit Rechnen, Zählen und Verlinken nicht auseinanderlaufen
+ * können.
+ */
+export function aktiveKategorien(filters: Pick<DashboardFilterState, 'category' | 'categories'>): readonly string[] {
+  if (filters.categories && filters.categories.length > 0) return filters.categories;
+  return filters.category === 'all' ? [] : [filters.category];
+}
+
 function matchesCategoryFilter(
   transaction: Transaction,
   categoriesById: Map<string, Category>,
-  filter: string,
+  filter: readonly string[],
   allocations: readonly TransactionAllocation[] = [],
   matchSplits = false,
 ): boolean {
-  if (filter === 'all') return true;
-  if (
-    isCategoryInFilter(transaction.subcategory_id, categoriesById, filter) ||
-    isCategoryInFilter(transaction.category_id, categoriesById, filter)
-  ) {
-    return true;
-  }
+  if (filter.length === 0) return true;
+  // ODER über die Menge: Eine Buchung gehört dazu, sobald sie EINER der
+  // gefragten Kategorien zuzuordnen ist. Jede einzelne läuft weiterhin durch
+  // `isCategoryInFilter` und erbt damit ihre Unterkategorien.
+  const trifft = (id: string | null | undefined) =>
+    id != null && filter.some((f) => isCategoryInFilter(id, categoriesById, f));
+
+  if (trifft(transaction.subcategory_id) || trifft(transaction.category_id)) return true;
   if (!matchSplits) return false;
-  return allocations.some((a) => isCategoryInFilter(allocationCategoryId(a), categoriesById, filter));
+  return allocations.some((a) => trifft(allocationCategoryId(a)));
 }
 
 function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: EssentialFilter): boolean {
@@ -147,6 +162,20 @@ function matchesAusgabenklasseFilter(transaction: Transaction, categoriesById: M
   const klasse = resolveAusgabenklasse(categoriesById, assignedId);
   const effectiveKlasse = klasse || 'unkategorisiert';
   return effectiveKlasse === filter;
+}
+
+/**
+ * Händlerfamilie statt Freitext. Verglichen wird der NORMALISIERTE
+ * Empfängername (`normalizeMerchantName`) — damit fallen Filial- und
+ * Referenznummern weg und „LIDL SAGT DANKE 1234" trifft denselben Filter wie
+ * „LIDL SAGT DANKE 5678".
+ *
+ * Ausdrücklich NUR `payee`: Ein Treffer in `description`, `original_text` oder
+ * einer Notiz wäre der Übertreffer, gegen den diese Achse überhaupt gebaut ist.
+ */
+function matchesMerchantFilter(transaction: Transaction, normalizedFilter: string): boolean {
+  const merchant = normalizeMerchantName(transaction.payee) || (transaction.payee || '').toLowerCase().trim();
+  return merchant.includes(normalizedFilter);
 }
 
 function matchesAccountFilter(transaction: Transaction, accountsById: Map<string, Account>, filter: string): boolean {
@@ -231,6 +260,12 @@ export function filterTransactions(
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now, filters.customPeriod ?? '');
   const search = filters.search.trim().toLowerCase();
+  // Den FILTER einmal vorab normalisieren, nicht je Buchung. Und die Achse
+  // nur auswerten, wenn sie gesetzt ist — sonst kostete sie bei 5000
+  // Buchungen 5000 regexlastige Normalisierungen für nichts.
+  const merchant = (filters.merchant ?? '').trim()
+    ? normalizeMerchantName(filters.merchant) || (filters.merchant ?? '').toLowerCase().trim()
+    : '';
   const categoriesById = getCategoryById(categories);
   const accountsById = getAccountById(accounts);
   const allocationsByTransaction = splits.byTransaction ?? NO_ALLOCATIONS;
@@ -240,7 +275,7 @@ export function filterTransactions(
     if (!isWithinInterval(txDate, { start, end })) return false;
 
     const allocations = transaction.id ? allocationsByTransaction.get(transaction.id) ?? [] : [];
-    if (!matchesCategoryFilter(transaction, categoriesById, filters.category, allocations, splits.matchCategories)) {
+    if (!matchesCategoryFilter(transaction, categoriesById, aktiveKategorien(filters), allocations, splits.matchCategories)) {
       return false;
     }
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
@@ -248,6 +283,7 @@ export function filterTransactions(
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 
+    if (merchant && !matchesMerchantFilter(transaction, merchant)) return false;
     if (search && !searchableText(transaction, allocations).includes(search)) return false;
 
     return true;
@@ -286,12 +322,18 @@ function rangeFromPeriodToken(token: string): DashboardRange | null {
 
 export function encodeDashboardFilters(filters: DashboardFilterState): URLSearchParams {
   const params = new URLSearchParams();
-  if (filters.category !== 'all') params.set('cat', filters.category);
+  // `cat` trägt die Menge als Komma-Liste. Abwärtskompatibel: Ein einzelner
+  // Wert bleibt ein einzelner Wert, bereits verschickte Links behalten ihre
+  // Bedeutung — der „letzte günstige Zeitpunkt" (AGENTS.md), weil dieser
+  // Zustand in geteilten Adressen steht.
+  const kategorien = aktiveKategorien(filters);
+  if (kategorien.length > 0) params.set('cat', kategorien.join(','));
   if (filters.account !== 'all') params.set('acc', filters.account);
   if (filters.contract !== 'all') params.set('contract', filters.contract);
   if (filters.essential !== 'all') params.set('essential', filters.essential);
   if (filters.ausgabenklasse !== 'all') params.set('klasse', filters.ausgabenklasse);
   if (filters.search.trim()) params.set('q', filters.search.trim());
+  if (filters.merchant?.trim()) params.set('merchant', filters.merchant.trim());
   // Jahr/Quartal/Monat: konkrete Periode direkt als range-Token (z.B. range=2026-Q2).
   if ((filters.range === 'Jahr' || filters.range === 'Quartal' || filters.range === 'Monat') && filters.customPeriod) {
     params.set('range', filters.customPeriod);
@@ -315,6 +357,7 @@ export function buildTransactionsHref(partial: Partial<DashboardFilterState>): s
     essential: 'all',
     ausgabenklasse: 'all',
     search: '',
+    merchant: '',
     range: 'Gesamt',
     customDays: 30,
     customPeriod: '',
@@ -329,13 +372,18 @@ export function decodeDashboardFilters(params: URLSearchParams): DashboardFilter
   const periodRange = rangeFromPeriodToken(rangeToken);
   const range = periodRange ?? TOKEN_TO_RANGE[rangeToken] ?? 'Gesamt';
   const days = Number(params.get('days'));
+  // `cat` kann eine Komma-Liste sein (WP-G). Ein einzelner Wert bleibt die
+  // Einzelauswahl — sonst hinge an jedem alten Link plötzlich eine Menge.
+  const catRoh = (params.get('cat') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   return {
-    category: params.get('cat') ?? 'all',
+    category: catRoh.length === 1 ? catRoh[0] : 'all',
+    ...(catRoh.length > 1 ? { categories: catRoh } : {}),
     account: params.get('acc') ?? 'all',
     contract: (params.get('contract') as ContractFilter) ?? 'all',
     essential: (params.get('essential') as EssentialFilter) ?? 'all',
     ausgabenklasse: (params.get('klasse') as AusgabenklasseFilter) ?? 'all',
     search: params.get('q') ?? '',
+    merchant: params.get('merchant') ?? '',
     range,
     customDays: Number.isFinite(days) && days > 0 ? days : 30,
     customPeriod: periodRange ? rangeToken : '',

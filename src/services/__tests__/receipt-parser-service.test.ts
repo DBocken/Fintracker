@@ -102,3 +102,147 @@ describe("parseReceipt line items", () => {
     expect(parsed.lineItems).toBeUndefined();
   });
 });
+
+describe("parseReceipt Summenkonsistenz", () => {
+  /**
+   * Die Prüfung, die bis hierher fehlte: Zeilenbeträge und Gesamtbetrag wurden
+   * nebeneinander erkannt und nie gegeneinander gehalten. Je Zeile gab es
+   * bereits eine Prüfung (Menge × Stückpreis ≈ Zeilenbetrag) — über den Beleg
+   * hinweg keine.
+   *
+   * Die Richtung des Widerspruchs entscheidet, und zwar streng:
+   * Eine Zeilensumme UNTER dem Gesamtbetrag ist der Normalfall, weil die
+   * Zeilenerkennung bewusst konservativ ist und Zeilen auslässt. Nur eine
+   * Zeilensumme ÜBER dem Gesamtbetrag ist ein echter Widerspruch — dann ist
+   * entweder ein Betrag zu hoch gelesen oder eine Nicht-Produktzeile
+   * mitgezählt worden.
+   */
+  it("sollte den Gesamtbetrag bestätigen, wenn die Zeilen ihn genau ergeben", () => {
+    const text = ["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "SUMME EUR 6,47"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("confirmed");
+    expect(parsed.lineItemSum).toBeCloseTo(6.47);
+    expect(parsed.total!.confidence).toBeGreaterThan(0.9);
+  });
+
+  it("sollte einen Widerspruch melden, wenn die Zeilen MEHR ergeben als die Summe", () => {
+    // 3,98 + 2,49 = 6,47, der Beleg behauptet 4,47 — einer der beiden Werte
+    // ist falsch gelesen, und welcher, weiß niemand.
+    const text = ["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "SUMME EUR 4,47"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("exceeds");
+    expect(receiptLowConfidenceFields(parsed)).toContain("total");
+  });
+
+  it("sollte eine unvollständige Zeilenerkennung NICHT als Fehler werten", () => {
+    // Nur eine von mehreren Produktzeilen erkannt: erwartbar, kein Widerspruch.
+    // Diese Zeilen unter Verdacht zu stellen hiesse, bei fast jedem Beleg zu
+    // warnen — und eine Warnung, die immer kommt, wird nicht mehr gelesen.
+    const text = ["REWE", "Brot 2,49", "SUMME EUR 18,90"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("incomplete");
+    expect(receiptLowConfidenceFields(parsed)).not.toContain("total");
+  });
+
+  it("sollte ohne Zeilen oder ohne Summe kein Urteil fällen", () => {
+    const ohneZeilen = parseReceipt(["Kiosk", "SUMME 8,90", "Rückgeld 1,10"].join("\n"));
+    expect(ohneZeilen.totalCheck).toBe("unknown");
+
+    const ohneSumme = parseReceipt(["Kiosk"].join("\n"));
+    expect(ohneSumme.totalCheck).toBe("unknown");
+  });
+
+  it("sollte Rundungsdifferenzen im Centbereich tolerieren", () => {
+    // Dieselbe Toleranz wie die Zeilenprüfung (< 0,02) — sonst würde ein
+    // gerundeter Stückpreis den Beleg grundlos verdächtig machen.
+    const text = ["REWE", "Apfel 3 x 0,33 0,99", "Brot 2,49", "SUMME EUR 3,49"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("confirmed");
+  });
+});
+
+describe("parseReceipt Selbstkorrektur über die Summenprüfung", () => {
+  /**
+   * Nachgemessen an realistischen Bons: Ein `exceeds` entsteht nicht durch eine
+   * falsch gelesene Ziffer, sondern durch EINE Zeile zu viel — Pfand, Rabatt
+   * oder eine unbenannte Zwischensumme, die die Ausschlussliste nicht kennt.
+   * In allen drei Gegenproben stellte das Entfernen genau einer Zeile die
+   * Übereinstimmung her.
+   *
+   * Deshalb wird hier keine Ziffernverwechslung geraten. Der Verifizierer ist
+   * die Summe selbst: Eine Korrektur zählt nur, wenn sie den Widerspruch
+   * auflöst — und nur, wenn sie die EINZIGE ist, die das tut.
+   */
+  it("sollte eine überzählige Zeile entfernen, wenn genau das die Summe aufgehen lässt", () => {
+    const text = ["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "Pfand 0,25", "SUMME EUR 6,47"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("confirmed");
+    expect(parsed.discardedLine?.name).toBe("Pfand");
+    expect(parsed.lineItems!.map((i) => i.name)).toEqual(["Apfel", "Brot"]);
+    expect(parsed.lineItemSum).toBeCloseTo(6.47);
+  });
+
+  it("sollte eine als Posten missdeutete Zwischensumme entfernen", () => {
+    const text = ["DM", "Shampoo 3,95", "Zahnpasta 1,95", "Kundenkarte 5,90", "SUMME EUR 5,90"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("confirmed");
+    expect(parsed.discardedLine?.total).toBeCloseTo(5.9);
+  });
+
+  it("sollte NICHT korrigieren, wenn zwei verschiedene Zeilen es gleichermaßen täten", () => {
+    // Zwei Zeilen über 1,00: Beide Entfernungen lassen die Summe aufgehen, und
+    // welche der beiden die falsche ist, weiß hier niemand. Dieselbe Regel wie
+    // bei der Kategorie-Auflösung: Mehrdeutigkeit ⇒ kein Ergebnis, nicht das
+    // erstbeste.
+    const text = ["Kiosk", "Wasser 1,00", "Kaugummi 1,00", "Zeitung 2,50", "SUMME EUR 3,50"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("exceeds");
+    expect(parsed.discardedLine).toBeUndefined();
+  });
+
+  it("sollte NICHT korrigieren, wenn keine einzelne Zeile den Widerspruch erklärt", () => {
+    // Differenz 3,00, aber keine Zeile trägt 3,00. Dann ist die Ursache eine
+    // andere — vielleicht ein falsch gelesener Betrag — und ein Entfernen wäre
+    // Kosmetik an der falschen Stelle.
+    const text = ["Kiosk", "Wasser 1,10", "Kaugummi 1,20", "Zeitung 2,50", "SUMME EUR 1,80"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("exceeds");
+    expect(parsed.discardedLine).toBeUndefined();
+  });
+
+  it("[REGRESSION] sollte einen GERATENEN Gesamtbetrag nicht durch die Zeilen bestätigen lassen", () => {
+    // Ohne Summenzeile fällt `extractTotal` auf den größten Betrag des Belegs
+    // zurück — und der ist selbst eine der Produktzeilen. Die Prüfung würde
+    // dann nur noch sich selbst bestätigen und dafür die übrigen Posten
+    // entfernen, bis die Rechnung aufgeht. Genau das tat sie beim ersten
+    // Entwurf: Aus „Artikel A 3,00 / Artikel B 5,50" wurde ein bestätigter
+    // Beleg über 5,50 mit weggeworfenem Artikel A.
+    const text = ["Laden", "Artikel A 3,00", "Artikel B 5,50"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("unknown");
+    expect(parsed.discardedLine).toBeUndefined();
+    expect(parsed.lineItems).toHaveLength(2);
+    expect(parsed.total!.confidence).toBeLessThan(0.7);
+  });
+
+  it("sollte die Confidence nach einer Korrektur unter die einer echten Bestätigung setzen", () => {
+    // Eine hergeleitete Übereinstimmung ist schwächer als eine gefundene: Die
+    // Zeilen wurden passend gemacht, nicht unabhängig bestätigt.
+    const repariert = parseReceipt(
+      ["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "Pfand 0,25", "SUMME EUR 6,47"].join("\n"),
+    );
+    const echt = parseReceipt(["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "SUMME EUR 6,47"].join("\n"));
+
+    expect(repariert.total!.confidence).toBeLessThan(echt.total!.confidence);
+    expect(repariert.total!.confidence).toBeGreaterThan(0.7);
+  });
+});

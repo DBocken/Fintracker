@@ -4,6 +4,7 @@ import {
   findeHosts,
   parseRegister,
   vergleiche,
+  findeAbhaengigkeitsHosts,
 } from '../external-endpoints-core.mjs';
 
 /**
@@ -274,5 +275,67 @@ describe('vergleiche', () => {
       cspHosts: ['cdn.fremd-analytics.io'],
     });
     expect(ergebnis.unbekannt.map((f) => f.host)).toContain('cdn.fremd-analytics.io');
+  });
+});
+
+/**
+ * CDN-Vorgaben aus Abhängigkeiten.
+ *
+ * Der blinde Fleck, den der Wächter bis hierher strukturell hatte: Er liest
+ * `git ls-files src api supabase/functions services public index.html` —
+ * `node_modules` ist nicht dabei. Ein Host, der ausschliesslich in der
+ * VORGABEKONFIGURATION einer Abhängigkeit steht, war damit unsichtbar.
+ *
+ * Aufgefallen ist das an `tesseract.js`: Es lädt Worker, WASM-Kern und
+ * Sprachdaten per Vorgabe von `cdn.jsdelivr.net`, keine Aufrufstelle setzt
+ * einen eigenen Pfad — und die Produktions-CSP blockiert alle drei (Issue
+ * #327). Der Wächter hätte das nie gemeldet.
+ *
+ * Die Regel ist bewusst eine **Positivliste bekannter Auslieferungs-CDNs**
+ * und kein Rundumschlag über jede URL in `node_modules`. Nachgemessen: Ein
+ * breiter Scan über alle 7845 JS-Dateien der 61 direkten Abhängigkeiten
+ * liefert Treffer wie Dokumentationslinks und Shader-Quellenangaben — und
+ * Fehlalarme schalten Wächter ab, statt sie durchzusetzen (dieselbe Lehre
+ * wie bei `check:money-format`). Mit der Positivliste, beschränkt auf die
+ * ausgelieferten Einstiegs-/`dist`-Dateien und ohne Kommentare, bleiben
+ * exakt zwei Treffer — und beide sind echt.
+ */
+describe('findeAbhaengigkeitsHosts', () => {
+  it('sollte einen CDN-Pfad in einer Vorgabekonfiguration finden', () => {
+    const quelle = "module.exports = { workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@v7/dist/worker.min.js` };";
+    expect(findeAbhaengigkeitsHosts(quelle, 'tesseract.js/dist/worker.min.js').map((f) => f.host)).toEqual([
+      'cdn.jsdelivr.net',
+    ]);
+  });
+
+  it('sollte jeden gelisteten Auslieferungs-CDN erkennen', () => {
+    for (const host of ['unpkg.com', 'cdnjs.cloudflare.com', 'cdn.skypack.dev', 'esm.sh']) {
+      expect(findeAbhaengigkeitsHosts(`const u = "https://${host}/x.js";`, 'p/dist/i.js').map((f) => f.host)).toEqual([
+        host,
+      ]);
+    }
+  });
+
+  it('sollte einen Kommentar NICHT melden', () => {
+    // Die Quellenangabe eines Shaders in `three` ist keine Laufzeit-Abfrage.
+    const quelle = '// Quelle: https://raw.githubusercontent.com/x/y/mx_noise.glsl\nconst a = 1;';
+    expect(findeAbhaengigkeitsHosts(quelle, 'three/build/three.webgpu.js')).toEqual([]);
+  });
+
+  it('sollte einen gewöhnlichen Fremdhost NICHT melden', () => {
+    // Nur Auslieferungs-CDNs. Ein Dokumentations- oder Herstellerlink in einer
+    // Bibliothek ist kein Datenfluss und würde den Wächter zumüllen.
+    const quelle = 'const hilfe = "https://example.com/docs"; const api = "https://api.stripe.com/v1";';
+    expect(findeAbhaengigkeitsHosts(quelle, 'p/dist/i.js')).toEqual([]);
+  });
+
+  it('sollte denselben Host nur einmal je Datei melden', () => {
+    const quelle = 'a("https://unpkg.com/a"); b("https://unpkg.com/b"); c("https://unpkg.com/c");';
+    expect(findeAbhaengigkeitsHosts(quelle, 'p/dist/i.js')).toHaveLength(1);
+  });
+
+  it('sollte die Fundstelle mitliefern, damit die Meldung nachprüfbar ist', () => {
+    const [fund] = findeAbhaengigkeitsHosts('const u = "https://unpkg.com/x";', 'p/dist/i.js');
+    expect(fund).toMatchObject({ host: 'unpkg.com', datei: 'p/dist/i.js', form: 'abhaengigkeit' });
   });
 });

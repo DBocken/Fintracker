@@ -35,6 +35,14 @@ import type { TranslationOverlay } from '../types';
  * `portfolio.newPortfolioName` ещё и сохраняется в данных).
  */
 export const everydayRu: TranslationOverlay = {
+  learnedCategorization: {
+    title: 'Насколько хорошо Fintracker распределяет?',
+    empty: 'Пока подтверждено слишком мало, чтобы учиться. Распределите несколько операций сами — приложение запомнит.',
+    error: 'Оценка сейчас не загружается.',
+    withModel: 'Из 100 операций, распределённых автоматически, в проверке верными оказались {correct}.',
+    withoutModel: 'Без обучения на ваших операциях было бы {correct} — и приложение распределило бы всего {coverage} из 100 вместо {modelCoverage}.',
+    basis: 'Основа: {count} операций, которые вы подтвердили сами.',
+  },
   glossary: {
     terms: {
       liquidity: {
@@ -426,6 +434,7 @@ export const everydayRu: TranslationOverlay = {
   accounts: {
     formDialog: {
       balanceDateLabel: 'Дата остатка',
+      ibanChecksumWarning: 'Похоже, в этом IBAN опечатка — сверьте его ещё раз, пожалуйста. Он всё равно будет сохранён.',
       openingBalanceLabel: 'Остаток на начало (необязательно)',
       balanceHint:
         'Остаток до первой импортированной/записанной операции. Прибавляется к сумме операций, чтобы расчётный остаток совпадал с фактическим остатком на счёте.',

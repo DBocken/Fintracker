@@ -1,7 +1,7 @@
 {
   "name": "modul-ausgabentracker-2",
   "private": true,
-  "version": "2026.8.3",
+  "version": "2026.9.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -54,6 +54,7 @@
     "@fontsource-variable/orbitron": "^5.2.8",
     "@fontsource-variable/quicksand": "^5.2.10",
     "@fontsource-variable/space-grotesk": "^5.2.10",
+    "@huggingface/transformers": "^4.2.0",
     "@playwright/test": "^1.62.1",
     "@radix-ui/react-accordion": "^1.2.13",
     "@radix-ui/react-alert-dialog": "^1.1.16",
@@ -141,7 +142,9 @@
       "js-yaml@>=4 <5": ">=4.3.1 <5",
       "postcss@>=8 <9": ">=8.5.23 <9",
       "brace-expansion@>=1 <2": ">=1.1.18 <2",
-      "brace-expansion@>=5 <6": ">=5.0.9 <6"
+      "brace-expansion@>=5 <6": ">=5.0.9 <6",
+      "sharp@>=0.30 <0.35": ">=0.35.0 <1",
+      "adm-zip@<0.6": ">=0.6.0 <1"
     }
   }
 }

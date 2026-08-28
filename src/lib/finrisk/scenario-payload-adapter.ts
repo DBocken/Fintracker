@@ -15,6 +15,10 @@
  *                            kommt ohne Engine-Erweiterung aus.
  *  - `baseline_multiplier` / `payload.baselineMultiplier`
  *                         → `variable` (`percentChange = (faktor − 1) · 100`).
+ *  - `flow_change`        → `flow` (`flowSelector` + `factor`, `fromDate` aus
+ *                            `dayIndex`) — Vertragswegfall/Gehaltserhöhung (WP-H).
+ *  - `recurring_flow`     → `recurring` (signierter Monatsbetrag, `anchorDate`
+ *                            aus `dayIndex`).
  *
  * Die Eintrittswahrscheinlichkeit (`probability < 1`) wird hier NICHT angewandt –
  * sie ist eine Mixture über Monte-Carlo-Pfade und wird im Orchestrator
@@ -72,6 +76,39 @@ function eventToModifiers(event: ScenarioEvent, startISO: string, index: number)
           label: event.description ?? t('scenario.higherCosts'),
         },
       ];
+
+    case 'flow_change': {
+      if (!event.flowSelector || event.factor === undefined) return [];
+      return [
+        {
+          id: baseId,
+          type: 'flow',
+          flowSelector: event.flowSelector,
+          factor: event.factor,
+          // dayIndex 0/undefined = ab sofort — dann KEIN fromDate, damit der
+          // Flow-Split (`__pre`/`__post`) nur entsteht, wenn er gebraucht wird.
+          fromDate: event.dayIndex ? dayFrom(startISO, event.dayIndex) : undefined,
+          label: event.description,
+        },
+      ];
+    }
+
+    case 'recurring_flow': {
+      const signiert =
+        event.direction === 'income' ? Math.abs(event.amount) : -Math.abs(event.amount);
+      return [
+        {
+          id: baseId,
+          type: 'recurring',
+          amount: signiert,
+          cadence: 'monthly',
+          anchorDate: dayFrom(startISO, event.dayIndex ?? 0),
+          label:
+            event.description ??
+            (event.direction === 'income' ? t('scenario.additionalIncome') : t('scenario.newRecurring')),
+        },
+      ];
+    }
 
     case 'income_reduction': {
       // Tägliche Einkommensminderung über das Fenster als Folge von Einmalposten.

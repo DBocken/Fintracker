@@ -1,6 +1,7 @@
 import type { Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
 import { t as translate } from "@/i18n/serviceT";
 import { toMinor, toMajor, sumMinor, type Cents } from "@/lib/money";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 
 /**
  * Schmaler Kern der Auswertung: transferbereinigte Summen, Kategorie-Beiträge
@@ -210,4 +211,55 @@ export function resolveEssenziell(
     current = byId.get(current.parent_id);
   }
   return null;
+}
+
+export interface GruppenSumme {
+  /** Gruppenschlüssel: normalisierter Händler bzw. Kategorie-ID. */
+  schluessel: string;
+  /** Anzeigename aus den Daten (Händlername bzw. Kategoriename). */
+  label: string;
+  summe: number;
+  anzahl: number;
+}
+
+/**
+ * Ausgaben je Händlerfamilie, größte zuerst — „Welche Händler haben am
+ * meisten Geld von mir bekommen?" ist reine Gruppierung, keine Inferenz.
+ */
+export function topHaendler(transactions: Transaction[], n: number): GruppenSumme[] {
+  const gruppen = new Map<string, GruppenSumme>();
+  for (const t of transactions) {
+    if (t.is_transfer || t.amount >= 0) continue;
+    const schluessel = normalizeMerchantName(t.payee) || (t.payee || '').toLowerCase().trim();
+    if (!schluessel) continue;
+    const g = gruppen.get(schluessel) ?? { schluessel, label: t.payee, summe: 0, anzahl: 0 };
+    g.summe += Math.abs(t.amount);
+    g.anzahl += 1;
+    gruppen.set(schluessel, g);
+  }
+  return [...gruppen.values()].sort((a, b) => b.summe - a.summe).slice(0, n);
+}
+
+/**
+ * Ausgaben je Hauptkategorie, größte zuerst. Unterkategorien zählen zur
+ * Buchungs-Kategorie selbst — gruppiert wird über die stabile ID, benannt
+ * über den Kategorienamen (nie umgekehrt, AGENTS.md §6).
+ */
+export function topKategorien(
+  transactions: Transaction[],
+  categories: Category[],
+  n: number,
+): GruppenSumme[] {
+  const nameById = new Map(categories.map((c) => [c.id, c.name]));
+  const gruppen = new Map<string, GruppenSumme>();
+  for (const t of transactions) {
+    if (t.is_transfer || t.amount >= 0) continue;
+    const id = t.category_id;
+    if (!id) continue;
+    const g = gruppen.get(id) ?? { schluessel: id, label: nameById.get(id) ?? id, summe: 0, anzahl: 0 };
+    g.summe += Math.abs(t.amount);
+    g.anzahl += 1;
+    gruppen.set(id, g);
+  }
+  return [...gruppen.values()].sort((a, b) => b.summe - a.summe).slice(0, n);
 }

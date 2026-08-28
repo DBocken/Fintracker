@@ -309,6 +309,33 @@
  * verschiebt sich nahtlos um genau diese Distanz – dadurch wirkt sie endlos.
  * Wird durch die globale reduced-motion-Policy oben automatisch gestoppt.
  */
+/*
+ * Herkunfts-Punkt der Router-Stufe 3: Er LEUCHTET AUF, statt einfach da zu
+ * sein. Der Nutzer soll am Rand des Blicks mitbekommen, dass diese eine
+ * Antwort über das lokale Modell lief — ohne dass ein Satz die Aufmerksamkeit
+ * von der Zahl wegzieht (§9: Daten poppen nicht auf, sie werden aufgebaut).
+ *
+ * Der Ruhezustand (schwaches Glimmen) steht als Tailwind-Schatten an der
+ * Marke selbst; diese Animation fügt nur das Aufleuchten hinzu und endet
+ * über `forwards` genau dort. Wer `prefers-reduced-motion` gesetzt hat,
+ * bekommt über `motion-safe:` gar keine Animation und sieht direkt den
+ * Ruhezustand — die Information geht dabei nicht verloren.
+ */
+@keyframes modell-punkt-auf {
+  0% {
+    transform: scale(0.35);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+  }
+  45% {
+    transform: scale(1.2);
+    box-shadow: 0 0 11px 3px hsl(var(--primary) / 0.6);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px 1px hsl(var(--primary) / 0.4);
+  }
+}
+
 @keyframes budget-wave {
   from { transform: translateX(0); }
   to { transform: translateX(-72px); }

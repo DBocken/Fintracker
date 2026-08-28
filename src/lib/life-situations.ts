@@ -87,6 +87,12 @@ export const ALWAYS_VISIBLE_NAV_PATHS: readonly string[] = [
   // abwählen zu können hilft niemandem, und wer sich in der App verirrt hat,
   // findet den Weg dorthin sonst gerade nicht.
   '/tutorials',
+  // „Nachfragen" ist aus demselben Grund nicht abwählbar wie die Führungen:
+  // Die Fläche beantwortet Fragen ZU den anderen Bereichen und wächst mit
+  // jedem neuen Registereintrag mit. Sie an einen wählbaren Bereich zu binden
+  // hiesse, sie je nach Auswahl halb funktionsfähig anzubieten — sie kennt
+  // von sich aus keine einzige Fachfrage.
+  '/fragen',
 ];
 
 /**

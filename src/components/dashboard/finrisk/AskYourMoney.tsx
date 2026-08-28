@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, format, parseISO } from 'date-fns';
 import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import { Sparkles, Check, TrendingDown, TrendingUp, CalendarClock, LoaderCircle } from 'lucide-react';
@@ -21,6 +21,14 @@ const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR',
 interface Props {
   input: ForecastInput | null;
   config: ForecastConfig;
+  /**
+   * Vorbefüllung aus einem Deep-Link (WP-H.5): Der Chat-Eintrag
+   * `leistbarkeit.anschaffung` verspricht seit WP-F.3 „dort mit deinem
+   * Betrag vorbelegt" — DIESE Props lösen das Versprechen ein. Die URL liest
+   * die Fläche darüber (`LiquidityReport`), nicht diese Komponente.
+   */
+  initialAmount?: number;
+  initialDays?: number;
 }
 
 function pct(p: number): string {
@@ -41,15 +49,27 @@ function getWhenPresets(t: (key: string) => string): { label: string; days: numb
  * tausende deiner Zukünfte durch und antwortet mit ehrlicher Wahrscheinlichkeit –
  * und, falls knapp, mit einem Trade-off-Menü konkreter Wege zum Ziel.
  */
-export default function AskYourMoney({ input, config }: Props) {
+export default function AskYourMoney({ input, config, initialAmount, initialDays }: Props) {
   const { t } = useI18n();
   const dateFnsLocale = useDateFnsLocale();
   const startISO = config.startDate ?? format(new Date(), 'yyyy-MM-dd');
-  const [amount, setAmount] = useState('');
-  const [days, setDays] = useState(30);
+  const [amount, setAmount] = useState(
+    initialAmount !== undefined ? String(initialAmount).replace('.', ',') : '',
+  );
+  const [days, setDays] = useState(initialDays ?? 30);
   const [goal, setGoal] = useState<AffordabilityGoal | null>(null);
 
   const { result, isCalculating } = useAffordability(input, config, goal);
+
+  // Ein vorbelegter Betrag rechnet, sobald die Daten da sind — genau EINMAL:
+  // Wer aus dem Chat kommt, hat seine Frage schon gestellt und soll die
+  // Antwort sehen, nicht das Formular ein zweites Mal abschicken.
+  const autoGefragt = useRef(false);
+  useEffect(() => {
+    if (autoGefragt.current || initialAmount === undefined || initialAmount <= 0 || !input) return;
+    autoGefragt.current = true;
+    setGoal({ amount: initialAmount, dayIndex: initialDays ?? 30 });
+  }, [initialAmount, initialDays, input]);
 
   // parseGermanNumber statt Roh-`parseFloat` mit Komma-Ersetzung: Ein Roh-Parser
   // liest getipptes „1.200" (deutscher Tausenderpunkt) als 1,2 — der Nutzer

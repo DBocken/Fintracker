@@ -1,8 +1,10 @@
 import { AccountManager } from "@/components/accounts/AccountManager";
 import { CashSection } from "@/components/accounts/CashSection";
+import { ManualAssetsSection } from "@/features/accounts/presentation/ManualAssetsSection";
 import { FeatureGate } from "@/components/FeatureGate";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useAccountsLoadState } from "@/features/accounts/application/use-accounts-load-state";
+import { useNetWorthSnapshot } from "@/features/accounts/application/use-net-worth-snapshot";
 
 /**
  * Beide Karten dieser Seite lesen denselben Kontenbestand. Scheitert er, ist
@@ -18,6 +20,10 @@ import { useAccountsLoadState } from "@/features/accounts/application/use-accoun
  */
 export default function AccountsPage() {
   const { hasLoadError, retry } = useAccountsLoadState();
+  // Die Vermögens-Historie entsteht beim Anschauen (Welle 4): Wer diese
+  // Fläche im Monat einmal öffnet, hat den Punkt. Ohne Erzeuger bliebe die
+  // Zeitreihe für immer leer.
+  useNetWorthSnapshot();
 
   if (hasLoadError) {
     return <FinanceErrorState onRetry={retry} />;
@@ -26,6 +32,9 @@ export default function AccountsPage() {
   return (
     <div className="space-y-6">
       <CashSection />
+      {/* Vermögenswerte ohne Buchung (Welle 4) — ohne Gate: Wer sein Auto
+          erfassen will, braucht dafür keine Bankanbindung. */}
+      <ManualAssetsSection />
       <FeatureGate feature="bankSync">
         <AccountManager />
       </FeatureGate>

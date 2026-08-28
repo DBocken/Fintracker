@@ -13,6 +13,10 @@
  */
 import type { DensityField } from './density';
 import type { TrialAssumptions } from '../forecast-montecarlo-types';
+import type { FlowSelector } from '../forecast-scenario-types';
+
+/** Re-Export statt Zweitdefinition — beide Schichten meinen dieselbe Auswahlregel. */
+export type { FlowSelector } from '../forecast-scenario-types';
 
 /** Fachlicher Szenario-Typ (Frage, die der Nutzer stellt). */
 export type ScenarioType =
@@ -24,8 +28,23 @@ export type ScenarioType =
   | 'stress_capacity'
   | 'custom_combination';
 
-/** Art eines einzelnen Szenario-Ereignisses. */
-export type ScenarioEventType = 'expense' | 'income' | 'income_reduction' | 'baseline_multiplier';
+/**
+ * Art eines einzelnen Szenario-Ereignisses.
+ *
+ * `flow_change` und `recurring_flow` (WP-H) machen im Payload ausdrückbar,
+ * was `applyScenario` über die Modifikatoren `flow`/`recurring` längst kann:
+ * „Auto verkauft ⇒ Werkstatt/Versicherung/Kraftstoff entfallen ab Tag X"
+ * (`factor 0`) und „Gehaltserhöhung ab Tag X" (`factor > 1` auf den
+ * Gehalts-Flow) bzw. ein neuer monatlicher Posten. Ohne sie konnte die
+ * Chat-Fläche kombinierte Was-wäre-wenn-Fragen nicht an die Engine reichen.
+ */
+export type ScenarioEventType =
+  | 'expense'
+  | 'income'
+  | 'income_reduction'
+  | 'baseline_multiplier'
+  | 'flow_change'
+  | 'recurring_flow';
 
 /** Modellschicht, der ein Ereignis zugeordnet ist (für Debug/Erklärung). */
 export type ScenarioLayer =
@@ -42,6 +61,10 @@ export type ScenarioLayer =
  *  - `expense` / `income`: `amount` (positiv) + `dayIndex`.
  *  - `income_reduction`: `amount` (EUR/Tag) über `[startDayIndex, endDayIndex]`.
  *  - `baseline_multiplier`: `amount` als Faktor (z. B. 1.2 = +20 %).
+ *  - `flow_change`: `flowSelector` + `factor` (0 = entfällt, 1.1 = +10 %),
+ *    optional `dayIndex` als Wirksamkeitsbeginn; `amount` wird ignoriert (0).
+ *  - `recurring_flow`: `amount` (positiv) als Monatsbetrag, `direction`,
+ *    optional `dayIndex` als erster Fälligkeitstag.
  */
 export interface ScenarioEvent {
   eventType: ScenarioEventType;
@@ -54,6 +77,12 @@ export interface ScenarioEvent {
   probability?: number;
   layer?: ScenarioLayer;
   description?: string;
+  /** Für `flow_change`: welche erkannten Einträge getroffen werden. */
+  flowSelector?: FlowSelector;
+  /** Für `flow_change`: Faktor auf die getroffenen Einträge (0 = entfällt). */
+  factor?: number;
+  /** Für `recurring_flow`: Vorzeichen des neuen Postens. */
+  direction?: 'income' | 'expense';
 }
 
 /** Stabiles Szenario-Payload aus der UI. */

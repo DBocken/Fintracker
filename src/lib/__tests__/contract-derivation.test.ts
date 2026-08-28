@@ -266,3 +266,74 @@ describe("computeContracts status awareness", () => {
     expect(rows[0].cycle).toBe("Monatlich");
   });
 });
+
+/**
+ * Gruppierung nach Händlerfamilie statt nach rohem Zahlungsempfänger.
+ *
+ * Diese Tests sichern das Verhalten ab, das `detectRecurringTransactions`
+ * (bis WP-A, `contract-detection-service.ts`) FALSCH machte: Jene zweite,
+ * nie produktiv gerufene Vertragsableitung gruppierte nach `t.payee` und
+ * zerlegte damit dieselbe Zahlung in so viele Familien, wie die Bank
+ * Schreibweisen liefert. Sie ist entfallen; `computeContracts` ist seither
+ * die einzige Ableitung — und das hier ist ihr Netz.
+ */
+describe("computeContracts gruppiert nach Händlerfamilie", () => {
+  const cats = new Map<string, Category>();
+
+  it("sollte Filialnummern-Varianten desselben Händlers als EINEN Vertrag erkennen", () => {
+    // Die Bank hängt je Buchung eine andere Filial-/Referenznummer an. Nach
+    // `normalizeMerchantName` (Ziffernfolgen ab drei Stellen fallen weg) ist
+    // das dieselbe Familie; nach rohem `payee` wären es vier.
+    const series = [
+      tx({ id: "f1", payee: "LIDL SAGT DANKE 1234", amount: -42, date: "2024-02-15" }),
+      tx({ id: "f2", payee: "LIDL SAGT DANKE 5678", amount: -42, date: "2024-03-15" }),
+      tx({ id: "f3", payee: "LIDL SAGT DANKE 9012", amount: -42, date: "2024-04-15" }),
+      tx({ id: "f4", payee: "LIDL SAGT DANKE 3456", amount: -42, date: "2024-05-15" }),
+    ];
+
+    const rows = computeContracts(series, cats, "Ausgabe", { now: NOW });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cycle).toBe("Monatlich");
+    expect(rows[0].transactionIds).toHaveLength(4);
+  });
+
+  it("sollte über die Gegen-IBAN gruppieren, wenn der Verwendungszweck variiert", () => {
+    // Die IBAN ist das stärkere Signal (merchant-fingerprint.ts): Der
+    // Empfängername trägt hier den Abrechnungsmonat und ist deshalb bei jeder
+    // Buchung ein anderer String.
+    const iban = "DE11 0000 0000 0000 0000 01";
+    const series = [
+      tx({ id: "s1", payee: "Stadtwerke Abschlag 02/24", amount: -95, date: "2024-02-15", counterparty_iban: iban }),
+      tx({ id: "s2", payee: "Stadtwerke Abschlag 03/24", amount: -95, date: "2024-03-15", counterparty_iban: iban }),
+      tx({ id: "s3", payee: "Stadtwerke Abschlag 04/24", amount: -95, date: "2024-04-15", counterparty_iban: iban }),
+      tx({ id: "s4", payee: "Stadtwerke Abschlag 05/24", amount: -95, date: "2024-05-15", counterparty_iban: iban }),
+    ];
+
+    const rows = computeContracts(series, cats, "Ausgabe", { now: NOW });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].transactionIds).toHaveLength(4);
+  });
+
+  it("sollte Einnahme und Ausgabe desselben Händlers getrennt halten", () => {
+    // Die Richtung ist Teil des Fingerprints. Eine Erstattung darf nicht in
+    // derselben Vertragsfamilie landen wie die Abbuchung.
+    const abbuchungen = monthlySeries("Versandhaus", -30, 4);
+    const erstattungen = monthlySeries("Versandhaus", 30, 4).map((t, i) => ({
+      ...t,
+      id: asTransactionId(`erstattung-${i}`),
+    }));
+    const alle = [...abbuchungen, ...erstattungen];
+
+    const ausgaben = computeContracts(alle, cats, "Ausgabe", { now: NOW });
+
+    expect(ausgaben).toHaveLength(1);
+    expect(ausgaben[0].transactionIds).toEqual(
+      expect.arrayContaining(abbuchungen.map((t) => t.id)),
+    );
+    expect(ausgaben[0].transactionIds).not.toEqual(
+      expect.arrayContaining(erstattungen.map((t) => t.id)),
+    );
+  });
+});

@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/i18n/useI18n';
+import { isValidIban, normalizeIban } from '@/lib/iban';
 import type { Account, AccountType } from '../../types';
 import {
   getAccountTypeLabels,
@@ -138,6 +139,18 @@ export function AccountFormDialog({
       setIsBudgetPoolMember(type !== 'savings');
     }
   }, [type, account]);
+
+  /**
+   * Warnt erst, wenn die Eingabe lang genug ist, um überhaupt eine IBAN zu
+   * sein (Mindestlänge nach ISO 13616). Ein Feld, das beim dritten Zeichen
+   * rot wird, erzieht dazu, die Warnung zu übersehen.
+   *
+   * Gewarnt wird, nicht blockiert: Das Feld ist optional und dient dem
+   * Erkennen interner Überträge, nicht dem Auslösen einer Zahlung. Auf dem
+   * Zahlungsweg gilt das Gegenteil — `buildGirocodePayload` wirft.
+   */
+  const ibanKompakt = normalizeIban(iban) ?? '';
+  const ibanPruefsummeFalsch = ibanKompakt.length >= 15 && !isValidIban(ibanKompakt);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,6 +294,11 @@ export function AccountFormDialog({
               onChange={(e) => setIban(e.target.value)}
               placeholder={t('accounts.formDialog.ibanPlaceholder')}
             />
+            {ibanPruefsummeFalsch && (
+              <p className="text-xs text-destructive" role="status">
+                {t('accounts.formDialog.ibanChecksumWarning')}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               {t('accounts.formDialog.ibanHint')}
             </p>

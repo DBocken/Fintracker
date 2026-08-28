@@ -27,6 +27,7 @@ import { asTransactionId } from '@/lib/ids';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getMerchantRules } from '../services/merchant-rules-service';
 import { buildAutoCategoryPreview } from '@/lib/review-preview';
+import { useCategoryModel } from '@/hooks/useCategoryModel';
 import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
@@ -222,11 +223,15 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   });
 
   // Auto-Kategorie pro Zeile über die ECHTE Engine vorberechnen (gelernte
-  // Regeln, Normalisierung, Spezifität, Richtungs-Guard, Konfidenz-Floor) —
-  // damit die Anzeige nie von der tatsächlichen Zuweisung abweicht.
+  // Regeln, gelerntes Modell, Normalisierung, Spezifität, Richtungs-Guard,
+  // Konfidenz-Floor) — damit die Anzeige nie von der tatsächlichen Zuweisung
+  // abweicht. Das Modell muss mit: `applyAutoCategorization` benutzt es beim
+  // tatsächlichen Import, und eine Vorschau ohne es behauptete
+  // „unkategorisiert" für Buchungen, die danach zugeordnet werden.
+  const categorizationContext = useCategoryModel();
   const autoCategoryById = useMemo(
-    () => buildAutoCategoryPreview(rows, flatCategories, learnedRules),
-    [rows, flatCategories, learnedRules],
+    () => buildAutoCategoryPreview(rows, flatCategories, learnedRules, categorizationContext),
+    [rows, flatCategories, learnedRules, categorizationContext],
   );
 
   const PAGE_SIZE = 50;

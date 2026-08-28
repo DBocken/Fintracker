@@ -38,6 +38,14 @@ import type { TranslationOverlay } from '../types';
  *   *Bereich* bzw. den *Vermögensposten* — dort heisst es „Wertpapiere".
  */
 export const everydayDe: TranslationOverlay = {
+  learnedCategorization: {
+    title: 'Wie gut ordnet Fintracker zu?',
+    empty: 'Noch zu wenig bestätigt, um etwas zu lernen. Ordne ein paar Buchungen selbst zu — die App merkt es sich.',
+    error: 'Die Auswertung lässt sich gerade nicht laden.',
+    withModel: 'Von 100 automatisch zugeordneten Buchungen waren im Test {correct} richtig.',
+    withoutModel: 'Ohne das Lernen aus deinen Buchungen wären es {correct} — und die App würde nur {coverage} von 100 Buchungen überhaupt zuordnen statt {modelCoverage}.',
+    basis: 'Grundlage: {count} Buchungen, die du selbst bestätigt hast.',
+  },
   glossary: {
     terms: {
       liquidity: {
@@ -477,6 +485,7 @@ export const everydayDe: TranslationOverlay = {
   accounts: {
     formDialog: {
       balanceDateLabel: 'Kontostand-Stichtag',
+      ibanChecksumWarning: 'Diese IBAN sieht nach einem Tippfehler aus — magst du sie noch einmal vergleichen? Gespeichert wird sie trotzdem.',
       openingBalanceLabel: 'Kontostand am Anfang (optional)',
       balanceHint: 'Kontostand am Ende des Stichtags. Nur Buchungen NACH diesem Tag kommen drauf – ältere kannst du gefahrlos nachimportieren, sie zählen nicht doppelt.',
       manualBalanceHint: 'Setzt den Kontostand auf das, was heute auf deinem Kontoauszug steht. Spätere Buchungen kommen ab morgen wieder drauf – der Stand bleibt nicht stehen.',

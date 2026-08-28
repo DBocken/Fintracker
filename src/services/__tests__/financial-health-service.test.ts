@@ -15,6 +15,8 @@ const EMPTY_NET_WORTH: NetWorthBreakdown = {
   unconvertedInvestments: [],
   debtSources: [],
   receivableSources: [],
+  manualAssets: 0,
+  manualAssetSources: [],
 };
 
 function tx(overrides: Partial<Transaction>): Transaction {

@@ -1,3 +1,4 @@
+import { aktiveKategorien } from '@/features/shared/domain/dashboard-filtering';
 import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 
 /**
@@ -9,7 +10,15 @@ import type { DashboardFilterState } from '@/features/shared/domain/dashboard-fi
  * Sprache (AGENTS.md §6, Falle „Matching über den Anzeigenamen").
  */
 export type ActiveFilterDescriptor = {
-  dimension: 'search' | 'category' | 'account' | 'contract' | 'essential' | 'ausgabenklasse' | 'range';
+  dimension:
+    | 'search'
+    | 'merchant'
+    | 'category'
+    | 'account'
+    | 'contract'
+    | 'essential'
+    | 'ausgabenklasse'
+    | 'range';
   value: string;
 };
 
@@ -27,7 +36,7 @@ export type ActiveFilterDescriptor = {
  * Dann die inhaltlichen Dimensionen, zuletzt der Zeitraum: Er ist oft
  * voreingestellt und selten die Überraschung.
  *
- * Zählt dieselben sieben Dimensionen wie `countActiveFilters()` — ein Test
+ * Zählt dieselben acht Dimensionen wie `countActiveFilters()` — ein Test
  * sichert das ab. Beschriebe diese Funktion weniger, als jene zählt, nennte
  * die Meldung einen Filter nicht, der aber wirkt.
  */
@@ -37,7 +46,21 @@ export function describeActiveFilters(filters: DashboardFilterState): ActiveFilt
   const search = filters.search.trim();
   if (search !== '') active.push({ dimension: 'search', value: search });
 
-  if (filters.category !== 'all') active.push({ dimension: 'category', value: filters.category });
+  // Direkt hinter der Suche: Beide sind Texteingaben und damit das, was der
+  // Nutzer zuletzt selbst gesetzt hat — der wahrscheinlichste Grund fuer null
+  // Treffer. Der Haendler steht dabei fuer eine Familie, nicht fuer einen
+  // Rohtext; sein Wert ist der normalisierte Name.
+  const merchant = (filters.merchant ?? '').trim();
+  if (merchant !== '') active.push({ dimension: 'merchant', value: merchant });
+
+  // Die Kategorien-MENGE (WP-G) wird je Kategorie EIN Deskriptor: Die
+  // Oberfläche zeigt sie als einzeln abwählbare Chips, und ein Chip „3
+  // Kategorien" ließe sich nicht abwählen. `aktiveKategorien` ist auch hier
+  // die eine Auflösungsstelle — sonst meldete die Leerzustands-Erklärung
+  // einen anderen Filter, als tatsächlich gerechnet wurde.
+  for (const kategorie of aktiveKategorien(filters)) {
+    active.push({ dimension: 'category', value: kategorie });
+  }
   if (filters.account !== 'all') active.push({ dimension: 'account', value: filters.account });
   if (filters.contract !== 'all') active.push({ dimension: 'contract', value: filters.contract });
   if (filters.essential !== 'all') active.push({ dimension: 'essential', value: filters.essential });

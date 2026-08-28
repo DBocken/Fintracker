@@ -113,7 +113,7 @@ verwenden**.
 | `pnpm check:state-coverage` | Verlangt je Fläche einen Test zum **Leer-** und zum **Fehlerzustand**. Die Zeilenabdeckung beantwortet das nicht: Sie lag bei 71 %, und `/debts` behauptete nach einem Lesefehler trotzdem „Noch keine Schulden" — es gab Tests, sie waren grün, und sie prüften, DASS gerendert wird, nicht WAS behauptet wird. Angemeldet wird ein Zustand über einen Tag im Testtitel: `it('[ZUSTAND /debts:fehler] …')`. Nur ein `it`/`test` zählt, kein `describe` und kein Kommentar. Die Ausnahmeliste `state-coverage-allowlist.json` kennt wie die Query-Liste zwei Formen: **`offen`** ist Backlog und darf nur schrumpfen, **`entfaellt`** ist entschieden und braucht je Zustand einen Grund (Flächen ohne Bestand, etwa `/settings`). Läuft in Pre-Commit und CI |
 | `pnpm check:store-serialization` | Verlangt, dass eine Funktion, die eine lokale Collection **liest, ändert und zurückschreibt**, den Ablauf serialisiert. Zwischen Lesen und Schreiben liegt ein echtes `await` (IndexedDB, AES-GCM): Zwei gleichzeitige Aufrufe lesen denselben Stand, und der zweite schreibt eine Fassung ohne das Element des ersten — lautlos, ohne Fehler, ohne Log. #293 hat das an einer verlorenen **Einstellung** bemerkt; nachgemessen stand dieselbe Sequenz an **27 Stellen in 12 Dateien**, und dort verliert sie eine **Buchung**. Eine verlorene Einstellung fällt beim nächsten Öffnen des Dialogs auf; eine verlorene Buchung hinterlässt keine Lücke, nach der jemand sucht, und verfälscht ab dann jede Summe. Ersatz ist `mutateLocalFinanceList(key, (items) => …)` (`@/services/local-finance-store`) bzw. `withKeyLock` (`@/lib/key-mutex`) für Kategorien, Einstellungen und den Chunk-Index. **Wichtig:** Prüfungen, die eine Dublette verhindern sollen, gehören INNERHALB des Locks — davor sind sie Zierde, weil zwei gleichzeitige Aufrufe beide an ihnen vorbeikommen. Gemeldet wird die innerste Funktion; reines Lesen (`getX`) und reines Ersetzen der ganzen Liste (`replaceX`) sind ausdrücklich in Ordnung. **Ohne Ausnahmeliste** — wie `check:a11y-names`: Ein begründeter Einzelfall hiesse hier „an dieser Stelle darf gelegentlich eine Buchung verloren gehen". Die Erkennung steht in `store-serialization-core.mjs` (TypeScript-AST) und ist ohne Dateisystem testbar. Läuft in Pre-Commit und CI |
 | `pnpm check:money-format` | Meldet gerenderte **Geldbeträge, die den Sanften Modus umgehen** — ein `<formatierer>.format(betrag)` aus einem Währungs-`Intl`, dessen Ergebnis nicht durch `mask()` läuft. Der Sanfte Modus (`docs/debt-avoidance-recovery.md`) ist ein Barrierefreiheits-Versprechen an Menschen mit Vermeidungsverhalten: Ein einziger unmaskierter Betrag auf derselben Fläche hebt es auf. **Gemeldet wird der Aufruf, nicht die Deklaration** — und das ist der Kern: `TransactionTable.tsx` hat einen rohen Formatierer und ist trotzdem richtig, weil sie ihn durch `money.mask(…)` schickt. Ein Wächter gegen jedes rohe `Intl` hätte dort Fehlalarm, und Fehlalarme schalten Wächter ab statt sie durchzusetzen. Dieselbe Lehre wie bei der halb übersetzten Zeile in `check:i18n` (WP 6.8): Eine Datei ist nicht erledigt, weil *irgendwo* darin richtig gearbeitet wird. **Importierte Formatierer zählen mit** (`liquidity/chart-shared`, `forecast/forecast-shared` exportieren ihr `eur`) — sonst wäre ausgerechnet die Bauform ausgenommen, die sich am leichtesten ausbreitet. Prozent- und Dezimalformatierer bleiben unangetastet: Eine Sparquote ist kein Betrag. Nicht gesehen wird fertig formatierter Text aus `src/lib/` (dort gibt es keinen React-Kontext) — benannte Grenze. Ersatz ist `useMoneyFormat().format(betrag)` bzw. `money.mask(fmt.format(betrag))`. **Ohne Ausnahmeliste.** Läuft in Pre-Commit und CI |
-| `pnpm check:external-endpoints` | Erzwingt die EU-Regel (`docs/architecture/eu-souveraenitaet.md`) — „Eine Anbieterregel ohne Wächter ist eine Absichtserklärung." Prüft **beide Richtungen**: jeder externe Host im Produktivcode steht im [Anbieter-Register](docs/security/anbieter-register.md), **und** jede aktive Registerzeile kommt im Code oder in der CSP vor. Die zweite Richtung ist nicht Zierde: Das Register ist die Faktenbasis für Subprozessoren-Verzeichnis, VVT (Art. 30) und Datenschutztext — eine Zeile, die einen Anbieter führt, den es nicht mehr gibt, ist schlimmer als keine. **Drei Formen von Fundstelle:** die `https://`-**URL**; der **blanke Host**, aber nur wenn die Position ihn ausweist (ein Bezeichner mit `HOST`/`ORIGIN`/`DOMAIN`/`ENDPOINT` — dieselbe Idee wie die Text-Prop bei `check:i18n`); und die **CSP** in `vercel.json`. Die Positionsregel ist gemessen, nicht geraten: Blanke Domain-Erkennung ohne sie meldet jeden i18n-Schlüssel (`accountService.accountTypeLabelCash` besteht jede Hostname-Prüfung), jede Versionsnummer und jede CSS-Einheit — und sie fand umgekehrt `GOCARDLESS_AUTH_HOST_SUFFIXES = ['gocardless.com']`, das über jedes Redirect-Ziel entscheidet und in keiner URL vorkommt. **Nicht gesehen** werden Tests (dort sind fremde Hosts der Zweck — `safe-url.test.ts` beweist mit `gocardless.com.evil.tld`, dass genau der abgelehnt wird), Kommentare (ein Gegenbeispiel ist kein Datenfluss), Binärdateien (eine PNG mit XMP-Metadaten ruft nichts auf) und Bezeichner-URIs (`$schema`, `$id`, `xmlns` benennen einen Namensraum, sie rufen ihn nicht ab) — benannte Grenzen. Reservierte Namen nach RFC 2606/6761 (`.example`, `.test`, `.invalid`, `localhost`) fallen weg. **Ohne Ausnahmeliste**, wie `check:a11y-names`: Ein Eintrag hiesse „dieser Host darf unerklärt bleiben". Abweichungen werden im **Register** korrigiert, nicht im Wächter weggefiltert. Geprüft werden `src/`, `api/`, `supabase/functions/`, **`services/`** (seit WP 6.2 — sonst wäre ausgerechnet der Dienst ausgenommen, der mit dem Zahlungsdienstleister spricht), `public/` und `index.html`. Erkennung in `external-endpoints-core.mjs`, ohne Dateisystem testbar. Läuft in Pre-Commit und CI |
+| `pnpm check:external-endpoints` | Erzwingt die EU-Regel (`docs/architecture/eu-souveraenitaet.md`) — „Eine Anbieterregel ohne Wächter ist eine Absichtserklärung." Prüft **beide Richtungen**: jeder externe Host im Produktivcode steht im [Anbieter-Register](docs/security/anbieter-register.md), **und** jede aktive Registerzeile kommt im Code oder in der CSP vor. Die zweite Richtung ist nicht Zierde: Das Register ist die Faktenbasis für Subprozessoren-Verzeichnis, VVT (Art. 30) und Datenschutztext — eine Zeile, die einen Anbieter führt, den es nicht mehr gibt, ist schlimmer als keine. **Drei Formen von Fundstelle:** die `https://`-**URL**; der **blanke Host**, aber nur wenn die Position ihn ausweist (ein Bezeichner mit `HOST`/`ORIGIN`/`DOMAIN`/`ENDPOINT` — dieselbe Idee wie die Text-Prop bei `check:i18n`); und die **CSP** in `vercel.json`. Die Positionsregel ist gemessen, nicht geraten: Blanke Domain-Erkennung ohne sie meldet jeden i18n-Schlüssel (`accountService.accountTypeLabelCash` besteht jede Hostname-Prüfung), jede Versionsnummer und jede CSS-Einheit — und sie fand umgekehrt `GOCARDLESS_AUTH_HOST_SUFFIXES = ['gocardless.com']`, das über jedes Redirect-Ziel entscheidet und in keiner URL vorkommt. **Nicht gesehen** werden Tests (dort sind fremde Hosts der Zweck — `safe-url.test.ts` beweist mit `gocardless.com.evil.tld`, dass genau der abgelehnt wird), Kommentare (ein Gegenbeispiel ist kein Datenfluss), Binärdateien (eine PNG mit XMP-Metadaten ruft nichts auf) und Bezeichner-URIs (`$schema`, `$id`, `xmlns` benennen einen Namensraum, sie rufen ihn nicht ab) — benannte Grenzen. Reservierte Namen nach RFC 2606/6761 (`.example`, `.test`, `.invalid`, `localhost`) fallen weg. **Ohne Ausnahmeliste**, wie `check:a11y-names`: Ein Eintrag hiesse „dieser Host darf unerklärt bleiben". Abweichungen werden im **Register** korrigiert, nicht im Wächter weggefiltert. Geprüft werden `src/`, `api/`, `supabase/functions/`, **`services/`** (seit WP 6.2 — sonst wäre ausgerechnet der Dienst ausgenommen, der mit dem Zahlungsdienstleister spricht), `public/` und `index.html` — **und seit dem Tesseract-Fund zusätzlich die ausgelieferten Einstiegs- und `dist`-Dateien der DIREKTEN Abhängigkeiten**. Die waren strukturell unsichtbar: Der Wächter liest den git-Index, und `node_modules` steht dort nicht. Ein Host, der ausschliesslich in der Vorgabekonfiguration einer Bibliothek steht, wurde also nie gemeldet — `tesseract.js` lädt Worker, WASM-Kern und Sprachdaten von `cdn.jsdelivr.net`, ohne dass eine Aufrufstelle das nennt. Dass die Registerzeile dafür trotzdem existiert, war Handarbeit aus dem Audit, nicht Wächterleistung. Erkannt wird über eine **Positivliste bekannter Auslieferungs-CDNs**, nicht über jede URL in `node_modules`: Nachgemessen meldet ein breiter Scan über alle 7845 JS-Dateien der 61 direkten Abhängigkeiten auch Dokumentationslinks und Shader-Quellenangaben — und Fehlalarme schalten Wächter ab, statt sie durchzusetzen. Mit der Positivliste, ohne Kommentare und ohne `examples/`, bleiben exakt zwei Treffer, beide echt. Erkennung in `external-endpoints-core.mjs`, ohne Dateisystem testbar. Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm check:layers` | Erzwingt die Import**richtung** aus §3 — beide Schichtungen (`lib → services → hooks → components → pages` und `domain → data → application → presentation`). TypeScript kennt keine Schichten: ein Import nach oben sieht aus wie einer nach unten, und genau so sind 30 umgedrehte Abhängigkeiten in 14 `lib`-Dateien entstanden, ohne dass je etwas rot wurde. Der Auslöser war nie Absicht, sondern **Ort**: ein fachlicher Typ (`ContractRow`, `ForecastOverrides`, `MerchantRule`) oder eine reine Funktion (`explainCategorization`, `normalizeIban`) lag im I/O-Service oder in der Komponente, weil sie dort zuerst gebraucht wurde — wer sie danach von unten brauchte, hatte nur den Weg nach oben. Seit WP 2.3 gilt auch `hooks-ohne-components`: `src/hooks/` darf nicht nach `src/components/`/`src/pages/` greifen — Live-Fund war `useKpiPreferences.ts`, das `KPI_DEFINITIONS` (Fachdaten) aus `components/kpi/kpis.ts` zog (ARCH-4; die Daten liegen seither in `src/lib/kpi-definitions.ts`). Ausnahme: ein Context-Provider-Lesezugriff (`useAuth` aus `AuthProvider`, `useGentleMode` aus `GentleModeProvider`) — dieselbe übliche Bauform wie in „Wohin ein Typ gehört", erkannt über dasselbe `istInfrastruktur()`-Prädikat wie bei `check:view-data`. Der Wächter löst Alias- (`@/…`) **und** Relativpfade auf; Tests sind ausgenommen (ein `lib/__tests__/`-Test darf einen Service heranziehen, das ist seine Absicht). Ausnahmen stehen in `layer-allowlist.json` und brauchen je Datei `imports` **und** `reason` — die Datei ist heute leer und sollte es bleiben. Läuft in Pre-Commit und CI |
 | `pnpm check:view-data` | **Ratsche, kein Verbot.** Zählt die Datenzugriffe, die noch IN der Darstellung stehen (`useQuery`/`useMutation` und direkte Service-Importe unter `src/components/`, `src/pages/`). Eine Komponente DARF laut §3 einen Service benutzen — die Richtung stimmt, der Befund ist ein anderer: Solange eine Fläche ihre eigene Datenschicht **ist**, lässt sich keine zweite Präsentation danebenstellen, ohne die Datenbeschaffung ein zweites Mal zu schreiben. Genau das verspricht §4. Der Ausgangswert war **282** (146 Abfragen + 136 Service-Importe in 84 Flächen); die Zahl in `view-data-budget.json` steht heute auf **220** und **darf nur sinken** — Heraufsetzen macht das Versprechen zur Absichtserklärung. Nicht gezählt werden `features/<slice>/application` (dort gehört der Zugriff hin), Tests und Provider/Gates. Läuft in Pre-Commit und CI |
@@ -141,6 +141,256 @@ Zwei komplementäre Schichtungen, siehe `docs/coding-guide.md` §2 im Detail:
 Die Richtung ist maschinell erzwungen (`pnpm check:layers`, §2). Feature-`domain`
 liegt dabei auf der Höhe von `lib` — ein Service darf sie benutzen, umgekehrt
 nicht.
+
+### Rechnen, schließen, prüfen
+
+> **Berechne, was berechenbar ist. Schließe nur, was geschlossen werden muss.
+> Prüfe alles, was prüfbar ist.**
+
+Die Regel entscheidet, wo Inferenz überhaupt sitzen darf — und sie ist der
+Grund, warum es in diesem Repo **kein** `src/ai/`, keine Runtime-Adapter und
+kein Modellmanagement gibt. Drei Ebenen, in dieser Reihenfolge zu prüfen:
+
+| Ebene | Was | Beispiele im Bestand |
+|---|---|---|
+| **1. Deterministisch** | Regeln sind eindeutig | Kaskade `merchant_rule`/`category_filter`/`regex` · Integer-Cent (`lib/money.ts`) · Budget-, Tilgungs- und Steuermathematik · IBAN-Mod-97 (`lib/iban.ts`) · Restlaufzeit `12 − 3` (`lib/installments.ts`) · Szenario-Absichts-Grammatik (`lib/scenario-intent.ts`: „Auto verkaufen, 5k Urlaub im Dezember" → Delta-Menge, WP-H — der Einstieg des „KI-Bausteins" beginnt bewusst auf dieser Ebene) |
+| **2. Statistisch** | Muster über die Zeit | Vertragserkennung über Median, Streuung und Zyklus (`lib/contract-derivation.ts`) · Ausreißer · Prognose |
+| **3. Lernend** | Bedeutung muss gedeutet werden | Complement Naive Bayes aus den **eigenen bestätigten** Buchungen (`lib/category-model.ts`) · Auflösung abstrakter Begriffe (`lib/question-category-resolution.ts`) · Frage-Router-Stufe 2 aus kuratierten Paraphrasen + bestätigten Zuordnungen (`lib/question-intent-model.ts`, Ratsche: 99 % richtig-oder-Rückfrage auf ungesehenen Fragen) |
+
+Eine Aufgabe wandert nur dann eine Ebene höher, wenn die darunter sie
+nachweislich nicht löst. Ein wiederkehrendes Abo per Zeitreihe zu erkennen ist
+schneller, billiger und reproduzierbar; es einem Modell zu überlassen wäre
+keines davon.
+
+**Was geschlossen wurde, wird geprüft.** Ebene 2 und 3 liefern nie ein
+Ergebnis ohne Beleg und nie eine Zahl ohne Rückweg: `CategorizationResult`
+trägt `confidence` und `reasons[]`, das Abfrage-Register trägt `begruendung`
+und einen Deep-Link auf genau die Menge, aus der die Zahl entstand. Wo eine
+zweite, unabhängig gelesene Größe existiert, entscheidet sie — beim Beleg
+halten Zeilensumme und Gesamtbetrag einander stand
+(`services/receipt-parser-service.ts`), und eine Korrektur zählt nur, wenn sie
+den Widerspruch auflöst **und** die einzige ist, die das tut.
+
+**Der Chat schreibt nie aus eigener Deutung.** Seit WP-I kann die Chat-Fläche
+Budgets anlegen, ändern und löschen — aber die Deutung selbst darf nichts
+verändern: Grammatik (`lib/budget-action-intent.ts`) und Vorschau
+(Registereintrag `budget.aktion`) sind rein, geschrieben wird ausschliesslich
+im Bestätigen-Klick (`use-budget-action.ts`), und jede ausgeführte Aktion
+bleibt über einen Schnappschuss zurücknehmbar. Das Imperativ-Gate der
+Grammatik trägt dieselbe Last wie das Szenario-Gate beim Lesen: Eine FRAGE
+darf nie als Befehl gedeutet werden — eine falsch beantwortete Frage zeigt
+eine falsche Zahl, ein falsch gedeuteter Befehl schlägt eine Schreiboperation
+vor.
+
+**Ein Gate gehört an JEDE Stufe, die es umgehen könnte.** Das Szenario-Gate
+(hypothetische Fragen erreichen nur die Simulation) lag ab WP-F an der
+Wortebene — und der Klassifikator der Stufe 2 kannte es nicht. Gemessen bekam
+„was wenn ich Freizeit um 200 reduzier …" dadurch `budget.aktion` angeboten,
+also eine Schreib-Vorschau als Antwort auf ein Gedankenspiel. Wer eine zweite
+Stufe vor eine Entscheidung setzt, prüft deshalb jede Schranke der ersten
+darauf, ob sie auch dort gilt; ein Vokabel-Feinschliff hätte den Fund bloss
+verschoben.
+
+**Ein Auslöser aus lauter Funktionswörtern ist keiner — auch als Phrase
+nicht.** Die Regel galt bis Welle 2 nur für das einzelne Wort, und deshalb
+stand „noch für" als Auslöser eines Budget-Eintrags im Sprachbaum und fing
+„wie viel muss ich noch fürs Finanzamt zurücklegen" ab. Der Preis der Regel
+ist benannt: Das englische „what if i" trägt sehr wohl Absicht und ist
+stattdessen aus der Auslöser-Liste gestrichen, weil `SZENARIO_SIGNALE` es
+ohnehin erkennt.
+
+**Ein deklarierter Datenbedarf, den niemand erfüllt, ist schlimmer als
+keiner.** `allocations` stand ab WP-C in `DataNeed`, vier Budget-Einträge
+forderten es an, geladen hat es niemand — und weil die Einträge auf eine leere
+Menge zurückfielen, zählte eine gesplittete Buchung mit ihrem VOLLEN Betrag.
+Lautlos, ohne Fehler, kein Test rot. Seither gilt: `undefined` heisst „nicht
+geladen", nie „leer"; die `application`-Schicht füllt jeden Kanal, den ein
+Eintrag anmeldet, und eine Quelle, die nicht lesbar war, wird BENANNT.
+
+**Ein schreibender Eintrag ist AUSSCHLIESSLICH über seine eigene Grammatik
+erreichbar.** Das Imperativ-Gate sitzt dort — jeder andere Weg zu ihm umgeht
+es. Gemessen hat der Welle-5-Korpus gleich zwei solche Wege gefunden: die
+Wortebene holte `kategorie.aktion` über den Auslöser „ordne" herein, obwohl
+das Gate die Frage „Wie ordne ich Rewe zu Lebensmitteln?" korrekt abgewiesen
+hatte, und der Klassifikator der Stufe 2 konnte einen Befehl ohne jede
+Prüfung vorschlagen. Beide Male: eine Schreib-Vorschau als Antwort auf eine
+Frage. Wer eine Aktion baut, sperrt sie an JEDER Stufe, die sie sonst
+erreichen könnte — und ihre Paraphrasen entfallen damit, statt die übrigen
+Klassen zu verdünnen.
+
+**Ein Gate schützt nicht eine FUNKTION, sondern vor einer Verwechslung.** Das
+Szenario-Gate hiess bis Welle 3 „nur die Simulation darf hypothetische Fragen
+nehmen" — zu eng: `schulden.sondertilgung` rechnet die veränderte Welt
+ebenfalls, nur deterministisch, und fiel deshalb durch. Wer ein Gate
+formuliert, benennt die VERWECHSLUNG, die es verhindert (hier: eine
+Bestandsauswertung, die eine Frage über eine andere Welt mit Ist-Zahlen
+beantwortet), nicht die Funktion, die zufällig heute als einzige die
+Bedingung erfüllt.
+
+**Eine Datengrundlage ohne Erzeuger ist keine.** Der Depot-Zahlungsstrom war
+vollständig gebaut — Typ, Collection, verschlüsselt, im Backup, im Chat
+ausgewertet, mit neun Tests auf der Rechnung. Nur konnte ihn niemand
+ERFASSEN, und damit fiel die Rendite für jeden Nutzer in ihren
+„keine Zahlungen"-Zweig. Alle Prüfungen waren grün, weil sie die Rechnung
+prüfen und nicht den Weg zu ihren Daten. Wer eine Collection anlegt, baut im
+selben Zug die Stelle, an der sie entsteht — oder benennt ausdrücklich, wer
+sie später füllt.
+
+**Eine Ratsche steht auf dem GEMESSENEN Stand, nicht darunter.** Zwei der
+fünf Router-Ratschen standen auf 0.8, während sie 1.0 maßen: Zwanzig
+Prozentpunkte Verfall wären grün durchgegangen, und die PR-Texte behaupteten
+derweil „100 %". Eine Schwelle unter dem Stand misst nichts — sie
+dokumentiert nur, dass jemand einmal vorsichtig war.
+
+**Eine neue Datengrundlage wird erst gebaut, wenn die Frage sie WIRKLICH
+braucht.** Welle 4 sollte laut Aufriss vier Grundlagen bauen; eine davon war
+keine. „Wie viel muss ich monatlich für die Jahresrechnungen zurücklegen?"
+liess sich aus dem Bestand rechnen — die Vertragsableitung kennt
+`Vierteljährlich`, `Halbjährlich`, `Jährlich`, und `yearlyEquivalent` rechnet
+sie um. Ein zweites Sparziel-Modell neben `SinkingFund` wäre genau der
+Doppelbestand, gegen den dieses Programm viermal reine Funktionen aus
+Diensten gezogen hat. Die Prüfreihenfolge ist dieselbe wie bei den Ebenen:
+erst rechnen, dann schliessen, und ein neues Datenmodell zuletzt.
+
+**Ein manuell gepflegter Wert braucht seinen Stichtag.** Eine drei Jahre alte
+Fahrzeugschätzung als heutigen Wert auszugeben ist dieselbe stille
+Falschaussage wie ein Kontostand ohne Anker. Wo ein Mensch eine Zahl schätzt,
+gehört das Datum der Schätzung zur Zahl — und die Fläche sagt, wenn sie alt
+ist.
+
+**Eine Kennzahl folgt der gewohnten Konvention, nicht der genaueren.** Der
+interne Zinsfuß rechnet mit 365 Tagen wie XIRR in Tabellenkalkulationen; mit
+365,25 ergäbe eine Verdopplung über ein Kalenderjahr 100,09 % statt 100 %.
+Beides ist vertretbar, aber eine Zahl, die um Zehntelprozent von der
+abweicht, die der Nutzer anderswo sieht, kostet mehr Vertrauen, als die
+Genauigkeit wert ist.
+
+**Eine Disjunktheits-Regel gilt für die Korpora, die sie LIEST.** Der Grundsatz
+„wer auf dem Test trainiert, misst Auswendiglernen" stand seit WP-F als Test —
+er verglich die Paraphrasen aber nur mit dem 243er-Bestandskorpus, obwohl es
+seit Welle 1 fünf gibt. Nachgemessen standen **18 Paraphrasen wortgleich in den
+Wellen-2/3-Korpora**: An diesen Zeilen maßen die Ratschen Wiedererkennung. Nach
+der Bereinigung fiel genau eine Musterzeile — die übrigen 17 trug der Router
+auch ohne Vorlage, und die eine ist inzwischen deterministisch getragen. Die
+Prüfung liest jetzt alle fünf Korpora; wer einen sechsten anlegt, nimmt ihn
+dort auf.
+
+**Eine Ratsche, die fällt, NENNT die Zeile.** „97 %" schickt den nächsten Leser
+auf die Suche und lässt offen, ob eine Regression vorliegt oder bloß eine
+ehrlichere Messung. Die vier Wellen-Ratschen geben die gefallene Frage samt
+Zielfamilie in der Fehlermeldung aus — das kostet vier Zeilen und hat in
+derselben Sitzung zweimal die Ursache in Minuten statt in Stunden sichtbar
+gemacht.
+
+**Eine Invariante prüft nur, was die Fixture füllt.** Das Abfrage-Register hat
+eine tragende Zusicherung — genannte Zahl und verlinkte Liste zeigen dieselbe
+Menge — und einen generischen Test darüber. Als Welle 2 fünf neue Datenkanäle
+öffnete (Vermögen, Depots, Anlässe, Steuer, Konten), blieben sie in der
+Fixture leer: Jeder Eintrag darauf fiel in seinen „nichts da"-Zweig und lag
+damit ausserhalb JEDER Prüfung. Gemessen betraf das 15 von 61 Einträgen, und
+nichts wurde rot — ein Test, der nur den bequemen Zweig erreicht, ist grün aus
+demselben Grund, aus dem er nichts wert ist. Wer einen Kanal hinzufügt, füllt
+ihn in der Fixture; erzwungen wird das jetzt durch einen Wächter, der jeden
+von irgendeinem Eintrag angemeldeten Kanal gegen die Fixture hält.
+
+**Ein unprüfbares Versprechen wird zum Etikett.** Derselbe Fund, eine Ebene
+tiefer: `deepLinkArt: 'quelle'` heisst „das ist GENAU die Menge, aus der die
+Zahl entstand" — nachrechenbar nur, solange das Ziel eine Buchungsliste ist.
+Die Welle-2-Einträge zeigten auf `/accounts`, `/trading`, `/euer`; dort war
+der Link zwar die Quelle, aber niemand konnte es nachprüfen. Die Präsentation
+hat aus dem Etikett prompt „Aus 2 Buchungen" gemacht, wo zwei KONTEN gezählt
+waren. Ein Versprechen, das kein Wächter einlösen kann, wird auf das
+zurückgeschnitten, was er prüft — nicht umgekehrt.
+
+**Eine Leer-Regel gilt für das Feld, das sie liest — nicht für die Fläche.**
+`anzahl === 0` bedeutet „nichts gefunden", solange `anzahl` Buchungen zählt.
+Bei „Wie lange reicht mein Geld?" steht dort bewusst 0, weil die Antwort aus
+Saldo und Monatsschnitt entsteht und gar keine Treffermenge hat. Die Fläche
+behauptete deshalb „Dazu gibt es keine Buchung", während direkt darunter
+Guthaben und Verbrauch ausgewiesen waren — sie widersprach sich selbst.
+Dieselbe Bedingung stand zwei Absätze tiefer korrekt an der Zähl-Zeile: Eine
+Regel, die an einer von zwei Stellen gilt, ist keine Regel, sondern ein
+Zufall.
+
+**Eine Abbruchgrenze ist kein Ergebnis.** `calculatePayoffPlan` läuft
+höchstens 600 Monate; decken die Raten die Zinsen nicht, endet sie dort mit
+Zahlen ohne Aussagekraft (gemessen: 600 Monate, 399.575.500 € Zinsen). Wer
+eine Schleifengrenze einbaut, exportiert sie und prüft die Ausgabe dagegen —
+sonst wird aus „ich konnte es nicht rechnen" ein „in 50 Jahren bist du
+fertig". Dieselbe Idee wie die Grenzkonstante ohne Prüfstelle weiter oben,
+nur andersherum: Diese Grenze WIRKT, und genau deshalb muss ihr Erreichen
+sichtbar werden.
+
+**Ein Korpus prüft die Formulierungen, die er ENTHÄLT.** Fünf Ratschen
+standen bei 99–100 %, und „Wie viel gebe ich für Netflix aus?" — die
+einfachste Frage, die diese App überhaupt kennt — blieb unbeantwortet. Der
+Grund war nicht der Router, sondern die Frageliste: Jede Zeile fragte im
+Perfekt („habe ich ausgegeben") oder in einer Kennzahl-Wendung
+(„durchschnittlicher Einkauf bei"). Die **Satzklammer des Präsens** kam in
+keinem der fünf Korpora vor, und damit lag die häufigste Sprechweise
+ausserhalb JEDER Messung. Wer eine Familie baut, nimmt ihre schlichteste
+Formulierung zuerst auf — die exotische fällt beim Testen ohnehin auf, die
+selbstverständliche nie. Dieselbe Lehre wie bei der Fixture ohne
+Welle-2-Kanäle und der Disjunktheits-Regel über nur einem Korpus, zum
+vierten Mal: **eine Prüfung deckt ab, was sie LIEST.**
+
+**Eine Beugungsform wird normalisiert, nicht in die Auslöserliste geflickt.**
+Der Auslöser für Ausgaben lautete `ausgegeben, ausgaben, gekostet, …` — im
+deutschen Hauptsatz kommt keines dieser Wörter vor, weil das trennbare Verb
+auseinandersteht: „gebe" vorn, „aus" am Satzende, dazwischen der Slot. Die
+Reparatur gehört vor alle Router-Stufen (`normalisiereFrage`), nicht in den
+Sprachbaum: Ein Eintrag je finiter Form wäre je Verb ein halbes Dutzend, in
+jeder Sprache neu, und der Klassifikator der Stufe 2 sähe die Frage weiterhin
+zerlegt. Gegenprobe mitgemessen: Die nächstliegende Abkürzung — `kostet`,
+`zahle` als zusätzliche Auslöser — liess neun Ratschen-Tests fallen, weil
+generische Verben spezifischeren Familien (`ausgaben.durchschnitt`,
+`schulden.zinsen`) ihre Fragen wegnehmen und sogar eine benannte Lücke
+beantworteten. Sie sind deshalb NICHT im Baum; dass „was kostet mich X"
+nachfragt statt zu raten, ist das richtige Verhalten.
+
+**Eine Summe ohne Zeitraum ist eine stille Behauptung.** „248 €" heisst über
+drei Monate etwas anderes als über drei Jahre, und wer im Präsens fragt
+(„gebe ich"), will die laufende Belastung wissen, nicht die Lebenssumme.
+Ohne genannten Zeitraum nennt eine Summen-Antwort deshalb beides: den
+Monatswert und die Spanne, die der Datenbestand abdeckt. Der Nenner ist der
+BESTAND, nicht die Spanne der Treffer — sonst bekommt ein Händler, bei dem
+jemand zweimal war, einen Zwei-Monats-Schnitt. Dieselbe Familie wie der
+manuell geschätzte Wert ohne Stichtag.
+
+**Ein Doppel beweist die Verdrahtung, nicht den Lauf.** Die Router-Stufe 3
+war mit gemockter Pipeline, mit eingefrorenen Embeddings und mit einem
+Cache-Doppel geprüft — 6329 Tests grün. Der ERSTE Lauf mit dem echten
+Modell fand trotzdem zwei Dinge: Die Pseudo-Klasse `__luecke__` (der
+Trainings-Marker für benannte Lücken) besetzte einen der drei
+Vorschlagsplätze und verdrängte einen echten Kandidaten, und `jsdom` bringt
+die Bibliothek zum stillen Hängen, weil sie dort einen Browser ohne
+Cache-API vorfindet. Beides ist mit Doppeln strukturell unsichtbar. Wer
+eine fremde Laufzeit einbindet, fährt sie deshalb mindestens einmal
+WIRKLICH — und friert diesen Lauf als abrufbaren Nachweis ein
+(`SEMANTIK_E2E=1`), statt ihn einmalig von Hand zu machen.
+
+**Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
+gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
+Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche
+Zahl ist schlimmer als keine.
+
+**Kein Modellgewicht im BUNDLE — und die vorgesehene Naht ist eingelöst.**
+`bundle-size-budget.json` deckelt die Auslieferung; ein vortrainiertes Netz
+gehört nicht hinein. Seit Welle S existiert trotzdem ein Embedding-Modell
+(multilingual-e5-small, int8, ~135 MB) — als **Opt-in-Download auf das
+Gerät**, nie im Bundle, nie ohne Einwilligung mit Grössenangabe
+(Registerzeile Hugging Face; CSP: `connect-src` um die Modell-Hosts und
+`script-src` um `'wasm-unsafe-eval'` erweitert — NUR WASM-Kompilierung,
+kein JS-`eval`). Es sitzt an exakt der Naht, die dieser Absatz immer
+vorgesehen hat: dem `QuestionMatcher` (Freitext → Kandidaten), als Stufe 3
+für das Residuum der Stufen 0–2. Gemessen (semantic-ratchet.test.ts, über
+eine eingefrorene Embedding-Fixture ohne CI-Download): top-3 97 % auf dem
+beantwortbaren Residuum, top-1 nur 86 % — deshalb liefert die Stufe
+AUSSCHLIESSLICH eine Auswahl und nie eine stille Antwort, das
+Kategorisieren bleibt beim Lernen aus den eigenen bestätigten Buchungen
+(`local-cat-*`-IDs kennt kein vortrainiertes Modell), und **`antwort()`
+inferiert weiterhin nie**. Die Frage verlässt das Gerät nie; der einzige
+Netzverkehr ist der einmalige Download statischer Modelldateien.
 
 **Das ViewModel kennt die Oberfläche nicht — auch nicht für einen Typ.**
 `features/<slice>/application` darf nicht nach `src/components/` oder
