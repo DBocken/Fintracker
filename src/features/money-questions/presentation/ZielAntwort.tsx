@@ -22,7 +22,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useGoalAnswer } from '@/features/money-questions/application/use-goal-answer';
-import type { Zielfrage } from '@/lib/question-registry';
+import type { Zielfrage } from '@/features/shared/domain/question-registry';
 
 function ersetze(text: string, params: Record<string, string>): string {
   return Object.entries(params).reduce((t, [name, wert]) => t.split(`{${name}}`).join(wert), text);

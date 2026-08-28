@@ -28,19 +28,19 @@
  * nachweislich nie gesehen hat. Wer am Router arbeitet, arbeitet gegen diese
  * Zahlen.
  */
-import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
+import type { QuestionEntry, QuestionSlots, SlotName } from '@/features/shared/domain/question-registry';
 import { normalisiereFrage } from '@/lib/text-normalisierung';
-import { fehlendeSlots, istAktionsEintrag } from '@/lib/question-registry';
+import { fehlendeSlots, istAktionsEintrag } from '@/features/shared/domain/question-registry';
 import {
   erkenneVergleichsBezug,
   parseZeitraum,
   referenzZeitraum,
-} from '@/lib/question-time-expressions';
-import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/lib/scenario-intent';
-import { extrahiereBudgetAktion } from '@/lib/budget-action-intent';
-import { extrahiereKategorieAktion } from '@/lib/categorize-action-intent';
-import { extrahiereAnlassAktion } from '@/lib/anlass-action-intent';
-import { extrahiereTransferAktion } from '@/lib/transfer-action-intent';
+} from '@/features/money-questions/domain/question-time-expressions';
+import { extrahiereSzenarioAbsicht, type SzenarioAbsicht } from '@/features/shared/domain/scenario-intent';
+import { extrahiereBudgetAktion } from '@/features/shared/domain/budget-action-intent';
+import { extrahiereKategorieAktion } from '@/features/shared/domain/categorize-action-intent';
+import { extrahiereAnlassAktion } from '@/features/shared/domain/anlass-action-intent';
+import { extrahiereTransferAktion } from '@/features/shared/domain/transfer-action-intent';
 
 export interface VokabelEintrag {
   /** Wonach gesucht wird — kleingeschrieben. */

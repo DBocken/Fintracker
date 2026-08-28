@@ -8,7 +8,7 @@ import {
   MIN_SCORE,
   MAX_VORSCHLAEGE,
   type SemantischeKlasse,
-} from '../semantic-intent';
+} from '@/features/money-questions/domain/semantic-intent';
 
 /** L2-normierter Testvektor. */
 function norm(v: number[]): number[] {

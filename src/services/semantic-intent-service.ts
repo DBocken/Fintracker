@@ -19,7 +19,7 @@ import {
   type QuantisierterVektor,
   type SemantischeKlasse,
   type SemantischerVorschlag,
-} from '@/lib/semantic-intent';
+} from '@/features/money-questions/domain/semantic-intent';
 import { normalisiereFrage } from '@/lib/text-normalisierung';
 import { idbGet, idbSet } from './idb-kv';
 

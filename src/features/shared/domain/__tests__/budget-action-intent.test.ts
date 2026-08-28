@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extrahiereBudgetAktion } from '../budget-action-intent';
+import { extrahiereBudgetAktion } from '@/features/shared/domain/budget-action-intent';
 
 describe('extrahiereBudgetAktion', () => {
   it('sollte das Anlegen mit Betrag und Kategorie-Text erkennen', () => {

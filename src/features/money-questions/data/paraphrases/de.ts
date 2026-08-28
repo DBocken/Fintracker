@@ -22,7 +22,7 @@
  * wie UNBEANTWORTBARE Fragen klingen (Beratung, Optimierung, Hypothesen,
  * fehlende Datengrundlage), damit der Router auch besser schweigt.
  */
-import { LUECKE_KLASSE } from '@/lib/question-intent-model';
+import { LUECKE_KLASSE } from '@/features/money-questions/domain/question-intent-model';
 
 export const PARAPHRASEN_DE: Readonly<Record<string, readonly string[]>> = {
   'ausgaben.haendler': [

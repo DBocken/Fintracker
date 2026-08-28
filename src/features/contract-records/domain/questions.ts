@@ -5,7 +5,7 @@
  * ab, `yearlyEquivalent` macht aus Betrag und Zyklus die Jahressumme. Der
  * Eintrag verbindet beides und findet die Zeile über die Händlerfamilie.
  */
-import type { QuestionAnswer, QuestionEntry } from '@/lib/question-registry';
+import type { QuestionAnswer, QuestionEntry } from '@/features/shared/domain/question-registry';
 import { monatlicheFixkosten } from '@/lib/fixed-costs';
 import { durchschnittlichesMonatsEinkommen } from '@/lib/income-stats';
 import { isActiveForTotals } from '@/lib/contract-derivation';

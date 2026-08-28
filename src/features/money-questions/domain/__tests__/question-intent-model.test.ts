@@ -5,7 +5,7 @@ import {
   predictIntent,
   trainIntentModel,
   type IntentBeispiel,
-} from '../question-intent-model';
+} from '@/features/money-questions/domain/question-intent-model';
 
 const BEISPIELE: IntentBeispiel[] = [
   { klasse: 'ausgaben.kategorie', text: 'wie viel habe ich für lebensmittel ausgegeben' },

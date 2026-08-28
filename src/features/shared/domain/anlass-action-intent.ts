@@ -23,7 +23,7 @@ import {
   istFrage,
   normalisiereAktion,
   restText,
-} from './action-intent';
+} from '@/features/shared/domain/action-intent';
 
 export type AnlassAktionsAbsicht = {
   art: 'anlegen' | 'zuordnen';

@@ -44,11 +44,11 @@ import type { Account, Category, Transaction, TransactionAllocation } from '@/ty
 import type { Budget } from '@/lib/budget-types';
 import type { Debt } from '@/lib/debt-types';
 import type { ContractDecision } from '@/lib/contract-types';
-import type { SzenarioAbsicht } from '@/lib/scenario-intent';
-import type { BudgetAktionsAbsicht } from '@/lib/budget-action-intent';
-import type { KategorieAktionsAbsicht } from '@/lib/categorize-action-intent';
-import type { AnlassAktionsAbsicht } from '@/lib/anlass-action-intent';
-import type { TransferAktionsAbsicht } from '@/lib/transfer-action-intent';
+import type { SzenarioAbsicht } from '@/features/shared/domain/scenario-intent';
+import type { BudgetAktionsAbsicht } from '@/features/shared/domain/budget-action-intent';
+import type { KategorieAktionsAbsicht } from '@/features/shared/domain/categorize-action-intent';
+import type { AnlassAktionsAbsicht } from '@/features/shared/domain/anlass-action-intent';
+import type { TransferAktionsAbsicht } from '@/features/shared/domain/transfer-action-intent';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';
 import type { Portfolio, PortfolioCashflow, PortfolioPosition } from '@/lib/portfolio-types';
 import type { NetWorthBreakdown } from '@/lib/net-worth-types';

@@ -23,7 +23,7 @@ import {
   getMerchantRules,
   upsertMerchantRule,
 } from '@/services/merchant-rules-service';
-import type { KategorieAktionsVorschlag } from '@/lib/question-registry';
+import type { KategorieAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 export type KategorieAktionsStand =
   | { art: 'offen' }

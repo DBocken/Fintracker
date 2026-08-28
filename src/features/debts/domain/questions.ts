@@ -23,7 +23,7 @@ import type {
   QuestionData,
   QuestionEntry,
   QuestionSlots,
-} from '@/lib/question-registry';
+} from '@/features/shared/domain/question-registry';
 import { calculatePayoffPlan, MAX_TILGUNGS_MONATE } from '@/lib/debt-payoff';
 import { totalOutstandingDebt, totalMinimumPayment } from '@/lib/debt-totals';
 import { offeneRatenJeHaendler } from '@/lib/installments';

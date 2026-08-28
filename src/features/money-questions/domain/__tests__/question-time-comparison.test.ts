@@ -3,7 +3,7 @@ import {
   erkenneVergleichsBezug,
   parseZeitraum,
   referenzZeitraum,
-} from '../question-time-expressions';
+} from '@/features/money-questions/domain/question-time-expressions';
 
 const JETZT = new Date('2026-08-24T12:00:00Z');
 

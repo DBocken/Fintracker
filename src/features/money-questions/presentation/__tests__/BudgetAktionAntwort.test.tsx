@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
 import type { Budget } from '@/lib/budget-types';
-import type { BudgetAktionsVorschlag, QuestionAnswer } from '@/lib/question-registry';
+import type { BudgetAktionsVorschlag, QuestionAnswer } from '@/features/shared/domain/question-registry';
 
 /**
  * Die Tests, die das Versprechen des Pakets tragen: **Ohne Klick wird

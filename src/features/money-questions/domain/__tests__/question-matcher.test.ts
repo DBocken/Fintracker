@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { parseZeitraum } from '@/lib/question-time-expressions';
-import { entscheideRouting, istSzenarioFrage, lexicalQuestionMatcher, routeFrage } from '@/lib/question-matcher';
-import type { QuestionCandidate, QuestionVocabulary } from '@/lib/question-matcher';
-import type { QuestionEntry } from '@/lib/question-registry';
+import { parseZeitraum } from '@/features/money-questions/domain/question-time-expressions';
+import { entscheideRouting, istSzenarioFrage, lexicalQuestionMatcher, routeFrage } from '@/features/money-questions/domain/question-matcher';
+import type { QuestionCandidate, QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
+import type { QuestionEntry } from '@/features/shared/domain/question-registry';
 
 const JETZT = new Date('2026-07-20T12:00:00Z');
 

@@ -25,7 +25,7 @@ import type {
   QuestionData,
   QuestionEntry,
   QuestionSlots,
-} from '@/lib/question-registry';
+} from '@/features/shared/domain/question-registry';
 import type { Transaction } from '@/types';
 import { filterTransactions, buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import { explainCategorization } from '@/lib/categorization';

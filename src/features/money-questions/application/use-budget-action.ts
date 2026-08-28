@@ -18,7 +18,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteBudget, saveBudget } from '@/services/budget-service';
 import type { Budget } from '@/lib/budget-types';
-import type { BudgetAktionsVorschlag } from '@/lib/question-registry';
+import type { BudgetAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 export type BudgetAktionsStand =
   | { art: 'offen' }

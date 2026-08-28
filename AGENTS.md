@@ -153,9 +153,9 @@ kein Modellmanagement gibt. Drei Ebenen, in dieser Reihenfolge zu prüfen:
 
 | Ebene | Was | Beispiele im Bestand |
 |---|---|---|
-| **1. Deterministisch** | Regeln sind eindeutig | Kaskade `merchant_rule`/`category_filter`/`regex` · Integer-Cent (`lib/money.ts`) · Budget-, Tilgungs- und Steuermathematik · IBAN-Mod-97 (`lib/iban.ts`) · Restlaufzeit `12 − 3` (`lib/installments.ts`) · Szenario-Absichts-Grammatik (`lib/scenario-intent.ts`: „Auto verkaufen, 5k Urlaub im Dezember" → Delta-Menge, WP-H — der Einstieg des „KI-Bausteins" beginnt bewusst auf dieser Ebene) |
+| **1. Deterministisch** | Regeln sind eindeutig | Kaskade `merchant_rule`/`category_filter`/`regex` · Integer-Cent (`lib/money.ts`) · Budget-, Tilgungs- und Steuermathematik · IBAN-Mod-97 (`lib/iban.ts`) · Restlaufzeit `12 − 3` (`lib/installments.ts`) · Szenario-Absichts-Grammatik (`features/shared/domain/scenario-intent.ts`: „Auto verkaufen, 5k Urlaub im Dezember" → Delta-Menge, WP-H — der Einstieg des „KI-Bausteins" beginnt bewusst auf dieser Ebene) |
 | **2. Statistisch** | Muster über die Zeit | Vertragserkennung über Median, Streuung und Zyklus (`lib/contract-derivation.ts`) · Ausreißer · Prognose |
-| **3. Lernend** | Bedeutung muss gedeutet werden | Complement Naive Bayes aus den **eigenen bestätigten** Buchungen (`lib/category-model.ts`) · Auflösung abstrakter Begriffe (`lib/question-category-resolution.ts`) · Frage-Router-Stufe 2 aus kuratierten Paraphrasen + bestätigten Zuordnungen (`lib/question-intent-model.ts`, Ratsche: 99 % richtig-oder-Rückfrage auf ungesehenen Fragen) |
+| **3. Lernend** | Bedeutung muss gedeutet werden | Complement Naive Bayes aus den **eigenen bestätigten** Buchungen (`lib/category-model.ts`) · Auflösung abstrakter Begriffe (`features/money-questions/domain/question-category-resolution.ts`) · Frage-Router-Stufe 2 aus kuratierten Paraphrasen + bestätigten Zuordnungen (`features/money-questions/domain/question-intent-model.ts`, Ratsche: 99 % richtig-oder-Rückfrage auf ungesehenen Fragen) |
 
 Eine Aufgabe wandert nur dann eine Ebene höher, wenn die darunter sie
 nachweislich nicht löst. Ein wiederkehrendes Abo per Zeitreihe zu erkennen ist

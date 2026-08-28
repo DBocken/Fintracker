@@ -16,7 +16,7 @@
  * Die Fläche antwortet dann „Zeitraum nicht erkannt" und fragt nach, statt zu
  * raten — eine falsche Zahl ist schlimmer als keine.
  */
-import type { ZeitraumSlot } from '@/lib/question-registry';
+import type { ZeitraumSlot } from '@/features/shared/domain/question-registry';
 
 /** Monatsnamen je Sprache, Index 0 = Januar. */
 const MONATE: Record<string, readonly string[]> = {

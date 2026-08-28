@@ -30,7 +30,7 @@
  * (dieselbe Einordnung wie `question-time-expressions.ts` und
  * `category-concepts.ts`).
  */
-import { findeKonzeptImText } from './category-concepts';
+import { findeKonzeptImText } from '@/lib/category-concepts';
 import { normalisiereFrage } from '@/lib/text-normalisierung';
 
 /** Eine erkannte Veränderung gegenüber dem Ist-Zustand. */

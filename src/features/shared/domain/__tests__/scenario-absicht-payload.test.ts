@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { baueSzenarioPayload, maxPufferbruch } from '../scenario-absicht-payload';
-import type { SzenarioAbsicht } from '../scenario-intent';
-import type { RecurringFlow } from '../forecast-types';
-import type { ScenarioResult } from '../finrisk/scenario-payload-types';
+import { baueSzenarioPayload, maxPufferbruch } from '@/features/shared/domain/scenario-absicht-payload';
+import type { SzenarioAbsicht } from '@/features/shared/domain/scenario-intent';
+import type { RecurringFlow } from '@/lib/forecast-types';
+import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
 function flow(id: string, name: string, amount: number, category?: string): RecurringFlow {
   return { id, name, amount, cadence: 'monthly', anchorDate: '2026-08-01', accountId: 'acc-1', category };

@@ -5,10 +5,10 @@ import {
   routeFrage,
   zerlegeAusloeser,
   type QuestionVocabulary,
-} from '@/lib/question-matcher';
-import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
+} from '@/features/money-questions/domain/question-matcher';
+import { predictIntent, trainIntentModel } from '@/features/money-questions/domain/question-intent-model';
 import { intentBeispieleFuer } from '../paraphrases';
-import { resolveKategorieAusText } from '@/lib/question-category-resolution';
+import { resolveKategorieAusText } from '@/features/money-questions/domain/question-category-resolution';
 import type { Category } from '@/types';
 import { questionCatalog } from '../question-catalog';
 import { EVAL_KORPUS } from './question-eval-corpus';

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useKategorieAction } from '@/features/money-questions/application/use-kategorie-action';
-import type { KategorieAktionsVorschlag } from '@/lib/question-registry';
+import type { KategorieAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 function ersetze(text: string, params: Record<string, string>): string {
   return Object.entries(params).reduce((t, [name, wert]) => t.split(`{${name}}`).join(wert), text);

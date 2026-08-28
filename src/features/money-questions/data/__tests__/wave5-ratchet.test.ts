@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { routeFrage, zerlegeAusloeser, type QuestionVocabulary } from '@/lib/question-matcher';
-import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
+import { routeFrage, zerlegeAusloeser, type QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
+import { predictIntent, trainIntentModel } from '@/features/money-questions/domain/question-intent-model';
 import { intentBeispieleFuer } from '../paraphrases';
-import { resolveKategorieAusText } from '@/lib/question-category-resolution';
+import { resolveKategorieAusText } from '@/features/money-questions/domain/question-category-resolution';
 import { findeKonzeptKategorien } from '@/lib/category-concepts';
 import type { Category } from '@/types';
 import { questionCatalog } from '../question-catalog';
-import { istAktionsEintrag } from '@/lib/question-registry';
+import { istAktionsEintrag } from '@/features/shared/domain/question-registry';
 import { WELLE5_KORPUS } from './wave5-corpus';
 import { translations } from '@/i18n/translations';
 

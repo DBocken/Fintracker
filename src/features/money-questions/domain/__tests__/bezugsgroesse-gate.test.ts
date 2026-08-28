@@ -20,8 +20,8 @@
  * Schranke, die nur im Sonderfall geprüft wird, ist im Regelfall keine.
  */
 import { describe, expect, it } from 'vitest';
-import { routeFrage, zerlegeAusloeser, type QuestionVocabulary } from '../question-matcher';
-import { predictIntent, trainIntentModel } from '../question-intent-model';
+import { routeFrage, zerlegeAusloeser, type QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
+import { predictIntent, trainIntentModel } from '@/features/money-questions/domain/question-intent-model';
 import { intentBeispieleFuer } from '@/features/money-questions/data/paraphrases';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 import { translations } from '@/i18n/translations';

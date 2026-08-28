@@ -24,7 +24,7 @@ import { WELLE2_KORPUS } from './wave2-corpus';
 import { WELLE3_KORPUS } from './wave3-corpus';
 import { WELLE5_KORPUS } from './wave5-corpus';
 import { alleKorpusZeilen, fixtureHashQuelle } from './semantic-shared';
-import { quantisiere, kosinus, type SemantischeKlasse } from '@/lib/semantic-intent';
+import { quantisiere, kosinus, type SemantischeKlasse } from '@/features/money-questions/domain/semantic-intent';
 
 const laufen = process.env.SEMANTIC_FIXTURE === '1';
 

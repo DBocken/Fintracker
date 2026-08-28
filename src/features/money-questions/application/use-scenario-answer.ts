@@ -16,8 +16,8 @@ import { useMemo } from 'react';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { useScenarioRisk } from '@/hooks/useScenarioRisk';
-import { baueSzenarioPayload, type SzenarioPayloadErgebnis } from '@/lib/scenario-absicht-payload';
-import type { SzenarioAbsicht } from '@/lib/scenario-intent';
+import { baueSzenarioPayload, type SzenarioPayloadErgebnis } from '@/features/shared/domain/scenario-absicht-payload';
+import type { SzenarioAbsicht } from '@/features/shared/domain/scenario-intent';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
 export interface ScenarioAnswerModel {

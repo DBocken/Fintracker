@@ -24,7 +24,7 @@ import {
   unassign,
 } from '@/services/special-category-service';
 import { specialCategoriesKeys } from '@/features/special-categories/data/special-categories-query-keys';
-import type { AnlassAktionsVorschlag } from '@/lib/question-registry';
+import type { AnlassAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 export type AnlassAktionsStand =
   | { art: 'offen' }

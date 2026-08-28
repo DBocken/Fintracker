@@ -14,7 +14,7 @@
  *
  * Gate, Verbtisch und Rest-Extraktion liegen in `action-intent.ts`.
  */
-import { endetMitFragezeichen, hatVerb, istFrage, normalisiereAktion } from './action-intent';
+import { endetMitFragezeichen, hatVerb, istFrage, normalisiereAktion } from '@/features/shared/domain/action-intent';
 
 export type TransferAktionsAbsicht = { art: 'markieren' };
 

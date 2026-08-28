@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import type { AffordabilityOption } from '@/lib/finrisk/affordability';
-import type { Zielfrage } from '@/lib/question-registry';
+import type { Zielfrage } from '@/features/shared/domain/question-registry';
 
 /**
  * Die Leistbarkeits-Rechnung wird DYNAMISCH geladen.

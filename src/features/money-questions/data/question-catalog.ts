@@ -14,8 +14,8 @@
  * quer auf die `domain` anderer Slices zugreifen; die Einträge selbst zeigen
  * nur nach unten (`src/lib/`, `features/shared/domain/`).
  */
-import type { QuestionEntry } from '@/lib/question-registry';
-import { createQuestionRegistry } from '@/lib/question-registry';
+import type { QuestionEntry } from '@/features/shared/domain/question-registry';
+import { createQuestionRegistry } from '@/features/shared/domain/question-registry';
 
 interface QuestionModule {
   questions?: readonly QuestionEntry[];
