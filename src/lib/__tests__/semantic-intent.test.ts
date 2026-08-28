@@ -68,6 +68,23 @@ describe('semantic-intent (Router-Stufe 3, reine Logik)', () => {
     expect(v.every((x) => x.score >= MIN_SCORE)).toBe(true);
   });
 
+  it('[REGRESSION] sollte die Pseudo-Klasse __luecke__ verwerfen, statt einen Platz zu verschenken', () => {
+    // Laufzeit-Fund mit dem echten Modell: `__luecke__` ist der
+    // Trainings-Marker für benannte Lücken, keine Antwortfamilie. Der Router
+    // verwirft ihn ohnehin — aber er BELEGTE einen der drei Plätze und
+    // verdrängte damit einen echten Kandidaten.
+    const frage = quantisiere(norm([1, 0, 0]));
+    const naeher = quantisiere(norm([1, 0.02, 0]));
+    const klassen: SemantischeKlasse[] = [
+      { klasse: '__luecke__', vektoren: [quantisiere(norm([1, 0, 0]))] },
+      { klasse: 'a', vektoren: [naeher] },
+      { klasse: 'b', vektoren: [naeher] },
+      { klasse: 'c', vektoren: [naeher] },
+    ];
+    const v = semantischeVorschlaege(frage, klassen);
+    expect(v.map((x) => x.klasse)).toEqual(['a', 'b', 'c']);
+  });
+
   it('[SECURITY] sollte Aktions-Klassen auch bei perfekter Ähnlichkeit verwerfen', () => {
     const frage = quantisiere(norm([1, 0, 0]));
     const aktion: SemantischeKlasse = {

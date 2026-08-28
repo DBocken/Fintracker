@@ -4395,6 +4395,7 @@ export const en = {
         nichtInstalliert: 'Not on this device yet. The download starts with the first question that needs it.',
         speicherort: 'Stored in this app\u2019s browser storage ({ort}) — a browser does not let an app pick a file path.',
         loeschen: 'Delete model',
+        gedeutetKurz: 'Matched by the local model',
         gedeutetVomModell: 'The local model matched this question — the figure was computed from your transactions as always.',
         titel: 'Understand better (local model)',
         beschreibung: 'Downloads a small language-understanding model (~{mb} MB) to this device once. It suggests likely readings for questions that are not understood — your questions and figures stay on the device, and answers are still computed only from your transactions.',

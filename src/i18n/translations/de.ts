@@ -4407,6 +4407,7 @@ export const de = {
         nichtInstalliert: 'Noch nicht auf diesem Gerät. Der Download startet erst bei der ersten Frage, die er braucht.',
         speicherort: 'Liegt im Browser-Speicher dieser App ({ort}) — ein Dateipfad lässt sich im Browser nicht wählen.',
         loeschen: 'Modell löschen',
+        gedeutetKurz: 'Vom lokalen Modell gedeutet',
         gedeutetVomModell: 'Diese Frage hat das lokale Modell zugeordnet — gerechnet wurde wie immer aus deinen Buchungen.',
         titel: 'Besser verstehen (lokales Modell)',
         beschreibung: 'Lädt einmalig ein kleines Sprachverständnis-Modell (~{mb} MB) auf dieses Gerät. Es schlägt bei unverstandenen Fragen passende Deutungen vor — deine Fragen und Zahlen bleiben auf dem Gerät, gerechnet wird weiterhin nur aus deinen Buchungen.',

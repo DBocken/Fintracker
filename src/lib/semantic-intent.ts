@@ -115,6 +115,26 @@ export function klassenScore(frage: QuantisierterVektor, klasse: SemantischeKlas
 }
 
 /**
+ * Klassen, die im Sprachbaum stehen, aber KEINE Antwortfamilie sind.
+ *
+ * `__luecke__` ist der Trainings-Marker für benannte Lücken: Er lehrt die
+ * Stufe 2, sich zurückzuhalten. In der Auswahl der Stufe 3 hat er nichts
+ * verloren — es gibt keinen Registereintrag dazu, der Router verwirft ihn
+ * ohnehin. Der Schaden liegt eine Ebene früher: Er BELEGT einen der drei
+ * Plätze und verdrängt damit einen echten Kandidaten.
+ *
+ * Gefunden im Laufzeit-Nachweis mit dem echten Modell (nicht in einem Test
+ * mit Doppeln): „wie schaut mein finanzielles polster grade aus" bekam
+ * `__luecke__` mit 0.874 auf Platz zwei — zwischen zwei brauchbaren
+ * Familien. Die Regel greift am NAMEN, nicht an einer Liste: Wer eine
+ * weitere Pseudo-Klasse einführt, benennt sie nach demselben Muster und
+ * ist automatisch mit abgedeckt.
+ */
+export function istPseudoKlasse(klasse: string): boolean {
+  return klasse.startsWith('__') && klasse.endsWith('__');
+}
+
+/**
  * Die Auswahl der Stufe 3: höchstens {@link MAX_VORSCHLAEGE} Klassen über
  * {@link MIN_SCORE}, beste zuerst. Leer heisst: auch semantisch nichts
  * Belastbares — die Fläche bleibt bei „noch nicht verstanden".
@@ -124,7 +144,7 @@ export function semantischeVorschlaege(
   klassen: readonly SemantischeKlasse[],
 ): SemantischerVorschlag[] {
   return klassen
-    .filter((k) => !k.klasse.endsWith('.aktion'))
+    .filter((k) => !k.klasse.endsWith('.aktion') && !istPseudoKlasse(k.klasse))
     .map((k) => ({ klasse: k.klasse, score: klassenScore(frage, k) }))
     .filter((v) => v.score >= MIN_SCORE)
     .sort((a, b) => (b.score === a.score ? a.klasse.localeCompare(b.klasse) : b.score - a.score))

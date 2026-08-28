@@ -540,7 +540,17 @@ describe('Nachfragen-Fläche', () => {
     const vorschlag = await screen.findByRole('button', { name: /Ausgaben/i });
     fireEvent.click(vorschlag);
 
-    expect(await screen.findByText(/hat das lokale Modell zugeordnet/i)).toBeInTheDocument();
+    // Die Meldung ist der Punkt PLUS die Beschriftung — eine Farbe allein
+    // wäre keine Information.
+    const marke = await screen.findByText(/Vom lokalen Modell gedeutet/i);
+    expect(marke).toBeInTheDocument();
+    const punkt = marke.parentElement?.querySelector('span[aria-hidden="true"]');
+    expect(punkt, 'der aufleuchtende Punkt fehlt').not.toBeNull();
+    expect(punkt?.className).toContain('modell-punkt-auf');
+    // Der Ruhezustand steht ohne Animation da — sonst wäre die Auskunft
+    // für Menschen mit reduzierter Bewegung weg.
+    expect(punkt?.className).toContain('shadow-');
+    expect(punkt?.className).toContain('motion-safe:');
   });
 
   it('sollte eine Antwort des DETERMINISTISCHEN Routers NICHT dem Modell zuschreiben', async () => {
@@ -549,7 +559,7 @@ describe('Nachfragen-Fläche', () => {
 
     frage('Wieviel habe ich im Juli 2026 bei lidl sagt danke ausgegeben?');
     await screen.findByText(/50,00/);
-    expect(screen.queryByText(/hat das lokale Modell zugeordnet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Vom lokalen Modell gedeutet/i)).not.toBeInTheDocument();
   });
 
   it('sollte OHNE Opt-in bei einer unverstandenen Frage KEIN Modell laden', async () => {

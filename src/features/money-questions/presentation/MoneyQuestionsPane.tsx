@@ -386,8 +386,22 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
         erkennen, wann das lokale Modell beteiligt war, statt es zu raten.
       */}
       {ergebnis.quelle === 'modell' && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t('financeQuestions.semantik.gedeutetVomModell')}
+        <p
+          className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"
+          title={t('financeQuestions.semantik.gedeutetVomModell')}
+        >
+          {/*
+            Der Punkt ist die eigentliche Meldung — er leuchtet auf, wenn
+            diese Antwort über das lokale Modell lief. `aria-hidden`, weil
+            die Beschriftung daneben dasselbe sagt: Eine Farbe allein ist
+            keine Information (§9), und ein Screenreader soll den Punkt
+            nicht zusätzlich vorlesen.
+          */}
+          <span
+            aria-hidden="true"
+            className="inline-block h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_6px_1px_hsl(var(--primary)/0.4)] motion-safe:animate-[modell-punkt-auf_900ms_cubic-bezier(0.22,1,0.36,1)_forwards]"
+          />
+          <span>{t('financeQuestions.semantik.gedeutetKurz')}</span>
         </p>
       )}
 

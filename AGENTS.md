@@ -357,6 +357,18 @@ BESTAND, nicht die Spanne der Treffer — sonst bekommt ein Händler, bei dem
 jemand zweimal war, einen Zwei-Monats-Schnitt. Dieselbe Familie wie der
 manuell geschätzte Wert ohne Stichtag.
 
+**Ein Doppel beweist die Verdrahtung, nicht den Lauf.** Die Router-Stufe 3
+war mit gemockter Pipeline, mit eingefrorenen Embeddings und mit einem
+Cache-Doppel geprüft — 6329 Tests grün. Der ERSTE Lauf mit dem echten
+Modell fand trotzdem zwei Dinge: Die Pseudo-Klasse `__luecke__` (der
+Trainings-Marker für benannte Lücken) besetzte einen der drei
+Vorschlagsplätze und verdrängte einen echten Kandidaten, und `jsdom` bringt
+die Bibliothek zum stillen Hängen, weil sie dort einen Browser ohne
+Cache-API vorfindet. Beides ist mit Doppeln strukturell unsichtbar. Wer
+eine fremde Laufzeit einbindet, fährt sie deshalb mindestens einmal
+WIRKLICH — und friert diesen Lauf als abrufbaren Nachweis ein
+(`SEMANTIK_E2E=1`), statt ihn einmalig von Hand zu machen.
+
 **Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
 gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche

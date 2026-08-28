@@ -41,10 +41,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   einem Merker — der Browser räumt unter Speicherdruck, ohne zu fragen.
 
 - **Antworten sagen, wer die Frage gedeutet hat.** Hat das lokale Modell
-  die Frage zugeordnet, steht das unter der Antwort. Gerechnet wird die
-  Zahl weiterhin ausschließlich aus deinen Buchungen.
+  die Frage zugeordnet, leuchtet unter der Antwort ein kleiner Punkt auf,
+  daneben steht „Vom lokalen Modell gedeutet". Gerechnet wird die Zahl
+  weiterhin ausschließlich aus deinen Buchungen.
 
 ### Behoben
+
+- **Das lokale Modell verschenkte einen Vorschlagsplatz.** Unter den drei
+  angebotenen Deutungen konnte ein interner Trainings-Marker landen, der
+  gar keine Antwort ist — er verdrängte einen echten Vorschlag. Gefunden
+  beim ersten Durchlauf mit dem echten Modell, nicht in einem Test mit
+  Platzhaltern.
 
 - **„Wie viel gebe ich für Netflix aus?" wird verstanden.** Die einfachste
   Frage der App blieb unbeantwortet, während „Wie viel habe ich für Netflix
