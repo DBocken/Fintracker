@@ -9,13 +9,13 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // CalVer, gleicher Stand wie `package.json` (AGENTS.md §11, CHANGELOG.md).
         // `versionCode` ist aus `versionName` GERECHNET, nicht frei gezaehlt:
-        //   versionCode = JJJJ * 10000 + MM * 100 + n   (2026.8.3 -> 20260803)
+        //   versionCode = JJJJ * 10000 + MM * 100 + n   (2026.9.0 -> 20260900)
         // Damit kann er nicht auseinanderlaufen und bleibt monoton, solange die
         // CalVer selbst monoton ist. Play verlangt < 2 100 000 000 — die Formel
         // bleibt bis zum Jahr 209 999 darunter. Vorher stand hier `1`/`1.0`
         // (Capacitor-Vorgabe, nie gepflegt; Befund GOV-3).
-        versionCode 20260803
-        versionName "2026.8.3"
+        versionCode 20260900
+        versionName "2026.9.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

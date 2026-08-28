@@ -22,6 +22,8 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+## 2026.9.0 — 2026-08-28
+
 ### Neu
 
 - **„Besser verstehen" (Opt-in): ein kleines Sprachmodell auf deinem Gerät.**
