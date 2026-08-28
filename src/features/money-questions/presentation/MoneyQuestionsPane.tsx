@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MessageCircleQuestion, Plus, Send, X } from 'lucide-react';
+import { ArrowRight, MessageCircleQuestion, Plus, Send, Trash2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -121,31 +121,79 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
  * Browser-Cache dieses Geräts, die Frage verlässt das Gerät nie.
  */
 function SemantikOptIn({ model }: { model: MoneyQuestionsViewModel }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const s = model.semantik;
+  const status = s.status;
+  const installiert = status?.installiert === true;
+
+  const megabyte = (bytes: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(bytes / 1_000_000);
+
   return (
-    <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
-      <div className="min-w-0">
-        <Label htmlFor="semantik-opt-in" className="text-sm font-medium">
-          {t('financeQuestions.semantik.titel')}
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          {t('financeQuestions.semantik.beschreibung')
-            .split('{mb}')
-            .join(String(s.downloadMb))}
-        </p>
-        {s.aktiv && s.lage?.phase === 'fehler' && (
-          <p className="text-xs text-warning-foreground">
-            {t('financeQuestions.semantik.fehler')}
+    <div className="rounded-md border border-border/60 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Label htmlFor="semantik-opt-in" className="text-sm font-medium">
+            {t('financeQuestions.semantik.titel')}
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {t('financeQuestions.semantik.beschreibung').split('{mb}').join(String(s.downloadMb))}
           </p>
-        )}
+        </div>
+        <Switch
+          id="semantik-opt-in"
+          checked={s.aktiv}
+          onCheckedChange={(aktiv) => s.aktivieren(aktiv === true)}
+          aria-label={t('financeQuestions.semantik.titel')}
+        />
       </div>
-      <Switch
-        id="semantik-opt-in"
-        checked={s.aktiv}
-        onCheckedChange={(aktiv) => s.aktivieren(aktiv === true)}
-        aria-label={t('financeQuestions.semantik.titel')}
-      />
+
+      {/*
+        Der Installationsstand wird GELESEN, nicht aus dem Schalter
+        gefolgert: Der Browser räumt seinen Speicher unter Druck, ohne zu
+        fragen — „an" heisst nicht „liegt auf dem Gerät".
+      */}
+      {status !== null && (
+        <div className="mt-2 border-t border-border/60 pt-2">
+          {installiert ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-positive">
+                  {t('financeQuestions.semantik.installiert')
+                    .split('{mb}')
+                    .join(megabyte(status.bytes))
+                    .split('{dateien}')
+                    .join(String(status.dateien))}
+                  {status.unvollstaendig ? ` ${t('financeQuestions.semantik.groesseUngenau')}` : ''}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('financeQuestions.semantik.speicherort').split('{ort}').join(s.cacheSchluessel)}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={s.loeschtGerade}
+                onClick={() => s.loeschen()}
+              >
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                {t('financeQuestions.semantik.loeschen')}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t('financeQuestions.semantik.nichtInstalliert')}
+            </p>
+          )}
+        </div>
+      )}
+
+      {s.aktiv && s.lage?.phase === 'fehler' && (
+        <p className="mt-2 text-xs text-warning-foreground">
+          {t('financeQuestions.semantik.fehler')}
+        </p>
+      )}
     </div>
   );
 }
@@ -330,6 +378,19 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
   return (
     <>
       <AntwortAnzeige antwort={ergebnis.antwort} />
+
+      {/*
+        Wer die Frage GEDEUTET hat. Gerechnet wird die Zahl immer
+        deterministisch aus dem Bestand — aber wenn Router-Stufe 3 die
+        Familie gewählt hat, gehört das sichtbar dazu: Der Nutzer soll
+        erkennen, wann das lokale Modell beteiligt war, statt es zu raten.
+      */}
+      {ergebnis.quelle === 'modell' && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('financeQuestions.semantik.gedeutetVomModell')}
+        </p>
+      )}
+
       {ergebnis.erschlosseneKategorie && (
         <InfoGroup title={t('financeQuestions.understoodAsTitle')}>
           <p className="text-sm">

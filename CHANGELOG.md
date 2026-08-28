@@ -33,6 +33,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   braucht weiterhin deine Bestätigung. Deine Fragen und Zahlen verlassen das
   Gerät nicht; heruntergeladen werden nur die Modelldateien selbst.
 
+- **Das lokale Modell zeigt jetzt, dass es da ist — und lässt sich löschen.**
+  Die Karte auf der Fragen-Fläche sagt, ob das Modell auf diesem Gerät
+  liegt, wie viel Platz es belegt und wo es liegt; ein Knopf entfernt es
+  wieder und schaltet die Funktion dabei ab, damit nichts still
+  nachgeladen wird. Der Stand wird aus dem Speicher gelesen, nicht aus
+  einem Merker — der Browser räumt unter Speicherdruck, ohne zu fragen.
+
+- **Antworten sagen, wer die Frage gedeutet hat.** Hat das lokale Modell
+  die Frage zugeordnet, steht das unter der Antwort. Gerechnet wird die
+  Zahl weiterhin ausschließlich aus deinen Buchungen.
+
 ### Behoben
 
 - **„Wie viel gebe ich für Netflix aus?" wird verstanden.** Die einfachste

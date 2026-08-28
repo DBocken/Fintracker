@@ -24,6 +24,24 @@ import { normalisiereFrage } from '@/lib/text-normalisierung';
 import { idbGet, idbSet } from './idb-kv';
 
 export const SEMANTIK_MODELL_ID = 'Xenova/multilingual-e5-small';
+
+/**
+ * Der Cache-Storage-Schlüssel, unter dem die Modelldateien liegen.
+ *
+ * Das ist der VOREINSTELLUNGSWERT der Bibliothek — hier trotzdem als
+ * Konstante gesetzt und beim Laden ausdrücklich zugewiesen: Status und
+ * Löschen greifen auf denselben Namen zu, und ein Vorgabewert, der sich
+ * still ändert, hinterliesse ein Modell, das niemand mehr findet.
+ *
+ * **Wo das liegt:** im Cache Storage des Browsers, gebunden an die Herkunft
+ * (Origin) dieser App — nicht in einem wählbaren Dateipfad. Eine Web-App
+ * bestimmt ihren Speicherort nicht; das Betriebssystem entscheidet, wo der
+ * Browser seine Daten ablegt. Wer das ändern will, braucht einen eigenen
+ * Cache-Rücken über `env.customCache` (Vertrag: `{ match, put, delete }`) —
+ * unter Capacitor liesse sich darüber das Dateisystem des Geräts ansteuern.
+ * Das ist eine eigene Entscheidung mit eigenem Umfang, keine Einstellung.
+ */
+export const SEMANTIK_CACHE_KEY = 'transformers-cache';
 /** Ungefähre Downloadgrösse — für die Einwilligung, nicht für die Technik. */
 export const SEMANTIK_DOWNLOAD_MB = 135;
 
@@ -76,7 +94,8 @@ async function ladeExtraktor(onFortschritt?: (f: SemantikFortschritt) => void): 
       // Dynamischer Import: transformers.js (inkl. onnxruntime-web) gehört
       // nie in den Startgraphen — es lädt nur, wer die Stufe eingeschaltet
       // hat UND eine Frage stellt, die sie braucht.
-      const { pipeline } = await import('@huggingface/transformers');
+      const { pipeline, env } = await import('@huggingface/transformers');
+      env.cacheKey = SEMANTIK_CACHE_KEY;
       const groessen = new Map<string, { geladen: number; gesamt: number }>();
       const pipe = await pipeline('feature-extraction', SEMANTIK_MODELL_ID, {
         dtype: 'q8',
@@ -217,4 +236,97 @@ export async function semantikVorschlaegeFuer(
   onFortschritt?.({ anteil: 1, phase: 'bereit' });
   const [vektor] = await embedTexte(extraktor, [normalisiereFrage(frage)]);
   return semantischeVorschlaege(vektor, klassen);
+}
+
+/**
+ * Was tatsächlich auf dem Gerät liegt.
+ *
+ * Gezählt wird aus dem Cache Storage selbst, nicht aus einem Merker: Ein
+ * Flag, das „installiert" behauptet, während der Browser den Cache längst
+ * geräumt hat (Speicherdruck, Website-Daten gelöscht), wäre genau die
+ * stille Falschaussage, gegen die diese Anzeige gebaut ist.
+ *
+ * Die Grösse kommt aus dem `content-length` der abgelegten Antworten —
+ * die Bibliothek legt die Originalantwort ab, der Kopf ist also da. Fehlt
+ * er bei einem Eintrag, wird er als 0 gezählt und die Zahl als Untergrenze
+ * ausgewiesen, statt die Datei zu lesen (135 MB durch den Speicher zu
+ * ziehen, nur um sie zu zählen, wäre absurd).
+ */
+export interface ModellStatus {
+  installiert: boolean;
+  dateien: number;
+  /** Summe der `content-length`-Köpfe; `unvollstaendig`, wenn einer fehlte. */
+  bytes: number;
+  unvollstaendig: boolean;
+  /** Vom Browser für diese Herkunft belegt bzw. zugestanden — falls bekannt. */
+  belegt?: number;
+  kontingent?: number;
+}
+
+export async function modellStatus(): Promise<ModellStatus> {
+  const leer: ModellStatus = { installiert: false, dateien: 0, bytes: 0, unvollstaendig: false };
+  if (typeof caches === 'undefined') return leer;
+
+  let dateien = 0;
+  let bytes = 0;
+  let unvollstaendig = false;
+  try {
+    if (!(await caches.has(SEMANTIK_CACHE_KEY))) return await mitSpeicher(leer);
+    const cache = await caches.open(SEMANTIK_CACHE_KEY);
+    for (const anfrage of await cache.keys()) {
+      // Nur Dateien DIESES Modells zählen — der Cache gehört der Bibliothek,
+      // nicht uns; läge je ein zweites Modell darin, wäre die Zahl sonst
+      // eine Auskunft über etwas anderes.
+      if (!anfrage.url.includes(SEMANTIK_MODELL_ID)) continue;
+      const antwort = await cache.match(anfrage);
+      if (!antwort) continue;
+      dateien += 1;
+      const laenge = Number(antwort.headers.get('content-length'));
+      if (Number.isFinite(laenge) && laenge > 0) bytes += laenge;
+      else unvollstaendig = true;
+    }
+  } catch {
+    return leer;
+  }
+  return await mitSpeicher({ installiert: dateien > 0, dateien, bytes, unvollstaendig });
+}
+
+async function mitSpeicher(status: ModellStatus): Promise<ModellStatus> {
+  try {
+    const schaetzung = await navigator.storage?.estimate?.();
+    if (!schaetzung) return status;
+    return { ...status, belegt: schaetzung.usage, kontingent: schaetzung.quota };
+  } catch {
+    return status;
+  }
+}
+
+/**
+ * Modell und alles Abgeleitete entfernen — und die Stufe ausschalten.
+ *
+ * Das Ausschalten gehört DAZU: Bliebe das Opt-in stehen, lüde die nächste
+ * unverstandene Frage die 135 MB stillschweigend erneut. Wer löscht, meint
+ * „weg", nicht „gleich wieder".
+ */
+export async function modellLoeschen(): Promise<void> {
+  setzeSemantikAktiv(false);
+  _resetSemantikCache();
+  try {
+    await idbSet(`${MATRIX_KEY_PRAEFIX}${SEMANTIK_MODELL_ID}`, '');
+  } catch {
+    // Eine verbliebene Matrix ist folgenlos: Ohne Modell wird sie nie
+    // gelesen, und beim nächsten Einschalten prüft der Hash sie ohnehin.
+  }
+  if (typeof caches === 'undefined') return;
+  try {
+    const cache = await caches.open(SEMANTIK_CACHE_KEY);
+    for (const anfrage of await cache.keys()) {
+      if (anfrage.url.includes(SEMANTIK_MODELL_ID)) await cache.delete(anfrage);
+    }
+    // Ist danach nichts mehr drin, kommt auch die Hülle weg.
+    if ((await cache.keys()).length === 0) await caches.delete(SEMANTIK_CACHE_KEY);
+  } catch {
+    // Kein Cache-Zugriff (privates Fenster, blockierte Site-Daten) — dann
+    // gab es auch nichts zu löschen.
+  }
 }

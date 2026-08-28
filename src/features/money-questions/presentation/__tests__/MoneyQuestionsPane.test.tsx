@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { waitFor, within, screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
+import * as semantikDienst from '@/services/semantic-intent-service';
+
+// `vi.mocked` statt roher Importe: Der Modul-Export trägt die ECHTE Signatur,
+// die Mock-Methoden hängen erst am Doppel. Ohne das ist die Datei zwar grün
+// in Vitest und rot im Typecheck — gefunden hat es der Build.
+const modellStatus = vi.mocked(semantikDienst.modellStatus);
+const modellLoeschen = vi.mocked(semantikDienst.modellLoeschen);
+const semantikVorschlaegeFuer = vi.mocked(semantikDienst.semantikVorschlaegeFuer);
 import type { Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';
 import { getQuestionConfirmations } from '@/services/question-confirmation-service';
@@ -27,6 +35,26 @@ const getTaxReserveState = vi.fn();
 // ganze Depot-Antwort mit. Genau der Grund, aus dem dieser Block existiert.
 const getPortfolioCashflows = vi.fn();
 const getNetWorthHistory = vi.fn();
+
+/**
+ * Der Semantik-Dienst wird gemockt: Er liest Cache Storage und lädt im
+ * Ernstfall 135 MB — beides gehört nicht in einen Flächen-Test. Geprüft
+ * wird hier, was die Fläche AUS dem Stand macht.
+ */
+vi.mock('@/services/semantic-intent-service', async (echt) => {
+  const original = await echt<typeof import('@/services/semantic-intent-service')>();
+  return {
+    ...original,
+    modellStatus: vi.fn(async () => ({
+      installiert: false,
+      dateien: 0,
+      bytes: 0,
+      unvollstaendig: false,
+    })),
+    modellLoeschen: vi.fn(async () => {}),
+    semantikVorschlaegeFuer: vi.fn(async () => []),
+  };
+});
 
 vi.mock('@/services/transaction-service', () => ({
   getTransactions: (...a: unknown[]) => getTransactions(...a),
@@ -443,6 +471,51 @@ describe('Nachfragen-Fläche', () => {
     expect(screen.getByText(/^\d+(,\d)?$/)).toBeInTheDocument();
   });
 
+  it('sollte OHNE installiertes Modell sagen, dass es noch nicht auf dem Gerät ist', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    expect(await screen.findByText(/Noch nicht auf diesem Gerät/i)).toBeInTheDocument();
+    // Kein Löschen-Knopf, solange nichts da ist.
+    expect(screen.queryByRole('button', { name: /Modell löschen/i })).not.toBeInTheDocument();
+  });
+
+  it('sollte ein installiertes Modell mit Grösse und Speicherort BESTÄTIGEN', async () => {
+    modellStatus.mockResolvedValue({
+      installiert: true,
+      dateien: 2,
+      bytes: 135_000_000,
+      unvollstaendig: false,
+    });
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+
+    expect(await screen.findByText(/Installiert/i)).toBeInTheDocument();
+    expect(screen.getByText(/135 MB in 2 Dateien/i)).toBeInTheDocument();
+    // Der Ort steht im Klartext — der Nutzer soll wissen, wo es liegt.
+    expect(screen.getByText(/transformers-cache/i)).toBeInTheDocument();
+  });
+
+  it('sollte ein installiertes Modell auf Knopfdruck löschen und den Stand neu lesen', async () => {
+    modellStatus.mockResolvedValue({
+      installiert: true,
+      dateien: 2,
+      bytes: 135_000_000,
+      unvollstaendig: false,
+    });
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+
+    const knopf = await screen.findByRole('button', { name: /Modell löschen/i });
+    modellStatus.mockResolvedValue({
+      installiert: false,
+      dateien: 0,
+      bytes: 0,
+      unvollstaendig: false,
+    });
+    fireEvent.click(knopf);
+
+    // Erst auf die Wirkung warten — die Mutation läuft asynchron.
+    expect(await screen.findByText(/Noch nicht auf diesem Gerät/i)).toBeInTheDocument();
+    expect(modellLoeschen).toHaveBeenCalledTimes(1);
+  });
+
   it('sollte das Stufe-3-Opt-in mit Grössenangabe anbieten und beim Einschalten das Geräte-Flag setzen', async () => {
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     const schalter = await screen.findByRole('switch', { name: /Besser verstehen/i });
@@ -452,6 +525,31 @@ describe('Nachfragen-Fläche', () => {
     expect(screen.getByText(/135 MB/)).toBeInTheDocument();
     fireEvent.click(schalter);
     expect(localStorage.getItem('semantic-intent-opt-in')).toBe('1');
+  });
+
+  it('sollte eine Deutung des lokalen Modells als solche AUSWEISEN', async () => {
+    // Stufe 3 liefert eine Auswahl; nach dem Klick muss die Antwort sagen,
+    // wer die Frage gedeutet hat — sonst ist nicht erkennbar, ob das
+    // Modell überhaupt beteiligt war.
+    localStorage.setItem('semantic-intent-opt-in', '1');
+    semantikVorschlaegeFuer.mockResolvedValue([{ klasse: 'ausgaben.gesamt', score: 0.94 }]);
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('voellig krumm formuliertes zeug xyzzy');
+    const vorschlag = await screen.findByRole('button', { name: /Ausgaben/i });
+    fireEvent.click(vorschlag);
+
+    expect(await screen.findByText(/hat das lokale Modell zugeordnet/i)).toBeInTheDocument();
+  });
+
+  it('sollte eine Antwort des DETERMINISTISCHEN Routers NICHT dem Modell zuschreiben', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('Wieviel habe ich im Juli 2026 bei lidl sagt danke ausgegeben?');
+    await screen.findByText(/50,00/);
+    expect(screen.queryByText(/hat das lokale Modell zugeordnet/i)).not.toBeInTheDocument();
   });
 
   it('sollte OHNE Opt-in bei einer unverstandenen Frage KEIN Modell laden', async () => {

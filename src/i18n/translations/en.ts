@@ -4390,6 +4390,12 @@ export const en = {
       title: 'Ask about your money',
       intro: 'Ask about your figures in your own words. Everything is worked out locally from your transactions — no cloud, nothing leaves your device.',
       semantik: {
+        installiert: 'Installed · {mb} MB across {dateien} files',
+        groesseUngenau: '(at least)',
+        nichtInstalliert: 'Not on this device yet. The download starts with the first question that needs it.',
+        speicherort: 'Stored in this app\u2019s browser storage ({ort}) — a browser does not let an app pick a file path.',
+        loeschen: 'Delete model',
+        gedeutetVomModell: 'The local model matched this question — the figure was computed from your transactions as always.',
         titel: 'Understand better (local model)',
         beschreibung: 'Downloads a small language-understanding model (~{mb} MB) to this device once. It suggests likely readings for questions that are not understood — your questions and figures stay on the device, and answers are still computed only from your transactions.',
         laedtModell: 'Loading local model ({prozent} %) — once, then instant.',

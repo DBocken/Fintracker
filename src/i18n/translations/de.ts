@@ -4402,6 +4402,12 @@ export const de = {
       title: 'Nachfragen',
       intro: 'Frag in eigenen Worten nach deinen Zahlen. Gerechnet wird lokal aus deinen Buchungen — keine Cloud, nichts verlässt dein Gerät.',
       semantik: {
+        installiert: 'Installiert · {mb} MB in {dateien} Dateien',
+        groesseUngenau: '(mindestens)',
+        nichtInstalliert: 'Noch nicht auf diesem Gerät. Der Download startet erst bei der ersten Frage, die er braucht.',
+        speicherort: 'Liegt im Browser-Speicher dieser App ({ort}) — ein Dateipfad lässt sich im Browser nicht wählen.',
+        loeschen: 'Modell löschen',
+        gedeutetVomModell: 'Diese Frage hat das lokale Modell zugeordnet — gerechnet wurde wie immer aus deinen Buchungen.',
         titel: 'Besser verstehen (lokales Modell)',
         beschreibung: 'Lädt einmalig ein kleines Sprachverständnis-Modell (~{mb} MB) auf dieses Gerät. Es schlägt bei unverstandenen Fragen passende Deutungen vor — deine Fragen und Zahlen bleiben auf dem Gerät, gerechnet wird weiterhin nur aus deinen Buchungen.',
         laedtModell: 'Lokales Modell wird geladen ({prozent} %) — einmalig, danach sofort.',

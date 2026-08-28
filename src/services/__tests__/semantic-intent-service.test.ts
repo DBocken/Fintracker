@@ -7,6 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const embedAufrufe: string[][] = [];
 vi.mock('@huggingface/transformers', () => ({
+  // `env` trägt den Cache-Schlüssel — der Service setzt ihn ausdrücklich,
+  // damit Status und Löschen denselben Namen benutzen wie die Bibliothek.
+  env: { cacheKey: '' },
   pipeline: vi.fn(async () => {
     return async (texte: string[]) => {
       embedAufrufe.push(texte);
@@ -29,6 +32,10 @@ import {
   istSemantikAktiv,
   setzeSemantikAktiv,
   semantikVorschlaegeFuer,
+  modellStatus,
+  modellLoeschen,
+  SEMANTIK_CACHE_KEY,
+  SEMANTIK_MODELL_ID,
   _resetSemantikCache,
 } from '../semantic-intent-service';
 import { clearLocalKvStore } from '../idb-kv';
@@ -98,5 +105,132 @@ describe('semantic-intent-service', () => {
       expect(x.score).toBeGreaterThanOrEqual(0);
       expect(x.score).toBeLessThanOrEqual(1.0001);
     }
+  });
+});
+
+
+/**
+ * Cache-Storage-Doppel: jsdom kennt `caches` nicht. Nachgebildet wird nur,
+ * was der Status und das Löschen benutzen — Schlüssel, Köpfe, Löschen.
+ */
+class CacheDoppel {
+  eintraege = new Map<string, Response>();
+  async keys() {
+    return [...this.eintraege.keys()].map((url) => new Request(url));
+  }
+  async match(anfrage: Request | string) {
+    return this.eintraege.get(typeof anfrage === 'string' ? anfrage : anfrage.url);
+  }
+  async delete(anfrage: Request | string) {
+    return this.eintraege.delete(typeof anfrage === 'string' ? anfrage : anfrage.url);
+  }
+}
+
+function installiereCache(dateien: { url: string; bytes: number | null }[]) {
+  const doppel = new CacheDoppel();
+  for (const d of dateien) {
+    doppel.eintraege.set(
+      d.url,
+      new Response('', { headers: d.bytes === null ? {} : { 'content-length': String(d.bytes) } }),
+    );
+  }
+  const speicher = new Map<string, CacheDoppel>([[SEMANTIK_CACHE_KEY, doppel]]);
+  Object.defineProperty(globalThis, 'caches', {
+    configurable: true,
+    value: {
+      has: async (k: string) => speicher.has(k),
+      open: async (k: string) => {
+        if (!speicher.has(k)) speicher.set(k, new CacheDoppel());
+        return speicher.get(k)!;
+      },
+      delete: async (k: string) => speicher.delete(k),
+    },
+  });
+  return { doppel, speicher };
+}
+
+const URL_MODELL = `https://huggingface.co/${SEMANTIK_MODELL_ID}/resolve/main/onnx/model_quantized.onnx`;
+const URL_TOKENIZER = `https://huggingface.co/${SEMANTIK_MODELL_ID}/resolve/main/tokenizer.json`;
+
+describe('Modell-Status und Löschen', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis as Record<string, unknown>, 'caches');
+  });
+
+  it('sollte OHNE Cache „nicht installiert" melden statt zu raten', async () => {
+    installiereCache([]);
+    const status = await modellStatus();
+    expect(status.installiert).toBe(false);
+    expect(status.dateien).toBe(0);
+  });
+
+  it('sollte den Installationsstand aus dem CACHE lesen, nicht aus einem Merker', async () => {
+    // Das Flag behauptet „an" — der Cache ist trotzdem leer. Ein Merker
+    // würde hier „installiert" sagen; der Browser räumt aber unter
+    // Speicherdruck, ohne zu fragen.
+    setzeSemantikAktiv(true);
+    installiereCache([]);
+    expect((await modellStatus()).installiert).toBe(false);
+  });
+
+  it('sollte Dateien zählen und die Grösse aus content-length summieren', async () => {
+    installiereCache([
+      { url: URL_MODELL, bytes: 118_000_000 },
+      { url: URL_TOKENIZER, bytes: 17_000_000 },
+    ]);
+    const status = await modellStatus();
+    expect(status.installiert).toBe(true);
+    expect(status.dateien).toBe(2);
+    expect(status.bytes).toBe(135_000_000);
+    expect(status.unvollstaendig).toBe(false);
+  });
+
+  it('sollte eine fehlende Längenangabe als UNVOLLSTÄNDIG ausweisen, statt sie zu verschweigen', async () => {
+    installiereCache([
+      { url: URL_MODELL, bytes: 118_000_000 },
+      { url: URL_TOKENIZER, bytes: null },
+    ]);
+    const status = await modellStatus();
+    expect(status.bytes).toBe(118_000_000);
+    expect(status.unvollstaendig).toBe(true);
+  });
+
+  it('sollte fremde Einträge im selben Cache NICHT mitzählen', async () => {
+    installiereCache([
+      { url: URL_MODELL, bytes: 118_000_000 },
+      { url: 'https://huggingface.co/Xenova/ein-anderes-modell/resolve/main/model.onnx', bytes: 999 },
+    ]);
+    expect((await modellStatus()).dateien).toBe(1);
+  });
+
+  it('sollte beim Löschen die Modelldateien entfernen und die Stufe AUSSCHALTEN', async () => {
+    const { doppel } = installiereCache([
+      { url: URL_MODELL, bytes: 118_000_000 },
+      { url: URL_TOKENIZER, bytes: 17_000_000 },
+    ]);
+    setzeSemantikAktiv(true);
+
+    await modellLoeschen();
+
+    expect(doppel.eintraege.size).toBe(0);
+    // Bliebe das Opt-in an, lüde die nächste Frage 135 MB still erneut.
+    expect(istSemantikAktiv()).toBe(false);
+    expect((await modellStatus()).installiert).toBe(false);
+  });
+
+  it('sollte beim Löschen fremde Einträge im selben Cache in Ruhe lassen', async () => {
+    const fremd = 'https://huggingface.co/Xenova/ein-anderes-modell/resolve/main/model.onnx';
+    const { doppel } = installiereCache([
+      { url: URL_MODELL, bytes: 1 },
+      { url: fremd, bytes: 1 },
+    ]);
+    await modellLoeschen();
+    expect([...doppel.eintraege.keys()]).toEqual([fremd]);
+  });
+
+  it('sollte ohne Cache-Zugriff nicht werfen — die Fläche darf daran nicht scheitern', async () => {
+    Reflect.deleteProperty(globalThis as Record<string, unknown>, 'caches');
+    await expect(modellStatus()).resolves.toMatchObject({ installiert: false });
+    await expect(modellLoeschen()).resolves.toBeUndefined();
   });
 });

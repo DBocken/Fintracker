@@ -30,9 +30,13 @@ import { findeKonzeptKategorien } from '@/lib/category-concepts';
 import { intentBeispieleFuer, paraphrasenFuer } from '@/features/money-questions/data/paraphrases';
 import {
   istSemantikAktiv,
+  modellLoeschen,
+  modellStatus,
   semantikVorschlaegeFuer,
   setzeSemantikAktiv,
+  SEMANTIK_CACHE_KEY,
   SEMANTIK_DOWNLOAD_MB,
+  type ModellStatus,
   type SemantikFortschritt,
 } from '@/services/semantic-intent-service';
 import {
@@ -113,6 +117,8 @@ export type MoneyQuestionOutcome =
       kandidaten: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }[];
       /** Reine Stufe-2-Vermutung: die Fläche sagt „nicht verstanden" dazu. */
       nurVermutung?: boolean;
+      /** Kamen diese Vorschläge aus Router-Stufe 3 (lokales Modell)? */
+      quelle?: 'router' | 'modell';
     }
   | {
       /**
@@ -131,6 +137,14 @@ export type MoneyQuestionOutcome =
       art: 'antwort';
       entryId: string;
       antwort: QuestionAnswer;
+      /**
+       * Wer die Frage GEDEUTET hat — nicht, wer gerechnet hat: Die Zahl
+       * entsteht immer deterministisch aus den Buchungen. `modell` heisst,
+       * dass die Zuordnung zur Familie über Router-Stufe 3 kam; die Fläche
+       * weist das aus, damit erkennbar bleibt, wann das lokale Modell im
+       * Spiel war.
+       */
+      quelle?: 'router' | 'modell';
       /**
        * Die Slots, aus denen diese Antwort entstand — damit eine erkannte
        * Kategorien-MENGE nachträglich korrigierbar ist, ohne die Frage neu
@@ -187,6 +201,15 @@ export interface MoneyQuestionsViewModel {
     aktivieren: (aktiv: boolean) => void;
     lage: SemantikFortschritt | { phase: 'fehler' } | null;
     downloadMb: number;
+    /**
+     * Was WIRKLICH auf dem Gerät liegt — aus dem Cache Storage gelesen,
+     * nicht aus dem Opt-in-Flag geschlossen. `null`, solange unbekannt.
+     */
+    status: ModellStatus | null;
+    /** Der Speicherort im Klartext, damit er benennbar ist. */
+    cacheSchluessel: string;
+    loeschen: () => void;
+    loeschtGerade: boolean;
   };
 }
 
@@ -542,7 +565,12 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
    * damit ein per Klick gefüllter Slot exakt dieselbe Prüfung durchläuft wie
    * ein aus dem Text erkannter.
    */
-  const aufloesen = (entryId: string, slots: QuestionSlots, erschlossen: SlotName[] = []): void => {
+  const aufloesen = (
+    entryId: string,
+    slots: QuestionSlots,
+    erschlossen: SlotName[] = [],
+    quelle: 'router' | 'modell' = 'router',
+  ): void => {
     const entry = questionCatalog.byId(entryId);
     if (!entry) {
       setErgebnis({ art: 'unverstanden' });
@@ -605,6 +633,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       slots,
       antwort: entry.antwort(slots, daten),
       erschlosseneKategorie,
+      quelle,
     });
   };
 
@@ -621,11 +650,35 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
   );
   const semantikLauf = useRef(0);
 
+  /**
+   * Der Installationsstand wird GELESEN, nicht gefolgert: Der Browser räumt
+   * seinen Cache unter Speicherdruck, ohne zu fragen — ein Flag, das
+   * „installiert" behauptet, wäre dann eine stille Falschaussage.
+   */
+  const modell = useQuery({
+    queryKey: ['semantik-modell-status'],
+    queryFn: modellStatus,
+  });
+  // `modellStatus` fängt jeden Zugriffsfehler selbst ab und liefert dann
+  // „nicht installiert"; ein rotes Ergebnis behandeln wir wie unbekannt,
+  // statt der Fläche eine Zahl vorzugaukeln.
+  const modellStand = modell.isError ? null : (modell.data ?? null);
+
   const aktiviereSemantik = (aktiv: boolean) => {
     setzeSemantikAktiv(aktiv);
     setSemantikAktivState(aktiv);
     if (!aktiv) setSemantikLage(null);
   };
+
+  const loeschenMutation = useMutation({
+    mutationFn: modellLoeschen,
+    onSuccess: () => {
+      // Löschen schaltet die Stufe im Dienst ab — die Fläche zieht nach.
+      setSemantikAktivState(false);
+      setSemantikLage(null);
+      void modell.refetch();
+    },
+  });
 
   const starteStufe3 = (
     text: string,
@@ -639,6 +692,9 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       .then((vorschlaege) => {
         if (semantikLauf.current !== lauf) return;
         setSemantikLage({ anteil: 1, phase: 'bereit' });
+        // Jetzt liegt es auf dem Gerät — der Stand wird neu gelesen, damit
+        // die Karte von „nicht installiert" auf die echte Grösse springt.
+        void modell.refetch();
         const erweitert = erweitereUmSemantik(
           bisher,
           text,
@@ -657,6 +713,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
             erschlossen: k.erschlossen,
           })),
           nurVermutung: true,
+          quelle: 'modell',
         });
       })
       .catch(() => {
@@ -756,10 +813,11 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // Ausgabe als Trainingsdatum wäre der Selbstbestätigungskreis, den schon
     // das Kategorienmodell meidet). Fehler beim Speichern sind folgenlos.
     lernen.mutate({ text: frage, entryId: kandidat.entryId });
+    const quelle = ergebnis.quelle ?? 'router';
     // Derselbe Weg wie eine direkt erkannte Frage: Fehlt danach ein
     // Pflicht-Slot, folgt die Slot-Rückfrage — keine Abkürzung an der
     // Validierung vorbei.
-    aufloesen(kandidat.entryId, kandidat.slots, kandidat.erschlossen);
+    aufloesen(kandidat.entryId, kandidat.slots, kandidat.erschlossen, quelle);
   };
 
   return {
@@ -771,6 +829,10 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       aktivieren: aktiviereSemantik,
       lage: semantikLage,
       downloadMb: SEMANTIK_DOWNLOAD_MB,
+      status: modellStand,
+      cacheSchluessel: SEMANTIK_CACHE_KEY,
+      loeschen: () => loeschenMutation.mutate(),
+      loeschtGerade: loeschenMutation.isPending,
     },
     absenden,
     waehleVorschlag,
