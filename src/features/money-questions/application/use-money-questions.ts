@@ -199,7 +199,13 @@ export interface MoneyQuestionsViewModel {
   semantik: {
     aktiv: boolean;
     aktivieren: (aktiv: boolean) => void;
-    lage: SemantikFortschritt | { phase: 'fehler' } | null;
+    /**
+     * Fortschritt oder Fehler. Der Fehlerfall trägt den ECHTEN Text der
+     * Ausnahme: Ein generisches „konnte nicht geladen werden" ist für den
+     * Nutzer eine Sackgasse und für die Fehlersuche wertlos — genau daran
+     * ist die erste Ferndiagnose gescheitert.
+     */
+    lage: SemantikFortschritt | { phase: 'fehler'; text: string } | null;
     downloadMb: number;
     /**
      * Was WIRKLICH auf dem Gerät liegt — aus dem Cache Storage gelesen,
@@ -645,9 +651,9 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
    * die nächste Frage gestellt hat, bekommt keine Antwort auf die vorige.
    */
   const [semantikAktiv, setSemantikAktivState] = useState<boolean>(() => istSemantikAktiv());
-  const [semantikLage, setSemantikLage] = useState<SemantikFortschritt | { phase: 'fehler' } | null>(
-    null,
-  );
+  const [semantikLage, setSemantikLage] = useState<
+    SemantikFortschritt | { phase: 'fehler'; text: string } | null
+  >(null);
   const semantikLauf = useRef(0);
 
   /**
@@ -716,10 +722,19 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
           quelle: 'modell',
         });
       })
-      .catch(() => {
+      .catch((fehler: unknown) => {
         // Stufe 3 nicht verfügbar (Netz, Speicher) ist KEIN Antwortfehler —
         // die ehrliche synchrone Auskunft steht bereits auf der Fläche.
-        if (semantikLauf.current === lauf) setSemantikLage({ phase: 'fehler' });
+        // Der Text wird DURCHGEREICHT statt geschluckt: Ohne ihn ist die
+        // Meldung für den Nutzer eine Sackgasse und für die Fehlersuche
+        // wertlos. Er kommt aus einer Bibliothek, nicht aus Nutzerdaten.
+        const text = fehler instanceof Error ? fehler.message : String(fehler);
+        if (semantikLauf.current === lauf) {
+          setSemantikLage({ phase: 'fehler', text: text.slice(0, 300) });
+        }
+        // Auch ein Fehlversuch kann Dateien im Cache hinterlassen — der
+        // Stand wird neu gelesen, damit der Löschen-Knopf die Wahrheit zeigt.
+        void modell.refetch();
       });
   };
 

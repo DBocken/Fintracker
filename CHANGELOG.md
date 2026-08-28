@@ -22,6 +22,22 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **Das lokale Modell lässt sich jederzeit löschen — auch wenn es defekt
+  ist.** Der Knopf steht nun immer bereit, nicht nur wenn die App den
+  Bestand für sauber hält. Genau der halb geladene Fall ist der, in dem man
+  löschen muss.
+
+- **Scheitert der Download, steht die Ursache im Klartext da**, statt nur
+  „konnte nicht geladen werden".
+
+- **Die Herkunfts-Marke unter einer Antwort ist immer sichtbar** — leuchtend,
+  wenn das lokale Modell die Frage zugeordnet hat, sonst matt mit „Ohne
+  lokales Modell erkannt". Ein Zeichen, das nur im Erfolgsfall erscheint,
+  lässt beim Ausbleiben offen, ob die Funktion nicht griff oder die Anzeige
+  kaputt ist.
+
 ### Behoben
 
 - **„Welches Budget für Wohnung?" fand das vorhandene Budget nicht.** Die

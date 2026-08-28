@@ -4407,6 +4407,8 @@ export const de = {
         nichtInstalliert: 'Noch nicht auf diesem Gerät. Der Download startet erst bei der ersten Frage, die er braucht.',
         speicherort: 'Liegt im Browser-Speicher dieser App ({ort}) — ein Dateipfad lässt sich im Browser nicht wählen.',
         loeschen: 'Modell löschen',
+        ohneModellKurz: 'Ohne lokales Modell erkannt',
+        ohneModell: 'Diese Frage haben die regelbasierten Stufen erkannt — das lokale Modell war nicht beteiligt.',
         gedeutetKurz: 'Vom lokalen Modell gedeutet',
         gedeutetVomModell: 'Diese Frage hat das lokale Modell zugeordnet — gerechnet wurde wie immer aus deinen Buchungen.',
         titel: 'Besser verstehen (lokales Modell)',
