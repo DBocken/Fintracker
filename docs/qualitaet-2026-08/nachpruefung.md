@@ -1193,9 +1193,30 @@ Fehlerklassen, die Wächter und Unit-Suiten strukturell nicht sehen.
 
 ## Abschlussbericht des Programms (2026-08-09)
 
-**Alle Plan-Pakete sind umgesetzt** — 7 Phasen, 44 geplante Arbeitspakete plus
-9 unterwegs registrierte Folgepakete (5.2b, 5.5b, 6.3b, 6.7, 6.8, 6.9, 7.7 u. a.),
-zusammen **53 abgeschlossene Pakete** in einem PR (#291). Das Phasenende-Gate
+**52 von 54 Plan-Paketen sind umgesetzt** — 7 Phasen, dazu 9 unterwegs
+registrierte Folgepakete (5.2b, 5.5b, 6.3b, 6.7, 6.8, 6.9, 7.7 u. a.).
+
+> **Korrektur vom 2026-08-10.** Dieser Absatz behauptete zunächst „alle
+> Plan-Pakete sind umgesetzt". Das war falsch: **WP 5.6** (`currencyFormatter`-
+> Kopien → `useMoneyFormat`, KOMP-4) und **WP 5.7** (toter Code entscheiden,
+> KOMP-6) wurden nie bearbeitet. Ursache war ein abgeschnittener Lesevorgang —
+> die Phase-5-Sektion des Plans wurde mit `head -40` gelesen, wodurch die
+> beiden letzten Pakete unsichtbar blieben; danach wurde die Vollständigkeit
+> in Segment-5-Nachprüfung, Abschlussbericht und PR-Beschreibung behauptet,
+> ohne sie gegen die unabgehakten Kästchen zu prüfen.
+>
+> **WP 5.6 ist dabei kein „kür", anders als der Audit-Befund nahelegt:**
+> `useMoneyFormat` kapselt die Sanfter-Modus-Maskierung, und an heute **20**
+> Stellen (Audit: 18 — die Zahl ist während des Programms gewachsen) wird roh
+> `new Intl.NumberFormat('de-DE', …)` benutzt. Auf derselben Fläche mischen
+> sich damit maskierte und unmaskierte Beträge; wer den Modus einschaltet, um
+> nicht mit Zahlen konfrontiert zu werden, sieht sie trotzdem. Als **#296**
+> angelegt, WP 5.7 als **#297**.
+>
+> Die Lehre gehört zu 6.a und 7.a: Eine Vollständigkeitsaussage muss gegen
+> eine *maschinell zählbare* Größe geprüft werden — hier
+> `grep -c "^### - \[ \]" plan.md` — und nicht gegen die Erinnerung an das,
+> was man gelesen zu haben glaubt. Das Phasenende-Gate
 der letzten Phase ist grün (5457 Tests, Coverage-Schwellen der Geldlogik aktiv,
 Build und Bundle 2213,2/2379,0 kB).
 
@@ -1233,6 +1254,11 @@ USD-als-EUR (7.7), anonymes Backup (7.3).
   siehe 4.e-Regel.
 - i18n-Backlog 35 in 23 Dateien (Zahlen dürfen nur sinken); Presentation-Reste
   an der `max`-Spalte 12 (Weg: restliche Screens migrieren).
+- **Nicht bearbeitete Plan-Pakete** (siehe Korrektur oben): WP 5.6 (#296),
+  WP 5.7 (#297).
+- **Dokumentierter Folgepunkt aus WP 3.4:** pgTAP-/Zwei-Nutzer-Test gegen eine
+  echte Supabase-Instanz (#298) — der Wächter liest die Migrationsquellen, nicht
+  die laufende Instanz.
 
 **Die Arbeitsregeln, die dieses Programm hinterlässt**, stehen in den
 Nachprüfungs-Einträgen 0.6–7.b und in `status.md` („Arbeitsweise"): Absicht vor

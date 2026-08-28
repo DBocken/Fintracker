@@ -441,11 +441,14 @@ Vereinheitlichung — im PR einen Screenshot-Vergleich oder Test-Assertion der
 neuen Köpfe.
 
 ### - [ ] WP 5.6 · `currencyFormatter`-Kopien → `useMoneyFormat` (KOMP-4) · H
+> **Nicht bearbeitet.** Im Programm übersehen, ausgelagert nach GitHub-Issue **#296**
+> (dort mit dem Befund, dass die Sanfter-Modus-Maskierung an 20 Stellen nicht greift).
 18 Fundstellen (grep `new Intl.NumberFormat('de-DE'`) auf `money.format(…)`;
 Achtung: dadurch greift die Sanfter-Modus-Maskierung überall — das ist gewollt
 und wird je umgestellter Fläche einmal getestet.
 
 ### - [ ] WP 5.7 · Toter Code entscheiden (KOMP-6) · H
+> **Nicht bearbeitet.** Im Programm übersehen, ausgelagert nach GitHub-Issue **#297**.
 Fünf Symbole (Liste in KOMP-6): entfernen oder — falls bewusst vorgehalten —
 mit Verweis auf ein GitHub-Issue kennzeichnen. Für `BulkActions` erst die
 Absicht klären (Rest einer Migration?); `withErrorBoundary` wird durch WP 1.6
