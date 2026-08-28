@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, MessageCircleQuestion, Plus, Send, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import FinanceEmptyState from '@/features/shared/presentation/FinanceEmptyState';
@@ -106,7 +108,45 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
       </form>
 
       <Ergebnis model={model} />
+
+      <SemantikOptIn model={model} />
     </section>
+  );
+}
+
+/**
+ * Opt-in für die Router-Stufe 3 (Welle S) — bewusst eine EINWILLIGUNG mit
+ * Grössenangabe, kein stiller Download: 135 MB sind im Mobilfunknetz eine
+ * echte Entscheidung. Der Schalter ist ein Geräte-Flag; das Modell bleibt im
+ * Browser-Cache dieses Geräts, die Frage verlässt das Gerät nie.
+ */
+function SemantikOptIn({ model }: { model: MoneyQuestionsViewModel }) {
+  const { t } = useI18n();
+  const s = model.semantik;
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+      <div className="min-w-0">
+        <Label htmlFor="semantik-opt-in" className="text-sm font-medium">
+          {t('financeQuestions.semantik.titel')}
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          {t('financeQuestions.semantik.beschreibung')
+            .split('{mb}')
+            .join(String(s.downloadMb))}
+        </p>
+        {s.aktiv && s.lage?.phase === 'fehler' && (
+          <p className="text-xs text-warning-foreground">
+            {t('financeQuestions.semantik.fehler')}
+          </p>
+        )}
+      </div>
+      <Switch
+        id="semantik-opt-in"
+        checked={s.aktiv}
+        onCheckedChange={(aktiv) => s.aktivieren(aktiv === true)}
+        aria-label={t('financeQuestions.semantik.titel')}
+      />
+    </div>
   );
 }
 
@@ -120,9 +160,21 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
     // Kein „Verstanden" plus falscher Zahl. Ein Eingabefeld, das aussieht wie
     // ein Chat, weckt LLM-Erwartungen — die Antwort auf eine unverstandene
     // Frage ist deshalb ausdrücklich eine Rückfrage, keine Behauptung.
+    // Läuft die Stufe 3 (lokales Modell) noch, sagt die Fläche das: Ein
+    // Zustand, der still nachlädt, sieht aus wie ein endgültiges Nein.
+    const lage = model.semantik.aktiv ? model.semantik.lage : null;
     return (
       <InfoGroup title={t('financeQuestions.notUnderstoodTitle')}>
         <p className="text-sm text-muted-foreground">{t('financeQuestions.notUnderstood')}</p>
+        {lage !== null && lage.phase !== 'fehler' && lage.phase !== 'bereit' && (
+          <p className="mt-1 text-xs text-muted-foreground" role="status">
+            {lage.phase === 'download'
+              ? t('financeQuestions.semantik.laedtModell')
+                  .split('{prozent}')
+                  .join(String(Math.round(lage.anteil * 100)))
+              : t('financeQuestions.semantik.bereitet')}
+          </p>
+        )}
       </InfoGroup>
     );
   }

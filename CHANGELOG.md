@@ -22,6 +22,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **„Besser verstehen" (Opt-in): ein kleines Sprachmodell auf deinem Gerät.**
+  Wer es auf der Fragen-Fläche einschaltet, lädt einmalig ein ~135 MB großes
+  Verständnis-Modell herunter (danach kommt es aus dem Cache). Es springt nur
+  ein, wenn die App eine Frage nicht versteht, und schlägt dann passende
+  Deutungen zur Auswahl vor — es beantwortet nie selbst und schreibt nie:
+  Jede Zahl rechnet weiterhin die App aus deinen Buchungen, jede Aktion
+  braucht weiterhin deine Bestätigung. Deine Fragen und Zahlen verlassen das
+  Gerät nicht; heruntergeladen werden nur die Modelldateien selbst.
+
 ### Behoben
 
 - **„Wie viel gebe ich für Netflix aus?" wird verstanden.** Die einfachste

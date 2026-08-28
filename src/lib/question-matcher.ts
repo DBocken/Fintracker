@@ -1029,3 +1029,68 @@ export function kandidatFuer(
     erschlossen,
   };
 }
+
+/**
+ * Router-Stufe 3 (Welle S): Ein Routing-Ergebnis um die SEMANTISCHE Auswahl
+ * erweitern — die Vorschläge des lokalen Embedding-Modells
+ * (`lib/semantic-intent.ts`), gerechnet im ViewModel als zweiter,
+ * asynchroner Pass NACH `routeFrage`.
+ *
+ * Bewusst eine eigene Funktion statt eines weiteren Parameters an
+ * `routeFrage`: Die Stufen 0–2 samt ihrer vermessenen Gates bleiben
+ * unberührt (die fünf Ratschen messen sie weiterhin exakt so, wie die
+ * Fläche sie synchron benutzt), und die Stufe 3 greift NUR dort, wo heute
+ * „Noch nicht verstanden" steht — bei `unverstanden` und bei der blossen
+ * Stufe-2-Vermutung. Ein Ergebnis, das die Wortebene trug, wird nie
+ * angefasst.
+ *
+ * Drei Invarianten, alle gemessen (semantic-ratchet.test.ts):
+ * - **Nie eine stille Antwort.** top-1 der Stufe 3 liegt bei 86 % — 14 %
+ *   wären „zuversichtlich falsch". Das Ergebnis ist immer eine Auswahl mit
+ *   `nurVermutung`, die Fläche sagt weiterhin ehrlich „nicht verstanden".
+ * - **Kein Aktions-Eintrag.** Strukturell (die Paraphrasen kennen keine
+ *   Aktions-Klassen), defensiv (`semantischeVorschlaege` filtert), und hier
+ *   ein drittes Mal über `istAktionsEintrag` — ein schreibender Eintrag ist
+ *   ausschliesslich über seine eigene Grammatik erreichbar.
+ * - **Das Szenario-Gate gilt auch hier.** Eine hypothetische Frage erreicht
+ *   nur Einträge, die Szenarien beantworten — dieselbe Schranke wie an
+ *   Stufe 1 und 2 (AGENTS.md §3: ein Gate gehört an JEDE Stufe, die es
+ *   umgehen könnte).
+ */
+export function erweitereUmSemantik(
+  bisher: RoutingErgebnis,
+  text: string,
+  vokabular: QuestionVocabulary,
+  entries: readonly QuestionEntry[],
+  locale: string,
+  jetzt: Date,
+  vorschlaege: readonly { klasse: string; score: number }[],
+): RoutingErgebnis {
+  const greift =
+    bisher.art === 'unverstanden' || (bisher.art === 'kandidaten' && bisher.nurVermutung === true);
+  if (!greift || vorschlaege.length === 0) return bisher;
+
+  const szenario = istSzenarioFrage(text);
+  const erlaubt = entries.filter(
+    (e) =>
+      !istAktionsEintrag(e) && !e.nimmtVergleich && (!szenario || e.beantwortetSzenarien === true),
+  );
+
+  const bisherige = bisher.art === 'kandidaten' ? bisher.top : [];
+  const neue: QuestionCandidate[] = [];
+  for (const v of vorschlaege) {
+    if (bisherige.some((k) => k.entryId === v.klasse) || neue.some((k) => k.entryId === v.klasse)) {
+      continue;
+    }
+    const entry = erlaubt.find((e) => e.id === v.klasse);
+    if (!entry) continue;
+    // Dieselbe deterministische Slot-Extraktion wie überall: Ein Vorschlag
+    // des Modells umgeht die Slot-Validierung nie.
+    neue.push(kandidatFuer(text, vokabular, entry, locale, jetzt));
+  }
+  if (bisherige.length + neue.length === 0) return bisher;
+
+  // Die Stufe-2-Vermutung bleibt vorn: Sie kam aus den EIGENEN bestätigten
+  // Formulierungen des Nutzers, die semantischen Nachbarn dahinter.
+  return { art: 'kandidaten', top: [...bisherige, ...neue].slice(0, 4), nurVermutung: true };
+}

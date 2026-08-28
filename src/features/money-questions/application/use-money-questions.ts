@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
@@ -24,10 +24,17 @@ import { getMerchantRules } from '@/services/merchant-rules-service';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
 import { resolveKategorieAusText } from '@/lib/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
-import { routeFrage, zerlegeAusloeser } from '@/lib/question-matcher';
+import { erweitereUmSemantik, routeFrage, zerlegeAusloeser } from '@/lib/question-matcher';
 import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
 import { findeKonzeptKategorien } from '@/lib/category-concepts';
-import { intentBeispieleFuer } from '@/features/money-questions/data/paraphrases';
+import { intentBeispieleFuer, paraphrasenFuer } from '@/features/money-questions/data/paraphrases';
+import {
+  istSemantikAktiv,
+  semantikVorschlaegeFuer,
+  setzeSemantikAktiv,
+  SEMANTIK_DOWNLOAD_MB,
+  type SemantikFortschritt,
+} from '@/services/semantic-intent-service';
 import {
   addQuestionConfirmation,
   getQuestionConfirmations,
@@ -170,6 +177,17 @@ export interface MoneyQuestionsViewModel {
   isLoading: boolean;
   isError: boolean;
   refetch: () => void;
+  /**
+   * Router-Stufe 3 (Opt-in, Welle S): das lokale Embedding-Modell. `lage`
+   * trägt Download-/Einbettungs-Fortschritt, damit die Fläche die einmalige
+   * Wartezeit erklären kann, statt still zu hängen.
+   */
+  semantik: {
+    aktiv: boolean;
+    aktivieren: (aktiv: boolean) => void;
+    lage: SemantikFortschritt | { phase: 'fehler' } | null;
+    downloadMb: number;
+  };
 }
 
 /**
@@ -590,6 +608,64 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     });
   };
 
+  /**
+   * Router-Stufe 3 (Opt-in): Das lokale Embedding-Modell läuft als ZWEITER,
+   * asynchroner Pass — die synchrone Antwort steht sofort, und nur wenn sie
+   * „unverstanden" (oder blosse Vermutung) war, reicht die Stufe 3 eine
+   * Auswahl nach. Der Laufzähler verwirft veraltete Ergebnisse: Wer längst
+   * die nächste Frage gestellt hat, bekommt keine Antwort auf die vorige.
+   */
+  const [semantikAktiv, setSemantikAktivState] = useState<boolean>(() => istSemantikAktiv());
+  const [semantikLage, setSemantikLage] = useState<SemantikFortschritt | { phase: 'fehler' } | null>(
+    null,
+  );
+  const semantikLauf = useRef(0);
+
+  const aktiviereSemantik = (aktiv: boolean) => {
+    setzeSemantikAktiv(aktiv);
+    setSemantikAktivState(aktiv);
+    if (!aktiv) setSemantikLage(null);
+  };
+
+  const starteStufe3 = (
+    text: string,
+    bisher: Parameters<typeof erweitereUmSemantik>[0],
+  ): void => {
+    if (!semantikAktiv) return;
+    const lauf = (semantikLauf.current += 1);
+    void semantikVorschlaegeFuer(text, paraphrasenFuer(locale), (f) => {
+      if (semantikLauf.current === lauf) setSemantikLage(f);
+    })
+      .then((vorschlaege) => {
+        if (semantikLauf.current !== lauf) return;
+        setSemantikLage({ anteil: 1, phase: 'bereit' });
+        const erweitert = erweitereUmSemantik(
+          bisher,
+          text,
+          vokabular,
+          questionCatalog.entries,
+          locale,
+          jetzt,
+          vorschlaege,
+        );
+        if (erweitert === bisher || erweitert.art !== 'kandidaten') return;
+        setErgebnis({
+          art: 'kandidaten',
+          kandidaten: erweitert.top.map((k) => ({
+            entryId: k.entryId,
+            slots: k.slots,
+            erschlossen: k.erschlossen,
+          })),
+          nurVermutung: true,
+        });
+      })
+      .catch(() => {
+        // Stufe 3 nicht verfügbar (Netz, Speicher) ist KEIN Antwortfehler —
+        // die ehrliche synchrone Auskunft steht bereits auf der Fläche.
+        if (semantikLauf.current === lauf) setSemantikLage({ phase: 'fehler' });
+      });
+  };
+
   const absenden = () => {
     if (!frage.trim()) {
       setErgebnis({ art: 'leer' });
@@ -609,6 +685,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     );
     if (routing.art === 'unverstanden') {
       setErgebnis({ art: 'unverstanden' });
+      starteStufe3(frage, routing);
       return;
     }
     if (routing.art === 'kandidaten') {
@@ -621,6 +698,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
         })),
         nurVermutung: routing.nurVermutung,
       });
+      if (routing.nurVermutung === true) starteStufe3(frage, routing);
       return;
     }
     aufloesen(routing.kandidat.entryId, routing.kandidat.slots, routing.kandidat.erschlossen);
@@ -688,6 +766,12 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     frage,
     setFrage,
     ergebnis,
+    semantik: {
+      aktiv: semantikAktiv,
+      aktivieren: aktiviereSemantik,
+      lage: semantikLage,
+      downloadMb: SEMANTIK_DOWNLOAD_MB,
+    },
     absenden,
     waehleVorschlag,
     waehleKandidat,

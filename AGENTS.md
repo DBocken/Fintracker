@@ -362,14 +362,23 @@ gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche
 Zahl ist schlimmer als keine.
 
-**Kein Modellgewicht in der Auslieferung.** `script-src 'self'` verbietet
-fremde Gewichte, `bundle-size-budget.json` deckelt eigene. Ein
-Klassifikationsziel sind ohnehin die `local-cat-*`-IDs, die der Nutzer selbst
-angelegt und in seiner Sprache benannt hat — kein vortrainiertes Modell kennt
-sie, und die einzigen Labels dafür liegen auf seinem Gerät. Deshalb wird aus
-den eigenen bestätigten Buchungen gelernt, nicht aus einem mitgelieferten Netz.
-Ändert sich diese Lage, ist die einzige vorgesehene Naht der
-`QuestionMatcher` (Freitext → Kandidaten); `antwort()` inferiert nie.
+**Kein Modellgewicht im BUNDLE — und die vorgesehene Naht ist eingelöst.**
+`bundle-size-budget.json` deckelt die Auslieferung; ein vortrainiertes Netz
+gehört nicht hinein. Seit Welle S existiert trotzdem ein Embedding-Modell
+(multilingual-e5-small, int8, ~135 MB) — als **Opt-in-Download auf das
+Gerät**, nie im Bundle, nie ohne Einwilligung mit Grössenangabe
+(Registerzeile Hugging Face; CSP: `connect-src` um die Modell-Hosts und
+`script-src` um `'wasm-unsafe-eval'` erweitert — NUR WASM-Kompilierung,
+kein JS-`eval`). Es sitzt an exakt der Naht, die dieser Absatz immer
+vorgesehen hat: dem `QuestionMatcher` (Freitext → Kandidaten), als Stufe 3
+für das Residuum der Stufen 0–2. Gemessen (semantic-ratchet.test.ts, über
+eine eingefrorene Embedding-Fixture ohne CI-Download): top-3 97 % auf dem
+beantwortbaren Residuum, top-1 nur 86 % — deshalb liefert die Stufe
+AUSSCHLIESSLICH eine Auswahl und nie eine stille Antwort, das
+Kategorisieren bleibt beim Lernen aus den eigenen bestätigten Buchungen
+(`local-cat-*`-IDs kennt kein vortrainiertes Modell), und **`antwort()`
+inferiert weiterhin nie**. Die Frage verlässt das Gerät nie; der einzige
+Netzverkehr ist der einmalige Download statischer Modelldateien.
 
 **Das ViewModel kennt die Oberfläche nicht — auch nicht für einen Typ.**
 `features/<slice>/application` darf nicht nach `src/components/` oder

@@ -443,6 +443,28 @@ describe('Nachfragen-Fläche', () => {
     expect(screen.getByText(/^\d+(,\d)?$/)).toBeInTheDocument();
   });
 
+  it('sollte das Stufe-3-Opt-in mit Grössenangabe anbieten und beim Einschalten das Geräte-Flag setzen', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    const schalter = await screen.findByRole('switch', { name: /Besser verstehen/i });
+    expect(schalter).not.toBeChecked();
+    // Die Einwilligung nennt die Grösse — 135 MB sind im Mobilfunknetz eine
+    // echte Entscheidung, kein Detail.
+    expect(screen.getByText(/135 MB/)).toBeInTheDocument();
+    fireEvent.click(schalter);
+    expect(localStorage.getItem('semantic-intent-opt-in')).toBe('1');
+  });
+
+  it('sollte OHNE Opt-in bei einer unverstandenen Frage KEIN Modell laden', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+    frage('vollkommen unverständliches zeug xyzzy');
+    expect(await screen.findByText(/kann ich noch nicht beantworten/i)).toBeInTheDocument();
+    // Kein Lade-Hinweis: Stufe 3 ist aus, es wird nichts nachgereicht. (Die
+    // Opt-in-Karte selbst bleibt sichtbar — gemeint ist der Fortschrittstext.)
+    expect(screen.queryByText(/wird geladen/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
   it('sollte bilingual funktionieren', async () => {
     renderWithProviders(<Fixture />, { locale: 'en', query: true });
 
