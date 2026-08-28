@@ -24,6 +24,55 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **Das lokale Modell startete nie: „no available backend found."** Das
+  Modell lag längst auf dem Gerät (135 MB im Cache), aber seine
+  WASM-Laufzeit wollte die Bibliothek per Vorgabe von einem CDN
+  (`cdn.jsdelivr.net`) nachladen — und genau das blockiert unsere
+  Sicherheitsrichtlinie zu Recht. Die Laufzeit kommt jetzt von der App
+  selbst (`/ort/`), aus exakt der Version, die die Bibliothek erwartet.
+  Kein neuer externer Anbieter, keine gelockerte Richtlinie.
+
+- **„Wieviel gebe ich für Netflix aus?" antwortete mit der ganzen
+  Streaming-Kategorie.** Netflix steht als Stichwort an der Kategorie, und
+  die Stichwort-Erschliessung prüfte nur, ob der JEWEILIGE Eintrag einen
+  Händler erkannt hat — der Kategorie-Eintrag kennt gar keinen Händler-Slot
+  und erschloss deshalb ausgerechnet aus dem Händlernamen die Kategorie.
+  Ein wörtlich genannter Händler beansprucht sein Wort jetzt für alle
+  Deutungen: Die Antwort kommt vom Händler-Eintrag und zählt nur Netflix.
+
+- **„Wie gebe ich für Netflix aus?" bot die Gesamtsumme an.** Steht der
+  genannte Händler nicht in deinen Buchungen, schlug die App als erste
+  Möglichkeit „Alle Ausgaben zusammen" vor — wer sie antippte, bekam die
+  Summe aller Buchungen als Antwort auf eine Frage nach einem Händler. Eine
+  genannte, aber unbekannte Bezugsgröße schliesst solche Gesamt-Antworten
+  jetzt aus; angeboten wird stattdessen der Weg, der nach dem Händler fragt
+  und dabei deine echten Händler zur Auswahl stellt.
+
+### Neu
+
+- **Der Absende-Knopf quittiert den Klick.** Solange gerechnet wird, wird aus
+  dem Papierflieger ein drehender Kreis. Die Frage neu zu stellen war bis
+  jetzt nicht von einem toten Knopf zu unterscheiden: Dieselbe Frage ergibt
+  dieselbe Antwort, und die Rechnung dauert wenige Millisekunden — auf dem
+  Bildschirm passierte sichtbar nichts. Läuft das lokale Modell mit, dauert
+  die Anzeige so lange wie es.
+
+- **Das lokale Modell lässt sich jederzeit löschen — auch wenn es defekt
+  ist.** Der Knopf steht nun immer bereit, nicht nur wenn die App den
+  Bestand für sauber hält. Genau der halb geladene Fall ist der, in dem man
+  löschen muss.
+
+- **Scheitert der Download, steht die Ursache im Klartext da**, statt nur
+  „konnte nicht geladen werden".
+
+- **Die Herkunfts-Marke unter einer Antwort ist immer sichtbar** — leuchtend,
+  wenn das lokale Modell die Frage zugeordnet hat, sonst matt mit „Ohne
+  lokales Modell erkannt". Ein Zeichen, das nur im Erfolgsfall erscheint,
+  lässt beim Ausbleiben offen, ob die Funktion nicht griff oder die Anzeige
+  kaputt ist.
+
+### Behoben
+
 - **„Welches Budget für Wohnung?" fand das vorhandene Budget nicht.** Die
   Frage wurde richtig verstanden — und die Antwort behauptete trotzdem, es
   sei kein Budget angelegt, während auf der Budget-Seite ein gefüllter Tank

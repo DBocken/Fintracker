@@ -4395,6 +4395,8 @@ export const en = {
         nichtInstalliert: 'Not on this device yet. The download starts with the first question that needs it.',
         speicherort: 'Stored in this app\u2019s browser storage ({ort}) — a browser does not let an app pick a file path.',
         loeschen: 'Delete model',
+        ohneModellKurz: 'Matched without the local model',
+        ohneModell: 'The rule-based stages matched this question — the local model was not involved.',
         gedeutetKurz: 'Matched by the local model',
         gedeutetVomModell: 'The local model matched this question — the figure was computed from your transactions as always.',
         titel: 'Understand better (local model)',

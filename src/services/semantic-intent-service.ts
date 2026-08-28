@@ -96,6 +96,16 @@ async function ladeExtraktor(onFortschritt?: (f: SemantikFortschritt) => void): 
       // hat UND eine Frage stellt, die sie braucht.
       const { pipeline, env } = await import('@huggingface/transformers');
       env.cacheKey = SEMANTIK_CACHE_KEY;
+      // Die WASM-Laufzeit kommt vom EIGENEN Origin, nie vom Vorgabe-CDN:
+      // transformers.js setzt sonst `cdn.jsdelivr.net` als `wasmPaths`, und
+      // die CSP blockt das zu Recht (EU-Regel) — in der Produktion hiess das
+      // „no available backend found", obwohl das Modell längst im Cache lag.
+      // `/ort/` liefert Vite aus (Plugin in `vite.config.ts`, Dateien aus
+      // exakt der onnxruntime-web-Version, die transformers pinnt —
+      // `scripts/ort-laufzeit-core.mjs`). In Node (Laufzeit-Nachweis) läuft
+      // onnxruntime-node; dort existiert der wasm-Zweig schlicht nicht.
+      const onnxWasm = env.backends?.onnx?.wasm;
+      if (onnxWasm) onnxWasm.wasmPaths = '/ort/';
       const groessen = new Map<string, { geladen: number; gesamt: number }>();
       const pipe = await pipeline('feature-extraction', SEMANTIK_MODELL_ID, {
         dtype: 'q8',

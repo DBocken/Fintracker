@@ -474,8 +474,10 @@ describe('Nachfragen-Fläche', () => {
   it('sollte OHNE installiertes Modell sagen, dass es noch nicht auf dem Gerät ist', async () => {
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     expect(await screen.findByText(/Noch nicht auf diesem Gerät/i)).toBeInTheDocument();
-    // Kein Löschen-Knopf, solange nichts da ist.
-    expect(screen.queryByRole('button', { name: /Modell löschen/i })).not.toBeInTheDocument();
+    // Der Löschen-Knopf steht TROTZDEM da: Ein halb geladenes oder
+    // beschädigtes Modell ist genau der Fall, in dem gelöscht werden muss —
+    // und in dem der Stand womöglich „nicht installiert" meldet.
+    expect(screen.getByRole('button', { name: /Modell löschen/i })).toBeEnabled();
   });
 
   it('sollte ein installiertes Modell mit Grösse und Speicherort BESTÄTIGEN', async () => {
@@ -544,8 +546,9 @@ describe('Nachfragen-Fläche', () => {
     // wäre keine Information.
     const marke = await screen.findByText(/Vom lokalen Modell gedeutet/i);
     expect(marke).toBeInTheDocument();
-    const punkt = marke.parentElement?.querySelector('span[aria-hidden="true"]');
+    const punkt = marke.parentElement?.querySelector('span[data-modell]');
     expect(punkt, 'der aufleuchtende Punkt fehlt').not.toBeNull();
+    expect(punkt?.getAttribute('data-modell')).toBe('an');
     expect(punkt?.className).toContain('modell-punkt-auf');
     // Der Ruhezustand steht ohne Animation da — sonst wäre die Auskunft
     // für Menschen mit reduzierter Bewegung weg.
@@ -559,7 +562,28 @@ describe('Nachfragen-Fläche', () => {
 
     frage('Wieviel habe ich im Juli 2026 bei lidl sagt danke ausgegeben?');
     await screen.findByText(/50,00/);
+    // Die Marke ist sichtbar, aber INAKTIV — Abwesenheit wäre keine Aussage.
     expect(screen.queryByText(/Vom lokalen Modell gedeutet/i)).not.toBeInTheDocument();
+    const matt = await screen.findByText(/Ohne lokales Modell erkannt/i);
+    expect(matt).toBeInTheDocument();
+    const punkt = matt.parentElement?.querySelector('span[data-modell]');
+    expect(punkt?.getAttribute('data-modell')).toBe('aus');
+    expect(punkt?.className).not.toContain('modell-punkt-auf');
+  });
+
+  it('sollte den ECHTEN Fehlertext zeigen, wenn das Modell nicht lädt', async () => {
+    // Ein generisches „konnte nicht geladen werden" ist für den Nutzer eine
+    // Sackgasse und für die Fehlersuche wertlos — genau daran ist die erste
+    // Ferndiagnose gescheitert.
+    localStorage.setItem('semantic-intent-opt-in', '1');
+    semantikVorschlaegeFuer.mockRejectedValue(new Error('Unable to load from onnx/model_quantized.onnx'));
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('voellig krumm formuliertes zeug xyzzy');
+
+    expect(await screen.findByText(/Das lokale Modell konnte nicht geladen werden/i)).toBeInTheDocument();
+    expect(await screen.findByText(/model_quantized\.onnx/i)).toBeInTheDocument();
   });
 
   it('sollte OHNE Opt-in bei einer unverstandenen Frage KEIN Modell laden', async () => {
@@ -648,5 +672,46 @@ describe('Nachfragen-Fläche', () => {
     fireEvent.click(within(chips).getByRole('button', { name: /Essen & Trinken/ }));
 
     expect(await screen.findByText('40,00 €')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Der Klick muss sichtbar etwas auslösen.
+ *
+ * Nutzerbefund (28.08.): „ich brauch ein minimales Feedback, dass eine
+ * Abfrage neu durchlief, wenn ich den Button klicke, sonst denk ich, es
+ * passiert nicht." Der Grund ist strukturell und nicht behebbar durch
+ * Schnelligkeit: Die Router-Stufen 0–2 sind rein und synchron. Dieselbe
+ * Frage erzeugt dieselbe Antwort — der Bildschirm ist danach Pixel für
+ * Pixel derselbe wie davor, und ein funktionierender Knopf ist von einem
+ * toten nicht zu unterscheiden.
+ */
+describe('Rückmeldung, dass gerechnet wurde', () => {
+  it('sollte den Absende-Knopf für die Dauer der Berechnung als beschäftigt zeigen', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    const knopf = () => screen.getByRole('button', { name: /Frage stellen/i });
+    expect(knopf()).toHaveAttribute('data-rechnet', 'nein');
+
+    frage('Wieviel habe ich ausgegeben');
+    expect(knopf()).toHaveAttribute('data-rechnet', 'ja');
+    expect(knopf()).toHaveAttribute('aria-busy', 'true');
+
+    // Und sie endet auch wieder — eine Marke, die stehen bleibt, ist
+    // dieselbe Falschaussage wie gar keine.
+    await waitFor(() => expect(knopf()).toHaveAttribute('data-rechnet', 'nein'));
+  });
+
+  it('sollte bei leerer Frage NICHT beschäftigt tun', async () => {
+    // Nichts abgeschickt heisst nichts gerechnet. Eine Marke ohne Lauf wäre
+    // genau die Beruhigung ohne Deckung, gegen die sie gebaut ist.
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+    fireEvent.click(screen.getByRole('button', { name: /Frage stellen/i }));
+    expect(screen.getByRole('button', { name: /Frage stellen/i })).toHaveAttribute(
+      'data-rechnet',
+      'nein',
+    );
   });
 });

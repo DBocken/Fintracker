@@ -277,6 +277,58 @@ describe('lexicalQuestionMatcher', () => {
     }
   });
 
+  it('[REGRESSION] sollte einen wörtlich genannten Händler NICHT als Kategorie deuten', () => {
+    // Nutzerfund (28.08., Produktion): „wieviel gebe ich für netflix aus?"
+    // wurde mit der KATEGORIE Streaming beantwortet (71,88 € aus 6 Buchungen
+    // — Netflix plus alles andere in der Kategorie), obwohl Netflix als
+    // Händler im eigenen Bestand steht. Der Kommentar an der Erschliessung
+    // sagte die richtige Regel („kein Händler beansprucht den Platz"), der
+    // Code las die falsche Variable: den EINTRAGS-Slot statt des Kontexts.
+    // Für `ausgaben.kategorie` — das keinen Händler-Slot kennt — war der
+    // immer leer, und so erschloss ausgerechnet der Händlername die
+    // Kategorie, gegen die er antreten sollte.
+    const mitBeidem: QuestionVocabulary = {
+      ...vokabular,
+      haendler: [...vokabular.haendler, { wort: 'netflix', wert: 'netflix' }],
+      // Netflix steht als Stichwort an der Streaming-Kategorie — genau die
+      // Lage jedes Nutzers, dessen Kategorisierung über Händlernamen läuft.
+      kategorieAusText: (text) =>
+        text.includes('netflix') ? { categoryId: 'cat-streaming', confidence: 0.9 } : null,
+    };
+    const kandidaten = lexicalQuestionMatcher.match(
+      'Wieviel gebe ich für netflix aus?',
+      mitBeidem,
+      entries,
+      'de',
+      JETZT,
+    );
+
+    const routing = entscheideRouting(kandidaten);
+    expect(routing.art).toBe('aufloesen');
+    if (routing.art === 'aufloesen') {
+      expect(routing.kandidat.entryId).toBe('ausgaben.haendler');
+      expect(routing.kandidat.slots.haendler).toBe('netflix');
+    }
+  });
+
+  it('sollte einen abstrakten Begriff weiterhin erschliessen, wenn KEIN Händler genannt ist', () => {
+    // Der Anker zum Regressionstest darüber: Der Kontext-Wächter darf die
+    // Kernfunktion („für essen") nicht mit abräumen.
+    const mitBeidem: QuestionVocabulary = {
+      ...vokabular,
+      kategorieAusText: (text) =>
+        text.includes('essen') ? { categoryId: 'cat-food', confidence: 0.8 } : null,
+    };
+    const routing = entscheideRouting(
+      lexicalQuestionMatcher.match('wieviel gebe ich für essen aus?', mitBeidem, entries, 'de', JETZT),
+    );
+    expect(routing.art).toBe('aufloesen');
+    if (routing.art === 'aufloesen') {
+      expect(routing.kandidat.entryId).toBe('ausgaben.kategorie');
+      expect(routing.kandidat.slots.kategorieIds).toEqual(['cat-food']);
+    }
+  });
+
   it('sollte einen Eintrag ohne Auslöser-Treffer gar nicht vorschlagen', () => {
     // Ein Zeitraum allein ist kein Beleg dafür, wonach gefragt wurde.
     const kandidaten = match('letzten monat');

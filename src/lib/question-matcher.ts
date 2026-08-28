@@ -341,13 +341,13 @@ function analysiereFrage(
  */
 const BEZUGS_PRAEPOSITION = /\b(?:fuer|fur|bei|beim|for|at|on|на|для|в)\s+([a-z0-9äöüß]{3,})/u;
 
-function hatUnaufgelösteBezugsgroesse(kontext: FrageKontext): boolean {
+function unaufgelösteBezugsgroesse(kontext: FrageKontext): string | null {
   // Eine aufgelöste Bezugsgröße schliesst den Fall aus — dann ist nichts offen.
-  if (kontext.haendler || kontext.kategorie || kontext.anlass) return false;
+  if (kontext.haendler || kontext.kategorie || kontext.anlass) return null;
   const treffer = BEZUGS_PRAEPOSITION.exec(kontext.ohneZeit);
-  if (!treffer) return false;
+  if (!treffer) return null;
   const wort = treffer[1];
-  return !STOPPWOERTER.has(wort);
+  return STOPPWOERTER.has(wort) ? null : wort;
 }
 
 /**
@@ -389,7 +389,15 @@ function extrahiereEintragsSlots(
   // Zweiter Weg: der Oberbegriff als GRUPPE. Vor der Einzelauflösung, weil
   // er die genauere Antwort ist — „für essen" auf „Restaurant" zu verengen
   // summierte zu wenig, ohne dass es jemandem auffiele.
-  if (!slots.kategorieIds && !slots.haendler && nutzt('kategorie') && vokabular.konzeptAusText) {
+  //
+  // Geprüft wird der KONTEXT, nicht der Eintrags-Slot: `slots.haendler` ist
+  // für einen Eintrag ohne Händler-Slot IMMER leer, und genau so hat
+  // „für netflix" die Kategorie Streaming erschlossen und den Händler-Weg
+  // überstimmt (Nutzerfund 28.08.). Ein wörtlich genannter Händler
+  // beansprucht sein Wort für ALLE Einträge — auch für die, die ihn nicht
+  // verwerten können; die fallen dann ehrlich zurück, statt seine Kategorie
+  // zu raten.
+  if (!slots.kategorieIds && !kontext.haendler && nutzt('kategorie') && vokabular.konzeptAusText) {
     const gruppe = vokabular.konzeptAusText(kontext.ohneZeit);
     if (gruppe && gruppe.length > 0) {
       slots.kategorieIds = gruppe;
@@ -400,8 +408,8 @@ function extrahiereEintragsSlots(
   // Dritter Weg zur Kategorie: der abstrakte Begriff als EINZELNE Kategorie.
   // Nur, wenn weder Namensvergleich noch Gruppe etwas fanden und kein Händler
   // den Platz beansprucht — „bei Lidl" meint den Händler, nicht eine
-  // Kategorie namens Lidl.
-  if (!slots.kategorieIds && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
+  // Kategorie namens Lidl. Auch hier zählt der KONTEXT (siehe oben).
+  if (!slots.kategorieIds && !kontext.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
     const erschlossene = vokabular.kategorieAusText(kontext.ohneZeit);
     if (erschlossene) {
       slots.kategorieIds = [erschlossene.categoryId];
@@ -779,6 +787,98 @@ export function traegtSzenarioRouting(absicht: SzenarioAbsicht | null): absicht 
   return absicht.deltas.length >= 2 || (absicht.deltas.length >= 1 && absicht.schwelle !== undefined);
 }
 
+/**
+ * Eine genannte, aber unaufgelöste Bezugsgröße schliesst die GESAMT-Einträge
+ * aus — als Antwort **und als Angebot**.
+ *
+ * Nutzerfund (Produktion, 28.08.): „Wie gebe ich für netflix aus" — Netflix
+ * nicht im Vokabular — bot als ERSTE Karte „Alle Ausgaben zusammen" an. Der
+ * Nutzer tippte sie, völlig vernünftig, und bekam 5.566,16 € aus 57
+ * Buchungen als Antwort auf eine Frage nach einem Händler.
+ *
+ * Die Regel dagegen stand längst hier (`hatUnaufgelösteBezugsgroesse`, samt
+ * Kommentar „Wer nach einem Teil fragt und das Ganze bekommt, bekommt eine
+ * falsche Zahl mit richtigem Anstrich"). Sie hing aber an genau EINEM Zweig:
+ * dem Stichentscheid der Stufe 2. Die Kandidatenliste — der Weg, den der
+ * Nutzer tatsächlich ging — lief daran vorbei.
+ *
+ * Dieselbe Lehre wie beim Szenario-Gate und beim Imperativ-Gate, zum dritten
+ * Mal: **Ein Gate gehört an JEDE Stufe, die es umgehen könnte.** Ein Angebot
+ * ist dabei kein harmloserer Fall als eine Antwort — es führt nur einen
+ * Klick später zu derselben falschen Zahl.
+ *
+ * Was bleibt, ist der hilfreichere Weg: `ausgaben.haendler` verlangt den
+ * Slot und fragt deshalb „welchen Händler?" — mit den ECHTEN Händlern des
+ * Nutzers zur Auswahl. Bleibt nichts übrig, ist „nicht verstanden" die
+ * ehrliche Auskunft; die Fläche bittet dann um eine Bezugsgröße aus den
+ * eigenen Daten.
+ */
+function ohneAusweitung(
+  ergebnis: RoutingErgebnis,
+  entries: readonly QuestionEntry[],
+  vokabular: QuestionVocabulary,
+  offenesWort: string | null,
+): RoutingErgebnis {
+  if (offenesWort === null) return ergebnis;
+
+  /**
+   * Der entscheidende Unterschied — gemessen an drei gefallenen Ratschen,
+   * nicht geraten: **„für Steuern" benennt das THEMA, „für netflix" benennt
+   * einen FILTER.**
+   *
+   * Ein erster Entwurf verwarf jeden Eintrag ohne Pflicht-Slot und riss
+   * damit `steuer.ruecklage` mit — „Wie viel muss ich für Steuern
+   * zurücklegen?" ist aber genau die Frage, die dieser Eintrag beantwortet.
+   * Er weitet nichts aus; das Wort hinter der Präposition IST sein Gegenstand.
+   *
+   * Unterschieden wird deshalb am eigenen Auslösevokabular des Eintrags:
+   * Steht das offene Wort darin, benennt es sein Thema und bleibt. Steht es
+   * nicht darin, wäre der Eintrag über eine Menge gelaufen, die das Wort
+   * ignoriert — und genau das ist die Ausweitung.
+   */
+  const nenntSeinThema = (id: string): boolean => {
+    const worte = [
+      ...(vokabular.ausloeser?.get(id) ?? []),
+      ...(vokabular.verstaerker?.get(id) ?? []),
+    ];
+    return worte.some((w) => w.includes(offenesWort) || offenesWort.includes(w));
+  };
+
+  /**
+   * Zweite Verschärfung, ebenfalls aus einer gefallenen Ratsche gelernt:
+   * „darf ich das budget für kino löschen" traf `budget.rest`, und der erste
+   * Entwurf filterte es weg. Zu Unrecht — dieser Eintrag KANN nach Kategorie
+   * einschränken, er fand die Kategorie nur nicht. Die richtige Familie mit
+   * unauflösbarem Slot ist ein anderer Fall als eine Familie, die die
+   * Bezugsgröße überhaupt nicht aufnehmen kann.
+   *
+   * `ausgaben.gesamt` etwa kennt nur `zeitraum` und `konto` — es könnte
+   * „für netflix" nie berücksichtigen, egal was der Nutzer tippt. Genau das
+   * macht seine Antwort zur Ausweitung.
+   */
+  const kannEinschraenken = (id: string): boolean => {
+    const eintrag = entries.find((e) => e.id === id);
+    if (!eintrag) return false;
+    const slots = [...eintrag.slots.erforderlich, ...eintrag.slots.optional];
+    return slots.includes('kategorie') || slots.includes('haendler') || slots.includes('anlass');
+  };
+
+  const istGanzes = (id: string) =>
+    entries.find((e) => e.id === id)?.slots.erforderlich.length === 0 &&
+    !nenntSeinThema(id) &&
+    !kannEinschraenken(id);
+
+  if (ergebnis.art === 'aufloesen') {
+    return istGanzes(ergebnis.kandidat.entryId) ? { art: 'unverstanden' } : ergebnis;
+  }
+  if (ergebnis.art === 'kandidaten') {
+    const gefiltert = ergebnis.top.filter((k) => !istGanzes(k.entryId));
+    if (gefiltert.length === 0) return { art: 'unverstanden' };
+    return { ...ergebnis, top: gefiltert };
+  }
+  return ergebnis;
+}
+
 export function routeFrage(
   text: string,
   vokabular: QuestionVocabulary,
@@ -931,16 +1031,26 @@ export function routeFrage(
   const szenarioFrage = istSzenarioFrage(text);
   // Einmal analysieren statt je Zweig erneut — dieselbe Analyse, die auch die
   // Wortebene benutzt.
-  const offeneBezugsgroesse = hatUnaufgelösteBezugsgroesse(
+  const offenesWort = unaufgelösteBezugsgroesse(
     analysiereFrage(text, vokabular, locale, jetzt),
   );
+  const offeneBezugsgroesse = offenesWort !== null;
   const stufe2Faehig = szenarioFrage
     ? lesbareEintraege.filter((e) => e.beantwortetSzenarien)
     : lesbareEintraege;
 
+  /**
+   * JEDER Ausgang ab hier läuft durch dieselbe Schranke — nicht nur der
+   * Stichentscheid, an dem sie früher allein hing. Die Grammatik-Ausgänge
+   * darüber (Aktion, Szenario, Vergleich) bleiben bewusst aussen vor: Ein
+   * Befehl weitet nichts aus, er benennt sein Objekt selbst.
+   */
+  const fertig = (r: RoutingErgebnis): RoutingErgebnis =>
+    ohneAusweitung(r, entries, vokabular, offenesWort);
+
   const kandidaten = lexicalQuestionMatcher.match(text, vokabular, lesbareEintraege, locale, jetzt);
   const lexikalisch = entscheideRouting(kandidaten);
-  if (!intent) return lexikalisch;
+  if (!intent) return fertig(lexikalisch);
 
   const istLuecke = intent.klasse === '__luecke__';
 
@@ -948,13 +1058,13 @@ export function routeFrage(
     if (istLuecke && intent.marge >= MIN_INTENT_MARGE) {
       // Herabstufen, nicht verwerfen: Der lexikalische Treffer könnte doch
       // stimmen — dann steht er in der Auswahl, und der Nutzer entscheidet.
-      return { art: 'kandidaten', top: kandidaten.slice(0, 1) };
+      return fertig({ art: 'kandidaten', top: kandidaten.slice(0, 1) });
     }
-    return lexikalisch;
+    return fertig(lexikalisch);
   }
 
   if (lexikalisch.art === 'kandidaten') {
-    if (istLuecke || intent.marge < MIN_INTENT_MARGE) return lexikalisch;
+    if (istLuecke || intent.marge < MIN_INTENT_MARGE) return fertig(lexikalisch);
     const bestaetigt = lexikalisch.top.find((k) => k.entryId === intent.klasse);
     // Der Stichentscheid: Wortebene sagt „mehrdeutig", Subword-Ebene kennt
     // die Formulierung — zusammen reicht es für eine Antwort.
@@ -970,9 +1080,9 @@ export function routeFrage(
       entries.find((e) => e.id === bestaetigt.entryId)?.slots.erforderlich.length === 0 &&
       offeneBezugsgroesse;
     if (bestaetigt && !weitetAus && intent.marge >= MIN_INTENT_MARGE_STICH) {
-      return { art: 'aufloesen', kandidat: bestaetigt };
+      return fertig({ art: 'aufloesen', kandidat: bestaetigt });
     }
-    if (bestaetigt) return lexikalisch;
+    if (bestaetigt) return fertig(lexikalisch);
     // Kennt die Subword-Ebene eine Deutung, die die Wortebene gar nicht
     // anbot, WÄCHST die Auswahl um sie — ans ENDE: überstimmen darf sie
     // nicht, verdrängen auch nicht (vorn eingefügt hätte sie beim
@@ -980,12 +1090,12 @@ export function routeFrage(
     // Nutzer brauchte — so gemessen im Pane-Test).
     const zusatz = stufe2Faehig.find((e) => e.id === intent.klasse);
     if (zusatz) {
-      return {
+      return fertig({
         art: 'kandidaten',
         top: [...lexikalisch.top, kandidatFuer(text, vokabular, zusatz, locale, jetzt)].slice(0, 4),
-      };
+      });
     }
-    return lexikalisch;
+    return fertig(lexikalisch);
   }
 
   // Wortebene: nichts. Stufe 2 allein trägt eine AUSWAHL, keine Antwort —
@@ -998,12 +1108,12 @@ export function routeFrage(
       // Eine gelernte Formulierung trägt die Antwort allein — sonst bleibt
       // es beim ehrlichen „nicht verstanden, aber meintest du …?".
       if (intent.marge >= MIN_INTENT_MARGE_GELERNT) {
-        return { art: 'aufloesen', kandidat };
+        return fertig({ art: 'aufloesen', kandidat });
       }
-      return { art: 'kandidaten', top: [kandidat], nurVermutung: true };
+      return fertig({ art: 'kandidaten', top: [kandidat], nurVermutung: true });
     }
   }
-  return lexikalisch;
+  return fertig(lexikalisch);
 }
 
 /**

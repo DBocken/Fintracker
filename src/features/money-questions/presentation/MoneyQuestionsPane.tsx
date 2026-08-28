@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MessageCircleQuestion, Plus, Send, Trash2, X } from 'lucide-react';
+import { ArrowRight, LoaderCircle, MessageCircleQuestion, Plus, Send, Trash2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -102,8 +102,26 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
           placeholder={model.beispiele[0] ?? t('financeQuestions.placeholder')}
           className="flex-1"
         />
-        <Button type="submit" size="icon" aria-label={t('financeQuestions.submit')}>
-          <Send className="h-4 w-4" aria-hidden="true" />
+        {/*
+          Der Knopf quittiert den Klick: Papierflieger → drehender Kreis.
+          Ohne das ist eine erneut gestellte Frage nicht von einem toten
+          Knopf zu unterscheiden — die Antwort ist dieselbe, und die
+          Berechnung ist zu schnell, um sie zu sehen (`RECHEN_MARKE_MS`).
+          `aria-busy` sagt dasselbe ohne Farbe und ohne Bewegung; bei
+          `prefers-reduced-motion` bleibt der Kreis stehen statt zu drehen.
+        */}
+        <Button
+          type="submit"
+          size="icon"
+          aria-label={t('financeQuestions.submit')}
+          aria-busy={model.rechnet}
+          data-rechnet={model.rechnet ? 'ja' : 'nein'}
+        >
+          {model.rechnet ? (
+            <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />
+          ) : (
+            <Send className="h-4 w-4" aria-hidden="true" />
+          )}
         </Button>
       </form>
 
@@ -153,46 +171,63 @@ function SemantikOptIn({ model }: { model: MoneyQuestionsViewModel }) {
         gefolgert: Der Browser räumt seinen Speicher unter Druck, ohne zu
         fragen — „an" heisst nicht „liegt auf dem Gerät".
       */}
-      {status !== null && (
-        <div className="mt-2 border-t border-border/60 pt-2">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2">
+        <div className="min-w-0">
           {installiert ? (
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-positive">
-                  {t('financeQuestions.semantik.installiert')
-                    .split('{mb}')
-                    .join(megabyte(status.bytes))
-                    .split('{dateien}')
-                    .join(String(status.dateien))}
-                  {status.unvollstaendig ? ` ${t('financeQuestions.semantik.groesseUngenau')}` : ''}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('financeQuestions.semantik.speicherort').split('{ort}').join(s.cacheSchluessel)}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={s.loeschtGerade}
-                onClick={() => s.loeschen()}
-              >
-                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t('financeQuestions.semantik.loeschen')}
-              </Button>
-            </div>
+            <>
+              <p className="text-xs font-medium text-positive">
+                {t('financeQuestions.semantik.installiert')
+                  .split('{mb}')
+                  .join(megabyte(status?.bytes ?? 0))
+                  .split('{dateien}')
+                  .join(String(status?.dateien ?? 0))}
+                {status?.unvollstaendig ? ` ${t('financeQuestions.semantik.groesseUngenau')}` : ''}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t('financeQuestions.semantik.speicherort').split('{ort}').join(s.cacheSchluessel)}
+              </p>
+            </>
           ) : (
             <p className="text-xs text-muted-foreground">
               {t('financeQuestions.semantik.nichtInstalliert')}
             </p>
           )}
         </div>
-      )}
 
-      {s.aktiv && s.lage?.phase === 'fehler' && (
-        <p className="mt-2 text-xs text-warning-foreground">
-          {t('financeQuestions.semantik.fehler')}
-        </p>
+        {/*
+          Der Löschen-Knopf steht IMMER da, nicht nur bei „installiert".
+          Ein halb geladenes oder beschädigtes Modell ist genau der Fall, in
+          dem man löschen MUSS — und in dem der Stand womöglich „nicht
+          installiert" meldet. Einen Knopf zu verstecken, weil die App den
+          Zustand für sauber hält, nimmt dem Nutzer die einzige Handhabe.
+          Auf leerem Cache ist er folgenlos.
+        */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={s.loeschtGerade}
+          onClick={() => s.loeschen()}
+        >
+          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('financeQuestions.semantik.loeschen')}
+        </Button>
+      </div>
+
+      {/*
+        Der ECHTE Fehlertext, nicht nur ein Satz darüber, dass etwas schief
+        ging: Ohne ihn ist die Meldung für den Nutzer eine Sackgasse und für
+        die Fehlersuche wertlos.
+      */}
+      {s.lage?.phase === 'fehler' && (
+        <div className="mt-2 rounded border border-warning-foreground/40 px-2 py-1.5">
+          <p className="text-xs text-warning-foreground">
+            {t('financeQuestions.semantik.fehler')}
+          </p>
+          <p className="mt-1 break-words font-mono text-[11px] leading-snug text-muted-foreground">
+            {s.lage.text}
+          </p>
+        </div>
       )}
     </div>
   );
@@ -385,25 +420,44 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
         Familie gewählt hat, gehört das sichtbar dazu: Der Nutzer soll
         erkennen, wann das lokale Modell beteiligt war, statt es zu raten.
       */}
-      {ergebnis.quelle === 'modell' && (
-        <p
-          className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"
-          title={t('financeQuestions.semantik.gedeutetVomModell')}
-        >
-          {/*
-            Der Punkt ist die eigentliche Meldung — er leuchtet auf, wenn
-            diese Antwort über das lokale Modell lief. `aria-hidden`, weil
-            die Beschriftung daneben dasselbe sagt: Eine Farbe allein ist
-            keine Information (§9), und ein Screenreader soll den Punkt
-            nicht zusätzlich vorlesen.
-          */}
-          <span
-            aria-hidden="true"
-            className="inline-block h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_6px_1px_hsl(var(--primary)/0.4)] motion-safe:animate-[modell-punkt-auf_900ms_cubic-bezier(0.22,1,0.36,1)_forwards]"
-          />
-          <span>{t('financeQuestions.semantik.gedeutetKurz')}</span>
-        </p>
-      )}
+      {/*
+        Die Herkunfts-Marke steht IMMER da — leuchtend, wenn das lokale
+        Modell die Familie gewählt hat, sonst matt. Ein Zeichen, das nur im
+        Erfolgsfall erscheint, lässt beim Ausbleiben offen, ob die Stufe
+        nicht gegriffen hat oder die Anzeige selbst kaputt ist; genau daran
+        ist die erste Fehlersuche hängengeblieben. Sichtbar und inaktiv ist
+        eine Aussage, Abwesenheit ist keine.
+      */}
+      <p
+        className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"
+        title={t(
+          ergebnis.quelle === 'modell'
+            ? 'financeQuestions.semantik.gedeutetVomModell'
+            : 'financeQuestions.semantik.ohneModell',
+        )}
+      >
+        {/*
+          `aria-hidden`, weil die Beschriftung daneben dasselbe sagt: Eine
+          Farbe allein ist keine Information (§9), und ein Screenreader soll
+          den Punkt nicht zusätzlich vorlesen.
+        */}
+        <span
+          aria-hidden="true"
+          data-modell={ergebnis.quelle === 'modell' ? 'an' : 'aus'}
+          className={
+            ergebnis.quelle === 'modell'
+              ? 'inline-block h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_6px_1px_hsl(var(--primary)/0.4)] motion-safe:animate-[modell-punkt-auf_900ms_cubic-bezier(0.22,1,0.36,1)_forwards]'
+              : 'inline-block h-2 w-2 shrink-0 rounded-full border border-muted-foreground/50 bg-transparent'
+          }
+        />
+        <span>
+          {t(
+            ergebnis.quelle === 'modell'
+              ? 'financeQuestions.semantik.gedeutetKurz'
+              : 'financeQuestions.semantik.ohneModellKurz',
+          )}
+        </span>
+      </p>
 
       {ergebnis.erschlosseneKategorie && (
         <InfoGroup title={t('financeQuestions.understoodAsTitle')}>

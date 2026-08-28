@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
@@ -65,6 +65,16 @@ const MIN_HAENDLER_VORKOMMEN = 2;
  * oft bucht, meint er auch beim Nachfragen am ehesten.
  */
 const MAX_VORSCHLAEGE = 8;
+
+/**
+ * Mindestdauer der Rechen-Marke in Millisekunden.
+ *
+ * Kein geschmackvoller Wert, sondern die untere Grenze der Wahrnehmbarkeit:
+ * Unter ~100 ms wird ein Zustandswechsel als „war schon immer so" gelesen,
+ * ab ~1 s als Warten. 300 ms quittiert den Klick, ohne die Antwort zu
+ * verzögern — die steht bereits, während die Marke noch läuft.
+ */
+const RECHEN_MARKE_MS = 300;
 
 /**
  * Slots, für die die Fläche echte Kandidaten aus dem EIGENEN Bestand anbieten
@@ -171,6 +181,14 @@ export interface MoneyQuestionsViewModel {
   /** Ergebnis der zuletzt abgeschickten Frage. */
   ergebnis: MoneyQuestionOutcome;
   absenden: () => void;
+  /**
+   * Läuft gerade eine Berechnung? Die synchronen Router-Stufen brauchen
+   * einstellige Millisekunden — ohne Mindestdauer bliebe der Zustand
+   * unsichtbar, und ein Klick, der dieselbe Antwort erzeugt, sähe aus wie
+   * ein Klick, der nichts getan hat. Läuft die (asynchrone) Modell-Stufe,
+   * dauert der Zustand so lange wie SIE.
+   */
+  rechnet: boolean;
   /** Beantwortet eine Rückfrage, indem der gewählte Kandidat den Slot füllt. */
   waehleVorschlag: (vorschlag: SlotVorschlag) => void;
   /** Löst eine Kandidaten-Auswahl auf — derselbe Weg wie eine erkannte Frage. */
@@ -199,7 +217,13 @@ export interface MoneyQuestionsViewModel {
   semantik: {
     aktiv: boolean;
     aktivieren: (aktiv: boolean) => void;
-    lage: SemantikFortschritt | { phase: 'fehler' } | null;
+    /**
+     * Fortschritt oder Fehler. Der Fehlerfall trägt den ECHTEN Text der
+     * Ausnahme: Ein generisches „konnte nicht geladen werden" ist für den
+     * Nutzer eine Sackgasse und für die Fehlersuche wertlos — genau daran
+     * ist die erste Ferndiagnose gescheitert.
+     */
+    lage: SemantikFortschritt | { phase: 'fehler'; text: string } | null;
     downloadMb: number;
     /**
      * Was WIRKLICH auf dem Gerät liegt — aus dem Cache Storage gelesen,
@@ -645,9 +669,9 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
    * die nächste Frage gestellt hat, bekommt keine Antwort auf die vorige.
    */
   const [semantikAktiv, setSemantikAktivState] = useState<boolean>(() => istSemantikAktiv());
-  const [semantikLage, setSemantikLage] = useState<SemantikFortschritt | { phase: 'fehler' } | null>(
-    null,
-  );
+  const [semantikLage, setSemantikLage] = useState<
+    SemantikFortschritt | { phase: 'fehler'; text: string } | null
+  >(null);
   const semantikLauf = useRef(0);
 
   /**
@@ -686,11 +710,13 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
   ): void => {
     if (!semantikAktiv) return;
     const lauf = (semantikLauf.current += 1);
+    setStufe3Laeuft(true);
     void semantikVorschlaegeFuer(text, paraphrasenFuer(locale), (f) => {
       if (semantikLauf.current === lauf) setSemantikLage(f);
     })
       .then((vorschlaege) => {
         if (semantikLauf.current !== lauf) return;
+        setStufe3Laeuft(false);
         setSemantikLage({ anteil: 1, phase: 'bereit' });
         // Jetzt liegt es auf dem Gerät — der Stand wird neu gelesen, damit
         // die Karte von „nicht installiert" auf die echte Grösse springt.
@@ -716,11 +742,55 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
           quelle: 'modell',
         });
       })
-      .catch(() => {
+      .catch((fehler: unknown) => {
         // Stufe 3 nicht verfügbar (Netz, Speicher) ist KEIN Antwortfehler —
         // die ehrliche synchrone Auskunft steht bereits auf der Fläche.
-        if (semantikLauf.current === lauf) setSemantikLage({ phase: 'fehler' });
+        // Der Text wird DURCHGEREICHT statt geschluckt: Ohne ihn ist die
+        // Meldung für den Nutzer eine Sackgasse und für die Fehlersuche
+        // wertlos. Er kommt aus einer Bibliothek, nicht aus Nutzerdaten.
+        const text = fehler instanceof Error ? fehler.message : String(fehler);
+        if (semantikLauf.current === lauf) {
+          setStufe3Laeuft(false);
+          setSemantikLage({ phase: 'fehler', text: text.slice(0, 300) });
+        }
+        // Auch ein Fehlversuch kann Dateien im Cache hinterlassen — der
+        // Stand wird neu gelesen, damit der Löschen-Knopf die Wahrheit zeigt.
+        void modell.refetch();
       });
+  };
+
+  /**
+   * Sichtbare Rückmeldung, dass ein Klick tatsächlich eine Berechnung
+   * ausgelöst hat.
+   *
+   * Der Grund ist gemessen, nicht kosmetisch: Die Stufen 0–2 sind rein und
+   * synchron und brauchen einstellige Millisekunden. Wer dieselbe Frage
+   * erneut abschickt, sieht deshalb GAR KEINE Zustandsänderung — dieselbe
+   * Zahl, dieselbe Begründung — und muss annehmen, der Knopf sei kaputt.
+   * Deshalb hält die Marke eine Mindestdauer durch; sie behauptet nichts
+   * Falsches, sie macht ein Ereignis wahrnehmbar, das zu schnell ist.
+   *
+   * Läuft danach die Modell-Stufe (Opt-in, asynchron, kann Sekunden bis zum
+   * Download dauern), endet die Marke erst mit IHR — dort ist die Dauer echt.
+   */
+  const [kurzMarke, setKurzMarke] = useState(false);
+  const [stufe3Laeuft, setStufe3Laeuft] = useState(false);
+  const markenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (markenTimer.current !== null) clearTimeout(markenTimer.current);
+    },
+    [],
+  );
+
+  const markiereLauf = () => {
+    if (markenTimer.current !== null) clearTimeout(markenTimer.current);
+    setKurzMarke(true);
+    markenTimer.current = setTimeout(() => {
+      markenTimer.current = null;
+      setKurzMarke(false);
+    }, RECHEN_MARKE_MS);
   };
 
   const absenden = () => {
@@ -728,6 +798,8 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       setErgebnis({ art: 'leer' });
       return;
     }
+
+    markiereLauf();
 
     // Beide Router-Stufen liegen in `routeFrage` — der Eval-Korpus misst
     // exakt DIESE Funktion, nicht eine Nachbildung. Stufe 2 läuft nur beim
@@ -835,6 +907,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       loeschtGerade: loeschenMutation.isPending,
     },
     absenden,
+    rechnet: kurzMarke || stufe3Laeuft,
     waehleVorschlag,
     waehleKandidat,
     entferneKategorie,
