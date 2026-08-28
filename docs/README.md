@@ -182,5 +182,6 @@ wofür es steht und wo die heutige Antwort steht.
 | Datei | Inhalt |
 |---|---|
 | [`../.claude/i18n-workflow.md`](../.claude/i18n-workflow.md) | i18n-Workflow Schritt für Schritt, neue Sprache hinzufügen |
+| [`../infra/README.md`](../infra/README.md) | EU-Betriebsinfrastruktur als Code (WP 3.2/3.3): cloud-init, Compose je Standort, Backup-/Restore-Probe-Skripte, Kuma-Monitor-Register, Betreiber-Checkliste |
 | [`../src/features/*/README.md`](../src/features/) | Slice-eigene Kurzbeschreibungen |
 | [`../research/forecasting/`](../research/forecasting/) | Vorarbeiten zur Prognose |

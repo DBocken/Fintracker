@@ -1,0 +1,72 @@
+#cloud-config
+# Fintracker Betriebs-VM — identische Grund-Härtung für Primär-Host (Hetzner)
+# und Zweitstandort (OVHcloud/Scaleway). EINE Datei für beide Hosts, damit
+# die Härtung nicht driftet; der Unterschied der Hosts liegt ausschließlich
+# im jeweiligen Compose-Verzeichnis (primary/ bzw. secondary/).
+#
+# Basisimage: Ubuntu 24.04 LTS (liefert docker.io + docker-compose-v2 aus den
+# Distro-Quellen — keine Fremd-Apt-Repos nötig, ein Repo weniger im
+# Vertrauenspfad).
+#
+# Platzhalter vor dem Provisionieren ersetzen (NICHT ersetzt committen):
+#   <SSH_PUBLIC_KEY>  — öffentlicher ed25519-Schlüssel des Betreibers
+
+hostname: fintracker-betrieb
+
+users:
+  - name: betrieb
+    groups: [sudo, docker]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    lock_passwd: true
+    ssh_authorized_keys:
+      - "<SSH_PUBLIC_KEY>"
+
+# Kein Passwort-Login, kein root-Login — der SSH-Schlüssel ist der einzige Weg.
+ssh_pwauth: false
+disable_root: true
+
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - docker.io
+  - docker-compose-v2
+  - restic
+
+write_files:
+  # Automatische Sicherheitsupdates — die VM soll nicht davon abhängen, dass
+  # jemand an sie denkt (der monatliche Zustands-Check aus WP 3.2 prüft nach,
+  # er patcht nicht).
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+  # Docker-Logs gedeckelt — Log-Rotation ist Teil von WP 4.5, die Voreinstellung
+  # (unbegrenzte json-Dateien) füllt sonst irgendwann leise die Platte.
+  - path: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": { "max-size": "20m", "max-file": "5" }
+      }
+
+runcmd:
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+  - systemctl enable --now fail2ban
+  - systemctl enable --now docker
+  - mkdir -p /opt/fintracker
+  - chown betrieb:betrieb /opt/fintracker

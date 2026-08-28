@@ -1,0 +1,15 @@
+# Primär-Host. Platzhalter-Domain ersetzen (Betreiber-Checkliste Schritt 4).
+# .example ist nach RFC 2606 reserviert und absichtlich nicht auflösbar —
+# ein versehentliches Deployment mit Platzhalter läuft ins Leere statt auf
+# einen fremden Host.
+
+telemetrie.example {
+	# WP 3.4: reverse_proxy telemetry-receiver:8080
+	# Bis der Empfänger existiert, antwortet der Host bewusst mit 404 —
+	# kein Default-Blatt, das einen Dienst vortäuscht.
+	respond 404
+}
+
+# Ab WP 3.5 (Origin-Wechsel) kommen hier App + MCP dazu; die Security-Header
+# ziehen dann aus vercel.json hierher um — EINE Quelle, nicht zwei
+# (docs/security/security-headers.md benennt die Drift-Falle).

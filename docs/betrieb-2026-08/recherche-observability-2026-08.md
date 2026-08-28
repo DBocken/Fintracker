@@ -190,6 +190,38 @@ selben Release). Nichts davon erfordert einen neuen Anbieter, ein fremdes SDK
 oder eine Lockerung eines Wächters — und genau daran lässt sich später
 prüfen, ob es richtig gebaut wurde.
 
+## 7. Anbindungs-Empfehlung — und was davon schon vorbereitet ist
+
+Aus Abschnitt 3 folgt eine bewusst kurze Einkaufsliste: **Es werden zwei
+Infrastruktur-Anbieter angebunden, keine SaaS-Werkzeuge.** Hetzner (DE) als
+Primär-Host und OVHcloud **oder** Scaleway (FR) als Zweitstandort — beide
+stehen bereits als „geplant" im Anbieter-Register. Alles Weitere ist Software,
+die dort selbst betrieben wird: Uptime Kuma (Checks, Dead-Man-Push-Monitore
+**und** Statusseite in einem Container), restic (Backup + wöchentliche
+Restore-Probe), der eigene Telemetrie-Empfänger (WP 3.4), node_exporter erst
+mit WP 4.5. Einziger dritter Kandidat fürs Register: ein EU-SMTP als
+Alarmkanal (dort ohnehin als „geplant" geführt).
+
+**Eine eigene Statusseite wird nicht entwickelt.** Sie wäre ein neuer
+zustandsbehafteter Dienst, auf den sofort die eigenen Regeln zurückfallen
+(Zwei-Anbieter-Backup, Restore-Probe, Uptime-Überwachung — Überwachung für
+die Überwachung), für ein gelöstes Problem: Die Kuma-Statusseite entsteht als
+Nebenprodukt genau der Checks, die ohnehin gebraucht werden. Entscheidend ist
+nicht der Bau, sondern die **Platzierung**: Die Statusseite liegt am
+Zweitstandort unter `status.<domain>`, damit sie erreichbar ist, wenn der
+Primär-Host es nicht ist. Benannte Grenze bleibt der eine Messstandort;
+Ausweichkandidat dafür ist openstatus (Abschnitt 3) — auch dann: übernehmen,
+nicht bauen.
+
+Der aus dem Repo heraus vorbereitbare Teil liegt seit diesem Protokoll unter
+[`infra/`](../../infra/README.md): geteiltes `cloud-init.yaml` (Härtung beider
+VMs), Compose + Caddyfile je Standort, `backup.sh`/`restore-probe.sh` mit
+Dead-Man-Heartbeat, `monitoring/monitors.md` als Quelle der Wahrheit für die
+Kuma-Monitore, und die Betreiber-Checkliste mit den verbleibenden manuellen
+Schritten (Konten, DNS, Secrets). Bewusst **nicht** vorgebaut: der
+Telemetrie-Empfänger (WP 3.4, test-first) und alles ab der
+OTel-Ausbau-Schwelle (WP 4.5).
+
 ## Quellen
 
 - [activeMind: Rechtmäßige Verarbeitung von Telemetriedaten](https://www.activemind.de/magazin/telemetriedaten/)

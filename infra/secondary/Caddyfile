@@ -1,0 +1,7 @@
+# Zweitstandort. Platzhalter-Domain ersetzen (Betreiber-Checkliste Schritt 4).
+# Die Statusseite MUSS am Zweitstandort liegen: Sie ist genau dann gefragt,
+# wenn der Primär-Host nicht antwortet.
+
+status.example {
+	reverse_proxy uptime-kuma:3001
+}

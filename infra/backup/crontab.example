@@ -1,0 +1,12 @@
+# Cron-Einträge (crontab -e als Nutzer betrieb; Skripte vorher chmod +x).
+# Zeiten bewusst versetzt und abseits voller Stunden.
+
+# ── Primär-Host (Hetzner) ────────────────────────────────────────────────
+# Tägliches Backup, 02:17 UTC. Der zugehörige Kuma-Push-Monitor erwartet das
+# Signal alle 24 h mit 2 h Kulanz (Alarm nach 26 h Stille).
+17 2 * * * /opt/fintracker/infra/backup/backup.sh >> /var/log/fintracker-backup.log 2>&1
+
+# ── Zweitstandort (OVHcloud/Scaleway) ────────────────────────────────────
+# Wöchentliche Restore-Probe, Montag 04:43 UTC. Kuma-Push-Monitor erwartet
+# das Signal alle 7 Tage mit 1 Tag Kulanz (Alarm nach 8 Tagen Stille).
+43 4 * * 1 /opt/fintracker/infra/backup/restore-probe.sh >> /var/log/fintracker-restore-probe.log 2>&1

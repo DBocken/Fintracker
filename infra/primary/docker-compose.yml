@@ -1,0 +1,30 @@
+# Primär-Host (Hetzner, DE) — WP 3.2/3.4.
+# Ablageort auf der VM: /opt/fintracker/infra/primary/
+# Start: docker compose up -d
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Telemetrie-Empfänger — entsteht in WP 3.4 (test-first, geteiltes
+  # zod-Schema mit src/lib/telemetry-events.ts, append-only, keine
+  # IP-Persistenz). Der Platzhalter bleibt kommentiert, bis der Dienst samt
+  # Tests existiert: kein Dienst ohne Tests, Backup-Aufnahme und Uptime-Check.
+  #
+  # telemetry-receiver:
+  #   image: <EU-REGISTRY>/fintracker/telemetry-receiver:<TAG>
+  #   restart: unless-stopped
+  #   env_file: .env            # DB-Zugang; Rechte 600, nie im Repo
+  #   expose: ["8080"]
+
+volumes:
+  caddy_data:
+  caddy_config:

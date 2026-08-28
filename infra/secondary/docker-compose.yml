@@ -1,0 +1,35 @@
+# Zweitstandort (OVHcloud ODER Scaleway, FR) — WP 3.3/3.4.
+# Ablageort auf der VM: /opt/fintracker/infra/secondary/
+# Start: docker compose up -d
+#
+# Hier liegt bewusst die ÜBERWACHUNG, nicht nur das Backup-Ziel: Der
+# Zweitanbieter ist erst real, wenn er eine Aufgabe hat, deren Ausfall
+# auffällt (plan.md, WP 3.4).
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    volumes:
+      - kuma_data:/app/data
+    # Kein ports:-Eintrag — erreichbar nur über Caddy (TLS, status.<domain>).
+    # Die Kuma-SQLite wird bewusst NICHT nach extern gesichert: Die Monitore
+    # sind in infra/monitoring/monitors.md beschrieben und in Minuten neu
+    # angelegt — ein Backup der Überwachung beim überwachten Anbieter wäre
+    # zirkulär.
+
+volumes:
+  caddy_data:
+  caddy_config:
+  kuma_data:
