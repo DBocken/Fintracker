@@ -389,7 +389,15 @@ function extrahiereEintragsSlots(
   // Zweiter Weg: der Oberbegriff als GRUPPE. Vor der Einzelauflösung, weil
   // er die genauere Antwort ist — „für essen" auf „Restaurant" zu verengen
   // summierte zu wenig, ohne dass es jemandem auffiele.
-  if (!slots.kategorieIds && !slots.haendler && nutzt('kategorie') && vokabular.konzeptAusText) {
+  //
+  // Geprüft wird der KONTEXT, nicht der Eintrags-Slot: `slots.haendler` ist
+  // für einen Eintrag ohne Händler-Slot IMMER leer, und genau so hat
+  // „für netflix" die Kategorie Streaming erschlossen und den Händler-Weg
+  // überstimmt (Nutzerfund 28.08.). Ein wörtlich genannter Händler
+  // beansprucht sein Wort für ALLE Einträge — auch für die, die ihn nicht
+  // verwerten können; die fallen dann ehrlich zurück, statt seine Kategorie
+  // zu raten.
+  if (!slots.kategorieIds && !kontext.haendler && nutzt('kategorie') && vokabular.konzeptAusText) {
     const gruppe = vokabular.konzeptAusText(kontext.ohneZeit);
     if (gruppe && gruppe.length > 0) {
       slots.kategorieIds = gruppe;
@@ -400,8 +408,8 @@ function extrahiereEintragsSlots(
   // Dritter Weg zur Kategorie: der abstrakte Begriff als EINZELNE Kategorie.
   // Nur, wenn weder Namensvergleich noch Gruppe etwas fanden und kein Händler
   // den Platz beansprucht — „bei Lidl" meint den Händler, nicht eine
-  // Kategorie namens Lidl.
-  if (!slots.kategorieIds && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
+  // Kategorie namens Lidl. Auch hier zählt der KONTEXT (siehe oben).
+  if (!slots.kategorieIds && !kontext.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
     const erschlossene = vokabular.kategorieAusText(kontext.ohneZeit);
     if (erschlossene) {
       slots.kategorieIds = [erschlossene.categoryId];

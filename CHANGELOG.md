@@ -32,6 +32,14 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   selbst (`/ort/`), aus exakt der Version, die die Bibliothek erwartet.
   Kein neuer externer Anbieter, keine gelockerte Richtlinie.
 
+- **„Wieviel gebe ich für Netflix aus?" antwortete mit der ganzen
+  Streaming-Kategorie.** Netflix steht als Stichwort an der Kategorie, und
+  die Stichwort-Erschliessung prüfte nur, ob der JEWEILIGE Eintrag einen
+  Händler erkannt hat — der Kategorie-Eintrag kennt gar keinen Händler-Slot
+  und erschloss deshalb ausgerechnet aus dem Händlernamen die Kategorie.
+  Ein wörtlich genannter Händler beansprucht sein Wort jetzt für alle
+  Deutungen: Die Antwort kommt vom Händler-Eintrag und zählt nur Netflix.
+
 - **„Wie gebe ich für Netflix aus?" bot die Gesamtsumme an.** Steht der
   genannte Händler nicht in deinen Buchungen, schlug die App als erste
   Möglichkeit „Alle Ausgaben zusammen" vor — wer sie antippte, bekam die
