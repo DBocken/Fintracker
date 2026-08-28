@@ -1,10 +1,56 @@
 import path from "path"
+import fs from "node:fs"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig, type Plugin } from "vite"
 import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';
+import {
+  ORT_LAUFZEIT_PREFIX,
+  istErlaubteOrtDatei,
+  ortLaufzeitDateien,
+} from './scripts/ort-laufzeit-core.mjs';
+
+/**
+ * Liefert die ONNX-WASM-Laufzeit unter `/ort/` vom eigenen Origin aus —
+ * transformers.js würde sie sonst von `cdn.jsdelivr.net` nachladen, und die
+ * CSP blockt das zu Recht (Nutzerfund 28.08.: „no available backend found",
+ * Modell installiert, Laufzeit unerreichbar). Dieselbe Antwort wie beim
+ * Tesseract-Fund im Anbieter-Register: Assets selbst ausliefern.
+ *
+ * Dev: Middleware direkt aus `node_modules` (der aufgelösten Version, die
+ * transformers pinnt). Build: Kopie nach `dist/ort/` — bewusst NICHT nach
+ * `dist/assets`, die Dateien laden nur bei aktivierter Stufe 3 und gehören
+ * nicht ins Startlast-Budget (`check:bundle-size` misst `dist/assets`).
+ */
+function ortLaufzeitPlugin(): Plugin {
+  return {
+    name: 'ort-laufzeit-selbst-gehostet',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? '').split('?')[0];
+        if (!url.startsWith(ORT_LAUFZEIT_PREFIX)) return next();
+        const name = url.slice(ORT_LAUFZEIT_PREFIX.length);
+        if (!istErlaubteOrtDatei(name)) return next();
+        const datei = ortLaufzeitDateien().find((d) => d.name === name);
+        if (!datei) return next();
+        res.setHeader(
+          'Content-Type',
+          name.endsWith('.mjs') ? 'text/javascript' : 'application/wasm',
+        );
+        fs.createReadStream(datei.pfad).pipe(res);
+      });
+    },
+    closeBundle() {
+      const ziel = path.resolve(process.cwd(), 'dist', 'ort');
+      fs.mkdirSync(ziel, { recursive: true });
+      for (const { name, pfad } of ortLaufzeitDateien()) {
+        fs.copyFileSync(pfad, path.join(ziel, name));
+      }
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [dyadComponentTagger(), react()],
+  plugins: [dyadComponentTagger(), react(), ortLaufzeitPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(process.cwd(), "./src"),

@@ -24,6 +24,14 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **Das lokale Modell startete nie: „no available backend found."** Das
+  Modell lag längst auf dem Gerät (135 MB im Cache), aber seine
+  WASM-Laufzeit wollte die Bibliothek per Vorgabe von einem CDN
+  (`cdn.jsdelivr.net`) nachladen — und genau das blockiert unsere
+  Sicherheitsrichtlinie zu Recht. Die Laufzeit kommt jetzt von der App
+  selbst (`/ort/`), aus exakt der Version, die die Bibliothek erwartet.
+  Kein neuer externer Anbieter, keine gelockerte Richtlinie.
+
 - **„Wie gebe ich für Netflix aus?" bot die Gesamtsumme an.** Steht der
   genannte Händler nicht in deinen Buchungen, schlug die App als erste
   Möglichkeit „Alle Ausgaben zusammen" vor — wer sie antippte, bekam die
