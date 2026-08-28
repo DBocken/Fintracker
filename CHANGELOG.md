@@ -22,6 +22,16 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Behoben
+
+- **„Welches Budget für Wohnung?" fand das vorhandene Budget nicht.** Die
+  Frage wurde richtig verstanden — und die Antwort behauptete trotzdem, es
+  sei kein Budget angelegt, während auf der Budget-Seite ein gefüllter Tank
+  stand. Grund: Budgets hängen immer an einer Hauptkategorie, die Frage
+  löste über ein Stichwort der Unterkategorie auf, und verglichen wurden
+  rohe IDs. Wer nach einer Unterkategorie fragt, bekommt jetzt den Tank, in
+  den sie fließt.
+
 ## 2026.9.0 — 2026-08-28
 
 ### Neu
