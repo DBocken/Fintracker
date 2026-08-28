@@ -369,6 +369,26 @@ eine fremde Laufzeit einbindet, fährt sie deshalb mindestens einmal
 WIRKLICH — und friert diesen Lauf als abrufbaren Nachweis ein
 (`SEMANTIK_E2E=1`), statt ihn einmalig von Hand zu machen.
 
+**Ein Gate schützt auch vor dem ANGEBOT, nicht nur vor der Antwort.** Die
+Regel „wer nach einem Teil fragt, darf nicht das Ganze bekommen" stand seit
+Welle 1 im Matcher — verdrahtet war sie an genau einem Zweig, dem
+Stichentscheid der Stufe 2. Die Kandidatenliste lief daran vorbei, und dort
+stand für „Wie gebe ich für netflix aus" (Netflix nicht im Vokabular) „Alle
+Ausgaben zusammen" an ERSTER Stelle. Der Nutzer tippte sie und bekam 5.566 €
+aus 57 Buchungen auf eine Händlerfrage. Ein Angebot ist kein harmloserer
+Fall als eine Antwort; es führt nur einen Klick später zu derselben falschen
+Zahl. Jeder Ausgang läuft seither durch dieselbe Schranke.
+
+**Ein Gate wird an den Fehlalarmen geschärft, die es erzeugt.** Der erste
+Entwurf dieser Schranke verwarf jeden Eintrag ohne Pflicht-Slot — und liess
+drei Ratschen fallen. Zwei Unterscheidungen kamen erst durch die gefallenen
+Zeilen ans Licht: „für **Steuern**" benennt das THEMA des Eintrags, nicht
+einen Filter (erkennbar am eigenen Auslösevokabular), und „budget für kino"
+trifft eine Familie, die nach Kategorie einschränken KANN und die Kategorie
+bloss nicht fand — anders als `ausgaben.gesamt`, das „für netflix" nie
+berücksichtigen könnte. Wer eine Schranke einzieht, misst sie gegen den
+Bestand, statt sie plausibel zu finden.
+
 **Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
 gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
 Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche

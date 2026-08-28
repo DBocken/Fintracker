@@ -22,6 +22,16 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Behoben
+
+- **„Wie gebe ich für Netflix aus?" bot die Gesamtsumme an.** Steht der
+  genannte Händler nicht in deinen Buchungen, schlug die App als erste
+  Möglichkeit „Alle Ausgaben zusammen" vor — wer sie antippte, bekam die
+  Summe aller Buchungen als Antwort auf eine Frage nach einem Händler. Eine
+  genannte, aber unbekannte Bezugsgröße schliesst solche Gesamt-Antworten
+  jetzt aus; angeboten wird stattdessen der Weg, der nach dem Händler fragt
+  und dabei deine echten Händler zur Auswahl stellt.
+
 ### Neu
 
 - **Das lokale Modell lässt sich jederzeit löschen — auch wenn es defekt
