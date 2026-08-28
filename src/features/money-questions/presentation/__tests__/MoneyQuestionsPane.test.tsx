@@ -674,3 +674,44 @@ describe('Nachfragen-Fläche', () => {
     expect(await screen.findByText('40,00 €')).toBeInTheDocument();
   });
 });
+
+/**
+ * Der Klick muss sichtbar etwas auslösen.
+ *
+ * Nutzerbefund (28.08.): „ich brauch ein minimales Feedback, dass eine
+ * Abfrage neu durchlief, wenn ich den Button klicke, sonst denk ich, es
+ * passiert nicht." Der Grund ist strukturell und nicht behebbar durch
+ * Schnelligkeit: Die Router-Stufen 0–2 sind rein und synchron. Dieselbe
+ * Frage erzeugt dieselbe Antwort — der Bildschirm ist danach Pixel für
+ * Pixel derselbe wie davor, und ein funktionierender Knopf ist von einem
+ * toten nicht zu unterscheiden.
+ */
+describe('Rückmeldung, dass gerechnet wurde', () => {
+  it('sollte den Absende-Knopf für die Dauer der Berechnung als beschäftigt zeigen', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    const knopf = () => screen.getByRole('button', { name: /Frage stellen/i });
+    expect(knopf()).toHaveAttribute('data-rechnet', 'nein');
+
+    frage('Wieviel habe ich ausgegeben');
+    expect(knopf()).toHaveAttribute('data-rechnet', 'ja');
+    expect(knopf()).toHaveAttribute('aria-busy', 'true');
+
+    // Und sie endet auch wieder — eine Marke, die stehen bleibt, ist
+    // dieselbe Falschaussage wie gar keine.
+    await waitFor(() => expect(knopf()).toHaveAttribute('data-rechnet', 'nein'));
+  });
+
+  it('sollte bei leerer Frage NICHT beschäftigt tun', async () => {
+    // Nichts abgeschickt heisst nichts gerechnet. Eine Marke ohne Lauf wäre
+    // genau die Beruhigung ohne Deckung, gegen die sie gebaut ist.
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+    fireEvent.click(screen.getByRole('button', { name: /Frage stellen/i }));
+    expect(screen.getByRole('button', { name: /Frage stellen/i })).toHaveAttribute(
+      'data-rechnet',
+      'nein',
+    );
+  });
+});

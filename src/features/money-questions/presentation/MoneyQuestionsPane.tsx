@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MessageCircleQuestion, Plus, Send, Trash2, X } from 'lucide-react';
+import { ArrowRight, LoaderCircle, MessageCircleQuestion, Plus, Send, Trash2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -102,8 +102,26 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
           placeholder={model.beispiele[0] ?? t('financeQuestions.placeholder')}
           className="flex-1"
         />
-        <Button type="submit" size="icon" aria-label={t('financeQuestions.submit')}>
-          <Send className="h-4 w-4" aria-hidden="true" />
+        {/*
+          Der Knopf quittiert den Klick: Papierflieger → drehender Kreis.
+          Ohne das ist eine erneut gestellte Frage nicht von einem toten
+          Knopf zu unterscheiden — die Antwort ist dieselbe, und die
+          Berechnung ist zu schnell, um sie zu sehen (`RECHEN_MARKE_MS`).
+          `aria-busy` sagt dasselbe ohne Farbe und ohne Bewegung; bei
+          `prefers-reduced-motion` bleibt der Kreis stehen statt zu drehen.
+        */}
+        <Button
+          type="submit"
+          size="icon"
+          aria-label={t('financeQuestions.submit')}
+          aria-busy={model.rechnet}
+          data-rechnet={model.rechnet ? 'ja' : 'nein'}
+        >
+          {model.rechnet ? (
+            <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />
+          ) : (
+            <Send className="h-4 w-4" aria-hidden="true" />
+          )}
         </Button>
       </form>
 

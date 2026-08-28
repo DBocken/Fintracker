@@ -34,6 +34,13 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Der Absende-Knopf quittiert den Klick.** Solange gerechnet wird, wird aus
+  dem Papierflieger ein drehender Kreis. Die Frage neu zu stellen war bis
+  jetzt nicht von einem toten Knopf zu unterscheiden: Dieselbe Frage ergibt
+  dieselbe Antwort, und die Rechnung dauert wenige Millisekunden — auf dem
+  Bildschirm passierte sichtbar nichts. Läuft das lokale Modell mit, dauert
+  die Anzeige so lange wie es.
+
 - **Das lokale Modell lässt sich jederzeit löschen — auch wenn es defekt
   ist.** Der Knopf steht nun immer bereit, nicht nur wenn die App den
   Bestand für sauber hält. Genau der halb geladene Fall ist der, in dem man
