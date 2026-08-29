@@ -222,6 +222,50 @@ Schritten (Konten, DNS, Secrets). Bewusst **nicht** vorgebaut: der
 Telemetrie-Empfänger (WP 3.4, test-first) und alles ab der
 OTel-Ausbau-Schwelle (WP 4.5).
 
+## 8. Kosten: was wirklich abgeschlossen werden muss
+
+Preise recherchiert am 2026-08-29, **netto** (zzgl. USt.) — sie altern wie der
+Rest dieses Protokolls. Die Reihenfolge folgt dem Plan: Was in Phase 3 gebraucht
+wird, wird auch erst dann bestellt.
+
+### Das Minimum (Phase 3, alles zusammen ~11 €/Monat)
+
+| Vertrag | Anbieter | Preis | Wofür | Wann |
+|---|---|---|---|---|
+| **Primär-VM** | Hetzner **CX23** (2 vCPU shared, 4 GB, 40 GB, DE/FI) | **5,49 €/Monat** | Caddy + Telemetrie-Empfänger, später App/MCP | WP 3.2 |
+| **Zweitstandort-VM** | Scaleway **Stardust** (1 vCPU, 1 GB, FR) — ca. **4–6 €/Monat** inkl. IPv4; Alternative OVHcloud VPS ab ~4 € | Uptime Kuma + Statusseite + Restore-Probe | WP 3.4 |
+| **Object Storage** | Scaleway **0,01 €/GB/Monat** · OVHcloud **0,0119 €/GB/Monat**, beide ohne Egress-Gebühr | restic-Backup-Ziel | WP 3.3 |
+| **Domain** | INWX `.de` ~**4,65 €/Jahr** (≈ 0,39 €/Monat) | eigene Domain + `status.<domain>` | WP 3.5, für die Statusseite früher |
+| **SMTP (Alarme)** | Brevo Free (300 Mails/**Tag**) oder Scaleway TEM Free (300/Monat) | Kuma-Alarme | WP 3.4 |
+
+Bei 20 GB Backup kostet der Object Storage rund **0,25 €/Monat** — die
+Backup-Frage ist damit keine Kostenfrage, sondern nur eine Konto-Frage.
+
+**Ein Konto weniger:** Scaleway kann Zweitstandort-VM **und** Object Storage in
+einem Konto tragen. Das erfüllt die Zwei-Anbieter-Regel (Hetzner ≠ Scaleway)
+und spart gegenüber „OVH für Storage + noch jemand für die VM" einen
+Registereintrag und eine AVV-Prüfung.
+
+### Was nichts kostet und nichts kosten soll
+
+Uptime Kuma, restic, Caddy, node_exporter, der Telemetrie-Empfänger: Software
+auf bereits bezahlter Infrastruktur. Vercel (Hobby) und Supabase (Free) bleiben
+in der Übergangszeit unverändert. Mollie hat keine Grundgebühr, sondern
+Transaktionsentgelte — kaufmännisch geklärt in WP 6.1, kein Abo.
+
+### Das Preisrisiko, das benannt gehört
+
+Hetzner hat 2026 **vier** Preisanpassungen vorgenommen: Setup-Gebühren im
+Februar, portfolioweit +30–37 % am 1. April, Setup-Gebühren für dedizierte
+Server am 29. April und am 15. Juni eine Anpassung, die die dedizierten Linien
+(CCX/CPX) um 107–204 % anhob. Die kleinen Shared-Linien trugen davon +33–38 %
+(CX23 3,99 € → 5,49 €; CAX11 4,49 € → 5,99 €). Bestandsinstanzen sind
+geschützt — **ein Rescale repreist sie aber**. Zwei Konsequenzen für den Plan:
+die VM lieber gleich passend dimensionieren statt später hochzuskalieren, und
+`infra/cloud-init.yaml` hält den Anbieterwechsel billig (die Datei ist bewusst
+anbieterneutral: Ubuntu-LTS-Basis, keine Hetzner-Besonderheit). Ein Wechsel zu
+netcup oder OVHcloud wäre damit ein Nachmittag, keine Migration.
+
 ## Quellen
 
 - [activeMind: Rechtmäßige Verarbeitung von Telemetriedaten](https://www.activemind.de/magazin/telemetriedaten/)
@@ -234,3 +278,4 @@ OTel-Ausbau-Schwelle (WP 4.5).
 - [SigNoz: Grafana-Alternativen (Betriebslast LGTM)](https://signoz.io/blog/grafana-alternatives/) · [Open-Source-Observability-Plattformen 2026](https://www.parseable.com/blog/ten-best-open-source-observability-platforms-2026)
 - [Vercel Drains](https://vercel.com/blog/introducing-vercel-drains) · [Vercel-EU-Einordnung (CLOUD Act)](https://sota.io/blog/vercel-eu-alternative-gdpr-cloud-act-2026)
 - [Supabase Log Drains](https://supabase.com/docs/guides/monitoring-and-debugging/log-drains) · [Supabase Metrics API](https://supabase.com/blog/metrics-api-observability)
+- **Preise (Stand 2026-08-29):** [Hetzner Preisanpassung 15.06.2026](https://docs.hetzner.com/de/general/infrastructure-and-availability/price-adjustment/) · [Einordnung der Juni-Erhöhung](https://wz-it.com/en/blog/hetzner-price-increase-june-2026-cpx-ccx-alternatives/) · [Scaleway Instance-Preise](https://www.scaleway.com/en/pricing/virtual-instances/) · [Scaleway Storage-Preise](https://www.scaleway.com/en/pricing/storage/) · [OVHcloud Object Storage ohne Egress-Gebühr](https://www.ovhcloud.com/en/public-cloud/object-storage/) · [INWX .de-Domain](https://www.inwx.de/en/de-domain) · [EU-Anbieter für Transaktionsmails](https://european-alternatives.eu/category/transactional-email-service)

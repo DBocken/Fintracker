@@ -47,7 +47,11 @@ wenn die App es nicht ist.
 
 Nur diese Schritte brauchen einen Menschen mit Konten und DNS — alles andere
 kommt aus den Dateien hier. Jeder Haken mit Beleg unter
-`docs/betrieb-2026-08/belege/`.
+`docs/betrieb-2026-08/belege/`. Was das kostet und warum genau diese Tarife:
+Abschnitt 8 der
+[Observability-Recherche](../docs/betrieb-2026-08/recherche-observability-2026-08.md)
+— zusammen rund **11 €/Monat netto** (Primär-VM ~5,50 €, Zweitstandort-VM
+~4–6 €, Object Storage ~0,25 €, Domain ~0,39 €, SMTP-Alarme im Free-Tarif).
 
 1. [ ] **SSH-Schlüssel** erzeugen (`ed25519`), öffentlichen Schlüssel in
        `cloud-init.yaml` an der Platzhalter-Stelle einsetzen (nur lokal,
