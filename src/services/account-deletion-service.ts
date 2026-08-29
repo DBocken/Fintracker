@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { clearAllLocalData } from './local-data-reset';
+import { signOut } from './auth-service';
 import { t } from '@/i18n/serviceT';
 
 /**
@@ -33,5 +34,5 @@ export async function deleteAccount(options?: { alsoLocal?: boolean }): Promise<
   }
 
   // Session lokal beenden; der Auth-User existiert serverseitig nicht mehr.
-  await supabase.auth.signOut();
+  await signOut();
 }

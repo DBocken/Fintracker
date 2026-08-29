@@ -155,22 +155,17 @@ export interface RefreshBalancesResponse {
 export async function refreshBalances(
   mode: RefreshMode = "manual"
 ): Promise<RefreshBalancesResponse> {
-  const { supabase } = await import("../integrations/supabase/client");
+  const { getAccessToken } = await import("./auth-service");
 
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+  const token = await getAccessToken();
 
-  if (sessionError || !session) {
+  if (!token) {
     return {
       success: false,
       message: t("liveBalance.notAuthenticated"),
       error: "unauthenticated",
     };
   }
-
-  const token = session.access_token;
   const url = "https://pbopyawkxxrluhofjtub.supabase.co/functions/v1/refresh-balances";
 
   try {

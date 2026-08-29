@@ -3388,6 +3388,9 @@ export const en = {
     loggedOutOnly: 'Logged out',
     loginSuccess: 'Successfully logged in',
     sessionCheckError: 'Login could not be verified',
+    logoutFailed: 'Sign-out failed',
+    logoutDataHint: 'Your financial data is stored locally on this device. On a shared or borrowed device you should delete it when signing out.',
+    wipeLocalDataHint: 'Removes all locally stored transactions, accounts, debts and settings. Existing backups and the cloud stay untouched.',
   },
   liveBalance: {
     notAuthenticated: 'Not authenticated.',
@@ -5162,6 +5165,7 @@ export const en = {
   },
   authService: {
     notSignedIn: 'Not signed in. Please sign in first.',
+    signOutFailed: 'Sign-out failed.',
   },
   automationSuggestionServiceLib: {
     defaultCategoryDescription: 'Automatically detected category suggestion',

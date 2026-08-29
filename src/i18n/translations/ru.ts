@@ -3388,6 +3388,9 @@ export const ru = {
     loggedOutOnly: 'Выход выполнен',
     loginSuccess: 'Вход выполнен успешно',
     sessionCheckError: 'Не удалось проверить вход',
+    logoutFailed: 'Не удалось выйти',
+    logoutDataHint: 'Ваши финансовые данные хранятся локально на этом устройстве. На чужом или общем устройстве их лучше удалить при выходе.',
+    wipeLocalDataHint: 'Удаляет все локально сохранённые операции, счета, долги и настройки. Уже созданные резервные копии и облако остаются нетронутыми.',
   },
   liveBalance: {
     notAuthenticated: 'Не авторизовано.',
@@ -5162,6 +5165,7 @@ export const ru = {
   },
   authService: {
     notSignedIn: 'Вы не вошли в систему. Пожалуйста, сначала войдите.',
+    signOutFailed: 'Не удалось выйти из системы.',
   },
   automationSuggestionServiceLib: {
     defaultCategoryDescription: 'Автоматически определённое предложение категории',

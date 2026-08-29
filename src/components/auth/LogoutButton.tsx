@@ -13,9 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/integrations/supabase/client";
-import { clearAllLocalData } from "@/services/local-data-reset";
-import { clearAnonymousMode } from "@/lib/anonymous-mode";
+import { endSession } from "@/services/session-service";
 import { getLocalFinanceStorageStatus } from "@/services/local-finance-store";
 import { showError, showSuccess } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
@@ -51,15 +49,11 @@ export function LogoutButton({
   async function handleLogout() {
     setBusy(true);
     try {
-      if (wipe) {
-        await clearAllLocalData();
-        clearAnonymousMode();
-      }
-      await supabase.auth.signOut();
-      showSuccess(wipe ? t("auth.loggedOut", "Abgemeldet, lokale Daten gelöscht") : t("auth.loggedOutOnly", "Abgemeldet"));
+      await endSession({ wipeLocalData: wipe });
+      showSuccess(wipe ? t("auth.loggedOut") : t("auth.loggedOutOnly"));
       setOpen(false);
     } catch {
-      showError(t("common.cancel", "Abmelden fehlgeschlagen"));
+      showError(t("auth.logoutFailed"));
     } finally {
       setBusy(false);
     }
@@ -70,15 +64,14 @@ export function LogoutButton({
       <AlertDialogTrigger asChild>
         <Button variant={variant} size="sm" className={className} type="button">
           <LogOut className="mr-1 h-3 w-3" />
-          {t("auth.logout", "Abmelden")}
+          {t("auth.logout")}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t("auth.logout", "Abmelden")}</AlertDialogTitle>
+          <AlertDialogTitle>{t("auth.logout")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Deine Finanzdaten liegen lokal auf diesem Gerät. Auf einem fremden oder
-            geteilten Gerät solltest du sie beim Abmelden löschen.
+            {t("auth.logoutDataHint")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -86,20 +79,19 @@ export function LogoutButton({
           <Checkbox
             checked={wipe}
             onCheckedChange={(v) => setWipe(v === true)}
-            aria-label={t("auth.wipeLocalData", "Lokale Daten auf diesem Gerät löschen")}
+            aria-label={t("auth.wipeLocalData")}
             className="mt-0.5"
           />
           <span>
-            <span className="font-medium">{t("auth.wipeLocalData", "Lokale Daten auf diesem Gerät löschen")}</span>
+            <span className="font-medium">{t("auth.wipeLocalData")}</span>
             <span className="mt-1 block text-muted-foreground">
-              Entfernt alle lokal gespeicherten Transaktionen, Konten, Schulden und
-              Einstellungen. Bereits angelegte Backups oder die Cloud bleiben unberührt.
+              {t("auth.wipeLocalDataHint")}
             </span>
           </span>
         </label>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>{t("common.cancel", "Abbrechen")}</AlertDialogCancel>
+          <AlertDialogCancel disabled={busy}>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -107,7 +99,7 @@ export function LogoutButton({
             }}
             disabled={busy}
           >
-            {wipe ? t("auth.logoutAndWipe", "Löschen & abmelden") : t("auth.logout", "Abmelden")}
+            {wipe ? t("auth.logoutAndWipe") : t("auth.logout")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

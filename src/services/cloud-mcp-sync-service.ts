@@ -18,6 +18,7 @@ import type { Category, Transaction } from '@/types';
 import type { BudgetStatus } from '@/types';
 import type { WaterfallPlan } from './waterfall-service';
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from './auth-service';
 import { getCategories, getTransactions } from './transaction-service';
 import { currentMonthKey, getBudgetOverview, lastNMonths } from './budget-service';
 import { getWaterfallPlan } from './waterfall-service';
@@ -320,11 +321,11 @@ function buildConnectorUrl(token: string): string {
 }
 
 async function currentUserId(): Promise<string> {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) {
+  const uid = await getCurrentUserId();
+  if (!uid) {
     throw new Error(t('mcpService.notLoggedIn'));
   }
-  return data.user.id;
+  return uid;
 }
 
 /** Lädt live aus dem (entsperrten) lokalen Vault und baut den Aggregat-Snapshot. */
