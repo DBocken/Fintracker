@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extrahiereAnlassAktion } from '../anlass-action-intent';
+import { extrahiereAnlassAktion } from '@/features/shared/domain/anlass-action-intent';
 
 /**
  * Der Prüfpunkt, der über die Grammatik hinausgeht: die **Abgrenzung zum

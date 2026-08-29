@@ -18,7 +18,7 @@ import type {
   QuestionData,
   QuestionEntry,
   QuestionSlots,
-} from '@/lib/question-registry';
+} from '@/features/shared/domain/question-registry';
 import { filterTransactions, buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import { sumExpenses, sumIncome, topHaendler, topKategorien } from '@/lib/analysis-data';
 import { monateImBestand, monatsDurchschnitt } from '@/lib/spending-metrics';

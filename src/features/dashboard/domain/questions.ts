@@ -13,7 +13,7 @@
  * gerechnet wird, statt einer hier nachgebauten Zweitrechnung, die driften
  * kann.
  */
-import type { QuestionEntry } from '@/lib/question-registry';
+import type { QuestionEntry } from '@/features/shared/domain/question-registry';
 
 const verweis = (
   id: string,

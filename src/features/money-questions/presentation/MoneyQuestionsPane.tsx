@@ -9,12 +9,12 @@ import FinanceEmptyState from '@/features/shared/presentation/FinanceEmptyState'
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
-import type { Aussage, DataNeed, QuestionAnswer } from '@/lib/question-registry';
+import type { Aussage, DataNeed, QuestionAnswer } from '@/features/shared/domain/question-registry';
 import {
   istAnlassAktion,
   istKategorieAktion,
   istTransferAktion,
-} from '@/lib/question-registry';
+} from '@/features/shared/domain/question-registry';
 import type { MoneyQuestionsViewModel } from '@/features/money-questions/application/use-money-questions';
 import { SzenarioAntwort } from './SzenarioAntwort';
 import { ZielAntwort } from './ZielAntwort';

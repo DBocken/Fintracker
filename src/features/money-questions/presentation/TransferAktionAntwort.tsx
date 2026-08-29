@@ -15,7 +15,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useTransferAction } from '@/features/money-questions/application/use-transfer-action';
-import type { TransferAktionsVorschlag } from '@/lib/question-registry';
+import type { TransferAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 function ersetze(text: string, params: Record<string, string>): string {
   return Object.entries(params).reduce((t, [name, wert]) => t.split(`{${name}}`).join(wert), text);

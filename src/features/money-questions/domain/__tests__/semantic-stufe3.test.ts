@@ -3,7 +3,7 @@
  * Qualität (die misst `semantic-ratchet.test.ts` über die Fixture).
  */
 import { describe, expect, it } from 'vitest';
-import { erweitereUmSemantik, type QuestionVocabulary } from '../question-matcher';
+import { erweitereUmSemantik, type QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 
 const VOK: QuestionVocabulary = {

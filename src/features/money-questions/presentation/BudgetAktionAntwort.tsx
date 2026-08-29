@@ -18,7 +18,7 @@ import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useBudgetAction } from '@/features/money-questions/application/use-budget-action';
 import type { Budget } from '@/lib/budget-types';
-import type { BudgetAktionsVorschlag, QuestionAnswer } from '@/lib/question-registry';
+import type { BudgetAktionsVorschlag, QuestionAnswer } from '@/features/shared/domain/question-registry';
 
 function ersetze(text: string, params: Record<string, string>): string {
   return Object.entries(params).reduce((t, [name, wert]) => t.split(`{${name}}`).join(wert), text);

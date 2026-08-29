@@ -16,7 +16,7 @@
  * Rechnung falsch sein kann.
  */
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import type { QuestionAnswer, QuestionData, QuestionEntry } from '@/lib/question-registry';
+import type { QuestionAnswer, QuestionData, QuestionEntry } from '@/features/shared/domain/question-registry';
 import { computeContracts } from '@/lib/contract-derivation';
 import { buildForecastAccounts, buildRecurringFlows } from '@/lib/forecast-flows';
 import { computeDisposableUntilPayday } from '@/lib/disposable-budget';

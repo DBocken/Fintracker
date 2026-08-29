@@ -2,7 +2,7 @@
  * Русские парафразы — как и английский набор, меньше немецкого; измеренный
  * корпус (225 вопросов заказчика) — немецкий, и калибровка живёт там.
  */
-import { LUECKE_KLASSE } from '@/lib/question-intent-model';
+import { LUECKE_KLASSE } from '@/features/money-questions/domain/question-intent-model';
 
 export const PARAPHRASEN_RU: Readonly<Record<string, readonly string[]>> = {
   'ausgaben.haendler': [

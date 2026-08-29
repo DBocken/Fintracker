@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { paraphrasenFuer } from '../paraphrases';
 import { questionCatalog } from '../question-catalog';
-import { LUECKE_KLASSE } from '@/lib/question-intent-model';
-import { istAktionsEintrag } from '@/lib/question-registry';
+import { LUECKE_KLASSE } from '@/features/money-questions/domain/question-intent-model';
+import { istAktionsEintrag } from '@/features/shared/domain/question-registry';
 import { EVAL_KORPUS } from './question-eval-corpus';
 import { WELLE1_KORPUS } from './wave1-corpus';
 import { WELLE2_KORPUS } from './wave2-corpus';

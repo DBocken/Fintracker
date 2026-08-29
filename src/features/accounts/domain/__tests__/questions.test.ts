@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 import { asTransactionId } from '@/lib/ids';
-import type { QuestionData } from '@/lib/question-registry';
+import type { QuestionData } from '@/features/shared/domain/question-registry';
 import type { Transaction } from '@/types';
 import { SUPPORTED_LOCALES } from '@/i18n/locale';
-import { istTransferAktion } from '@/lib/question-registry';
+import { istTransferAktion } from '@/features/shared/domain/question-registry';
 import { translations } from '@/i18n/translations';
 
 /** Punktpfad in einem Sprachbaum auflösen. */

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { questionCatalog } from '../question-catalog';
 import { ERFRAGBARE_SLOTS } from '@/features/money-questions/application/use-money-questions';
-import { fehlendeSlots } from '@/lib/question-registry';
-import type { DataNeed, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
+import { fehlendeSlots } from '@/features/shared/domain/question-registry';
+import type { DataNeed, QuestionData, QuestionSlots, SlotName } from '@/features/shared/domain/question-registry';
 import { decodeDashboardFilters, filterTransactions } from '@/features/shared/domain/dashboard-filtering';
 import { sumExpenses, sumIncome } from '@/lib/analysis-data';
 import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';
-import { istStoppwort, zerlegeAusloeser } from '@/lib/question-matcher';
+import { istStoppwort, zerlegeAusloeser } from '@/features/money-questions/domain/question-matcher';
 import type { Account, Category, Transaction } from '@/types';
 import type { Debt } from '@/lib/debt-types';
 import type { SpecialCategory, SpecialCategoryAssignment } from '@/lib/category-types';

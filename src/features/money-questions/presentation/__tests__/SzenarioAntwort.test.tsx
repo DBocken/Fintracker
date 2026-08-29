@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
 import type { ScenarioAnswerModel } from '../../application/use-scenario-answer';
-import type { SzenarioAbsicht } from '@/lib/scenario-intent';
+import type { SzenarioAbsicht } from '@/features/shared/domain/scenario-intent';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
 /**

@@ -16,7 +16,7 @@
  * Kleinunternehmer (§ 19 UStG, dokumentiert in `lib/euer-report.ts`). Das ist
  * eine Produktentscheidung, keine Lücke des Chats.
  */
-import type { QuestionAnswer, QuestionData, QuestionEntry } from '@/lib/question-registry';
+import type { QuestionAnswer, QuestionData, QuestionEntry } from '@/features/shared/domain/question-registry';
 import { buildEuerReport } from '@/lib/euer-report';
 import { computeTaxTank } from '@/lib/tax-reserve-tank';
 import { resolveTaxReservePercent } from '@/lib/tax-reserve';

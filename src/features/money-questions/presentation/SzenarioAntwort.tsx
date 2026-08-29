@@ -26,9 +26,9 @@ import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { useScenarioAnswer } from '@/features/money-questions/application/use-scenario-answer';
-import { maxPufferbruch, type DeltaAufloesung } from '@/lib/scenario-absicht-payload';
+import { maxPufferbruch, type DeltaAufloesung } from '@/features/shared/domain/scenario-absicht-payload';
 import { encodeScenarioParam } from '@/lib/finrisk/scenario-payload-link';
-import type { SzenarioAbsicht } from '@/lib/scenario-intent';
+import type { SzenarioAbsicht } from '@/features/shared/domain/scenario-intent';
 
 function ersetze(text: string, params: Record<string, string>): string {
   return Object.entries(params).reduce(

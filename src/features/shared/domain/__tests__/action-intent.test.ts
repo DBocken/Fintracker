@@ -5,7 +5,7 @@ import {
   istFrage,
   normalisiereAktion,
   restText,
-} from '../action-intent';
+} from '@/features/shared/domain/action-intent';
 
 /**
  * Die gemeinsame Grundlage aller schreibenden Chat-Absichten (Welle 5).

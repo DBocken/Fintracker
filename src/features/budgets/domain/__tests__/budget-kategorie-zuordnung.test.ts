@@ -25,7 +25,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { questions } from '../questions';
-import type { QuestionData, QuestionSlots } from '@/lib/question-registry';
+import type { QuestionData, QuestionSlots } from '@/features/shared/domain/question-registry';
 import type { Budget } from '@/lib/budget-types';
 import type { Category, Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';

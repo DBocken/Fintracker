@@ -3,7 +3,7 @@ import {
   extrahiereSzenarioAbsicht,
   parseBetraege,
   parseZukunft,
-} from '../scenario-intent';
+} from '@/features/shared/domain/scenario-intent';
 
 /** Fixes „heute" für reproduzierbare Offsets: Montag, 24. August 2026. */
 const JETZT = new Date('2026-08-24T12:00:00Z');

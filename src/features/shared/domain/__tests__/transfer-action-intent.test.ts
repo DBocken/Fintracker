@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extrahiereTransferAktion } from '../transfer-action-intent';
+import { extrahiereTransferAktion } from '@/features/shared/domain/transfer-action-intent';
 
 /**
  * Das strengste Gate der drei Aktions-Grammatiken — und der Grund steht in

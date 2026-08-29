@@ -21,9 +21,9 @@
 import { describe, expect, it } from 'vitest';
 import { paraphrasenFuer, intentBeispieleFuer } from '../paraphrases';
 import { questionCatalog } from '../question-catalog';
-import { erweitereUmSemantik, routeFrage, zerlegeAusloeser } from '@/lib/question-matcher';
-import type { QuestionVocabulary } from '@/lib/question-matcher';
-import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
+import { erweitereUmSemantik, routeFrage, zerlegeAusloeser } from '@/features/money-questions/domain/question-matcher';
+import type { QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
+import { predictIntent, trainIntentModel } from '@/features/money-questions/domain/question-intent-model';
 import { translations } from '@/i18n/translations';
 
 const laeuft = process.env.SEMANTIK_E2E === '1';

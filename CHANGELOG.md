@@ -48,6 +48,18 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   jetzt aus; angeboten wird stattdessen der Weg, der nach dem Händler fragt
   und dabei deine echten Händler zur Auswahl stellt.
 
+### Intern
+
+- **Das Fragemodul ist jetzt ein Modul.** Die Router-Pipeline
+  (Matcher, Stufe-2-Klassifikator, Semantik-Kern, Zeit- und
+  Kategorie-Auflösung) lag im generischen `src/lib/` neben `money.ts`,
+  obwohl sie genau einen Konsumenten hat — sie liegt jetzt in
+  `features/money-questions/domain/`. Der Vertrag, den alle elf Slices
+  lesen (`question-registry`), und die Aktions-/Szenario-Grammatiken, deren
+  Typen er braucht, liegen in `features/shared/domain/`. Reine
+  Pfad-Migration, kein Verhalten geändert; `text-normalisierung` bleibt als
+  generische Sprachmechanik in `lib`.
+
 ### Neu
 
 - **Der Absende-Knopf quittiert den Klick.** Solange gerechnet wird, wird aus

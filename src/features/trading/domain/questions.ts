@@ -13,7 +13,7 @@
  * als eine, die ihre Lücke nennt.
  */
 import type { Portfolio, PortfolioPosition, PortfolioSummary } from '@/types';
-import type { Aussage, ListenPosten, QuestionAnswer, QuestionData, QuestionEntry } from '@/lib/question-registry';
+import type { Aussage, ListenPosten, QuestionAnswer, QuestionData, QuestionEntry } from '@/features/shared/domain/question-registry';
 import { summarizePortfolio } from '@/features/trading/domain/portfolio-summary';
 import { currentPriceOf } from '@/features/trading/domain/position-metrics';
 import { geldgewichteteRendite, zahlungsreihe } from '@/lib/money-weighted-return';

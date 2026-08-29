@@ -18,7 +18,7 @@ import type {
   QuestionData,
   QuestionEntry,
   QuestionSlots,
-} from '@/lib/question-registry';
+} from '@/features/shared/domain/question-registry';
 import { computeBudgetStatus } from '@/lib/budget-logic';
 import type { Budget } from '@/lib/budget-types';
 

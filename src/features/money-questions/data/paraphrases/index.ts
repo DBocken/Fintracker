@@ -2,7 +2,7 @@
  * Paraphrasen je Sprache — Trainingsdaten der Router-Stufe 2. Regeln und
  * Einordnung im Kopf von `de.ts`.
  */
-import type { IntentBeispiel } from '@/lib/question-intent-model';
+import type { IntentBeispiel } from '@/features/money-questions/domain/question-intent-model';
 import { PARAPHRASEN_DE } from './de';
 import { PARAPHRASEN_EN } from './en';
 import { PARAPHRASEN_RU } from './ru';

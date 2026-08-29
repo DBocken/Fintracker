@@ -16,14 +16,14 @@
  * dasselbe Vokabular wie beim Lesen (`resolveKategorieAusText`) — zwei
  * Auflösungswege würden driften.
  */
-import { parseBetraege } from './scenario-intent';
+import { parseBetraege } from '@/features/shared/domain/scenario-intent';
 import {
   endetMitFragezeichen,
   hatVerb,
   istFrage,
   normalisiereAktion,
   restText,
-} from './action-intent';
+} from '@/features/shared/domain/action-intent';
 
 export type BudgetAktionsAbsicht =
   | { art: 'anlegen'; betrag: number; kategorieText?: string }

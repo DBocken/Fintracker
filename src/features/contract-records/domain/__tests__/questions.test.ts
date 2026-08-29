@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 import { asTransactionId } from '@/lib/ids';
-import type { QuestionData } from '@/lib/question-registry';
+import type { QuestionData } from '@/features/shared/domain/question-registry';
 import type { Transaction } from '@/types';
 import type { ContractDecision } from '@/lib/contract-types';
 import { computeContracts } from '@/lib/contract-derivation';

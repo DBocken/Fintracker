@@ -13,7 +13,7 @@
  * schreibt nie aus eigener Deutung; Zuordnen bleibt Welle 5).
  */
 import type { SpecialCategory, Transaction } from '@/types';
-import type { ListenPosten, QuestionAnswer, QuestionData, QuestionEntry } from '@/lib/question-registry';
+import type { ListenPosten, QuestionAnswer, QuestionData, QuestionEntry } from '@/features/shared/domain/question-registry';
 import { computeEventTotals } from '@/features/special-categories/domain/event-totals';
 import { suggestTransactionsForEvent } from '@/features/special-categories/domain/assignment-suggestions';
 import { toMajor } from '@/lib/money';

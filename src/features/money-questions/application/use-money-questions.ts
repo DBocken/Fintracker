@@ -22,10 +22,10 @@ import type { Budget } from '@/lib/budget-types';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { getMerchantRules } from '@/services/merchant-rules-service';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
-import { resolveKategorieAusText } from '@/lib/question-category-resolution';
+import { resolveKategorieAusText } from '@/features/money-questions/domain/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
-import { erweitereUmSemantik, routeFrage, zerlegeAusloeser } from '@/lib/question-matcher';
-import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
+import { erweitereUmSemantik, routeFrage, zerlegeAusloeser } from '@/features/money-questions/domain/question-matcher';
+import { predictIntent, trainIntentModel } from '@/features/money-questions/domain/question-intent-model';
 import { findeKonzeptKategorien } from '@/lib/category-concepts';
 import { intentBeispieleFuer, paraphrasenFuer } from '@/features/money-questions/data/paraphrases';
 import {
@@ -43,15 +43,15 @@ import {
   addQuestionConfirmation,
   getQuestionConfirmations,
 } from '@/services/question-confirmation-service';
-import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
+import type { QuestionVocabulary, VokabelEintrag } from '@/features/money-questions/domain/question-matcher';
 import type {
   DataNeed,
   QuestionAnswer,
   QuestionData,
   QuestionSlots,
   SlotName,
-} from '@/lib/question-registry';
-import { fehlendeSlots } from '@/lib/question-registry';
+} from '@/features/shared/domain/question-registry';
+import { fehlendeSlots } from '@/features/shared/domain/question-registry';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 
 /** Ein Händler muss mindestens so oft vorkommen, um ins Vokabular zu zählen. */

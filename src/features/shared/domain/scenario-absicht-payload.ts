@@ -15,9 +15,9 @@
  * ein (`unberuecksichtigt`), sondern wird von der Fläche nachgefragt — ein
  * erfundener Betrag wäre eine falsche Simulation.
  */
-import type { RecurringFlow } from './forecast-types';
-import type { ScenarioEvent, ScenarioPayload, ScenarioResult } from './finrisk/scenario-payload-types';
-import type { SzenarioAbsicht, SzenarioDelta } from './scenario-intent';
+import type { RecurringFlow } from '@/lib/forecast-types';
+import type { ScenarioEvent, ScenarioPayload, ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
+import type { SzenarioAbsicht, SzenarioDelta } from '@/features/shared/domain/scenario-intent';
 
 export interface DeltaAufloesung {
   delta: SzenarioDelta;

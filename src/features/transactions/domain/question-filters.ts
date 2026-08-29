@@ -8,7 +8,7 @@
  * Wahrheiten über dieselbe Menge, und genau daran hängt die Invariante des
  * Registers.
  */
-import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
+import type { QuestionEntry, QuestionSlots, SlotName } from '@/features/shared/domain/question-registry';
 import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 
 /**

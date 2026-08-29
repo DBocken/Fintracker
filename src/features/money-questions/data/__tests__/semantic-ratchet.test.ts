@@ -36,10 +36,10 @@ import {
   semantischeVorschlaege,
   vektorAusBase64,
   type SemantischeKlasse,
-} from '@/lib/semantic-intent';
-import { routeFrage, zerlegeAusloeser, type QuestionVocabulary } from '@/lib/question-matcher';
-import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
-import { resolveKategorieAusText } from '@/lib/question-category-resolution';
+} from '@/features/money-questions/domain/semantic-intent';
+import { routeFrage, zerlegeAusloeser, type QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
+import { predictIntent, trainIntentModel } from '@/features/money-questions/domain/question-intent-model';
+import { resolveKategorieAusText } from '@/features/money-questions/domain/question-category-resolution';
 import { questionCatalog } from '../question-catalog';
 import { translations } from '@/i18n/translations';
 import type { Category } from '@/types';

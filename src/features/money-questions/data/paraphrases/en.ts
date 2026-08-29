@@ -4,7 +4,7 @@
  * questions) is German, so German carries the calibration. English grows the
  * same way German did — through curation and the local learning loop.
  */
-import { LUECKE_KLASSE } from '@/lib/question-intent-model';
+import { LUECKE_KLASSE } from '@/features/money-questions/domain/question-intent-model';
 
 export const PARAPHRASEN_EN: Readonly<Record<string, readonly string[]>> = {
   'ausgaben.haendler': [

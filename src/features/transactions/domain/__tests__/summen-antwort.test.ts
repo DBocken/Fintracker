@@ -19,7 +19,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { questions } from '../questions';
-import type { QuestionData, QuestionSlots } from '@/lib/question-registry';
+import type { QuestionData, QuestionSlots } from '@/features/shared/domain/question-registry';
 import type { Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';
 import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';

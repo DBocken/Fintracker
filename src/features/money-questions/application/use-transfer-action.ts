@@ -13,7 +13,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransactions, markTransferPair, unmarkTransfer } from '@/services/transaction-service';
-import type { TransferAktionsVorschlag } from '@/lib/question-registry';
+import type { TransferAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 export type TransferAktionsStand =
   | { art: 'offen' }

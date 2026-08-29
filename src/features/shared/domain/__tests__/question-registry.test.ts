@@ -3,9 +3,9 @@ import {
   createQuestionRegistry,
   fehlendeSlots,
   type QuestionEntry,
-} from '@/lib/question-registry';
-import { lexicalQuestionMatcher } from '@/lib/question-matcher';
-import type { QuestionVocabulary } from '@/lib/question-matcher';
+} from '@/features/shared/domain/question-registry';
+import { lexicalQuestionMatcher } from '@/features/money-questions/domain/question-matcher';
+import type { QuestionVocabulary } from '@/features/money-questions/domain/question-matcher';
 
 const JETZT = new Date('2026-07-20T12:00:00Z');
 

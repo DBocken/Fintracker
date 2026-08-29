@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extrahiereKategorieAktion } from '../categorize-action-intent';
+import { extrahiereKategorieAktion } from '@/features/shared/domain/categorize-action-intent';
 
 /**
  * Der Kern dieser Grammatik ist die Unterscheidung zwischen einer KORREKTUR

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { resolveKategorieAusText } from '@/lib/question-category-resolution';
+import { resolveKategorieAusText } from '@/features/money-questions/domain/question-category-resolution';
 import { trainCategoryModel, withClassPrecision } from '@/lib/category-model';
 import { DEFAULT_LOCAL_CATEGORIES } from '@/lib/default-categories';
 import type { MerchantRule } from '@/lib/categorization';

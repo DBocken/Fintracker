@@ -28,7 +28,7 @@ import {
   istFrage,
   normalisiereAktion,
   restText,
-} from './action-intent';
+} from '@/features/shared/domain/action-intent';
 
 export type KategorieAktionsAbsicht = {
   /** `zuordnen` korrigiert den Bestand, `merken` legt eine Dauerregel an. */
