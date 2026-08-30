@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { startDemo, dismissAllStartDialogs } from "./fixtures/vertical-slice";
+import { startDemo, startEmpty } from "./fixtures/vertical-slice";
 import { openViaNav, readVisibleBookings } from "./fixtures/finance-snapshot";
 
 /**
@@ -63,13 +63,9 @@ test.describe("Backup-Roundtrip (WP 7.3)", () => {
     await page.getByRole("button", { name: "Endgültig löschen", exact: true }).click();
 
     // Die Löschung lädt die Seite neu; ohne Anonym-Merker steht wieder der
-    // Landing-Screen da. „Kostenlos starten" ist der Einstieg OHNE
-    // Beispieldaten — „Demo ansehen" würde neu seeden und den Test entwerten.
-    await expect(
-      page.getByRole("button", { name: "Kostenlos starten" }),
-    ).toBeVisible({ timeout: 30_000 });
-    await page.getByRole("button", { name: "Kostenlos starten" }).click();
-    await dismissAllStartDialogs(page);
+    // Einstieg da. `startEmpty` geht ihn mit dem DATEI-Weg durch — der Weg
+    // über die Beispieldaten würde neu seeden und den Test entwerten.
+    await startEmpty(page);
 
     // Der Verlust ist echt: die Seite sagt „noch keine Buchungen", nicht
     // „konnten nicht geladen werden".

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import FeatureSelection from '@/components/onboarding/FeatureSelection';
+import FeatureSelection from '@/features/onboarding/presentation/FeatureSelection';
+import { onboardingFeatureCatalog } from '@/components/layout/nav-config';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
 import {
   LIFE_SITUATIONS,
@@ -25,6 +26,10 @@ const ALL_FEATURES = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
  */
 export default function NavFeatureSettings() {
   const { t } = useI18n();
+  // Labels und Symbole der Bereiche kommen aus der Navigation; die Auswahl
+  // selbst liegt im Onboarding-Slice und darf sie nicht lesen (Begründung in
+  // `features/onboarding/domain/feature-rows.ts`).
+  const catalog = onboardingFeatureCatalog();
   const queryClient = useQueryClient();
   const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
 
@@ -69,6 +74,7 @@ export default function NavFeatureSettings() {
 
         <FeatureSelection
           hideHeading
+          catalog={catalog}
           selected={selected}
           onToggle={(id) =>
             mutation.mutate({
@@ -129,7 +135,9 @@ export default function NavFeatureSettings() {
             size="sm"
             disabled={mutation.isPending}
             // `undefined` = „nie gefragt" — genau der Zustand, in dem der
-            // Onboarding-Dialog wieder erscheint.
+            // Einstieg wieder greift. Er setzt dann NICHT bei der Sprachwahl
+            // auf, sondern bei der Lebenssituation: Sprache und Zugang sind für
+            // diesen Nutzer entschiedene Tatsachen (`earliestOpenStep`).
             onClick={() => mutation.mutate({ onboarding_life_situation: undefined })}
           >
             {t('onboarding.manage.restart', 'Situation neu wählen')}

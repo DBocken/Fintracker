@@ -17,14 +17,6 @@
       "count": 1,
       "reason": "Entschieden. Ein Vorschlagsbanner. Was nicht erscheint, behauptet nichts - und die Seite darunter benennt den Lesefehler bereits. Ein zweiter Fehlerblock daneben waere zweimal dieselbe Aussage (siehe AccountsPage/TaxReportPage)."
     },
-    "src/components/onboarding/DataSourceDialog.tsx": {
-      "count": 1,
-      "reason": "Entschieden. Voreinstellung, die nur die Vorauswahl der Datenquelle steuert. Bestaetigt wird weiterhin von Hand."
-    },
-    "src/components/onboarding/OnboardingDialog.tsx": {
-      "count": 2,
-      "reason": "Entschieden. Die Signale belegen den Onboarding-Vorschlag nur VOR; ab der ersten eigenen Aenderung ruehrt sie niemand mehr an. Ohne sie waehlt der Nutzer von Hand - genau das Verhalten, das ohne Bestandsdaten ohnehin gilt."
-    },
     "src/components/providers/GentleModeProvider.tsx": {
       "count": 1,
       "reason": "Entschieden. Liest eine Voreinstellung. Faellt der Lesevorgang aus, gilt der dokumentierte Standard - keine falsche Auskunft ueber die Finanzen, sondern genau der Zustand, in dem jeder neue Nutzer startet."

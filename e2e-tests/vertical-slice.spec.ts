@@ -17,13 +17,15 @@ test.describe("Vertical Slice (WP-4.6)", () => {
   test("sollte den Slice Onboarding → Dashboard → Stadt → Budget → Detail → Zurück durchlaufen", async ({
     page,
   }) => {
-    // ── 1. Onboarding: Landing mit Nutzenversprechen → Demo-Einstieg ──
-    // (startDemo: Landing → „Demo ansehen" → Onboarding-Dialog beenden →
+    // ── 1. Einstieg: /willkommen durchlaufen → Demo-Einstieg ──
+    // (startDemo: Sprache → anonym → Anrede → Situation → Premium →
+    //  Beispieldaten → „Selbst erkunden" →
     // Seitennavigation aufs Dashboard — der reale Erstnutzer-Pfad.)
+    // Der Erstbesucher landet auf der Sprachwahl — nicht auf einer
+    // Anmeldeseite und nicht in der App.
     await page.goto("/");
-    await expect(
-      page.getByRole("heading", { name: "Dein Geld heute verstehen – ohne Tabellenstress." }),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/willkommen\/sprache$/);
+    await expect(page.getByRole("heading", { name: "Wähle deine Sprache" })).toBeVisible();
     await startDemo(page);
 
     // ── 2. Dashboard: Hero-Hierarchie (WP-4.1, Befund A-1) ──

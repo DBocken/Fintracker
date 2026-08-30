@@ -22,6 +22,52 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **Der Einstieg ist eine eigene Seite geworden, keine Overlays mehr.** Bis
+  hierher war die Anmeldeseite das Erste, was ein Besucher sah — und danach
+  legten sich zwei modale Dialoge über eine App, die im Hintergrund schon lief.
+  Jetzt führt ein zusammenhängender Fluss unter `/willkommen` durch acht
+  Schritte: Sprache · anonym oder angemeldet · Anmeldung · Anrede ·
+  Lebenssituation · Bereiche · was kostenlos ist und was Premium · Datenquelle
+  und Tutorial.
+- **Die Sprachwahl steht ganz am Anfang** — die Begrüßung erscheint
+  gleichzeitig in allen Sprachen, jede mit ihrer Flagge und ihrem eigenen
+  Namen. Bis hierher war der Sprachumschalter erst *hinter* dem Einstieg
+  erreichbar, also ausgerechnet für den nicht, der ihn zuerst braucht.
+- **„Du hast zwei Möglichkeiten."** Anonym und angemeldet stehen als
+  gleichrangige Wahl nebeneinander, jeweils mit ihrer Einschränkung beim Namen
+  genannt statt als spätere Überraschung.
+- **Anmelden geht jetzt auch mit E-Mail und Passwort** — sichtbar als eigener
+  Weg neben Google, im Stil des Flusses.
+- **Die App fragt, wie sie dich ansprechen soll.** Angemeldet steht dort der
+  Vorname aus dem Konto, anonym eine freie Eingabe — mit der Zusage daneben,
+  dass sie das Gerät nicht verlässt.
+- **Das Abgewählte zerfällt.** Wer eine Möglichkeit wählt, sieht die anderen zu
+  Asche zerfallen, die ein Wind nach links trägt und die dann aufsteigt.
+  `prefers-reduced-motion` schaltet das auf ein schlichtes Ausblenden um, ohne
+  den Fluss zu verlangsamen.
+
+### Intern
+
+- Neuer Feature-Slice `src/features/onboarding/` mit reiner Schrittmaschine
+  (`domain`), Entwurfs-Ablage und Übernahme (`data`), ViewModel
+  (`application`) und den acht Schritten (`presentation`). `Login.tsx`,
+  `OnboardingDialog.tsx` und `DataSourceDialog.tsx` entfallen.
+- **Ein Router statt zwei.** `App.tsx` trug bisher einen eigenen
+  `<BrowserRouter>` nur für den Landing-Screen. Das kostete den Rückweg: Der
+  OAuth-Umweg kehrt auf eine Adresse zurück, und dieser Router kannte die
+  Adressen der App nicht.
+- Der Fortschritt liegt als zod-geprüfter Entwurf im `localStorage` und
+  übersteht damit Neuladen und den Anbieter-Umweg; übernommen wird er am Ende
+  in **einem** Schreibvorgang.
+- Neues Einstellungsfeld `display_name` (die Anrede, nur lokal).
+- `useAuth` liegt jetzt in `@/hooks/useAuth` — der Provider bleibt Komponente,
+  der Lesezugriff nicht (dieselbe Trennung wie bei `useLocalEncryption`).
+- Wiederverwendbare `DissolveTransition` samt reiner Partikelrechnung in
+  `@/lib/dissolve-particles`, mit geprüfter Obergrenze und ohne neue
+  Abhängigkeit.
+
 ### Behoben
 
 - **Das lokale Modell startete nie: „no available backend found."** Das

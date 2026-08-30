@@ -5,18 +5,22 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test-utils/render';
 import { findFeatureSwitch } from '@/test-utils/feature-switch';
 import FeatureSelection from '../FeatureSelection';
+import { onboardingFeatureCatalog } from '@/components/layout/nav-config';
 import { NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/life-situations';
 
 const ALL = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
+// Der echte Katalog aus der Navigation — die Auswahl bekommt ihn seit dem
+// Seiten-Onboarding von aussen, damit der Slice die Alt-Oberfläche nicht liest.
+const catalog = onboardingFeatureCatalog();
 
 describe('FeatureSelection', () => {
   it('sollte jeden wählbaren Bereich als Schalter anbieten', () => {
-    renderWithProviders(<FeatureSelection selected={[]} onToggle={vi.fn()} />);
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={[]} onToggle={vi.fn()} />);
     expect(screen.getAllByRole('switch')).toHaveLength(ALL.length);
   });
 
   it('sollte die vorausgewählten Bereiche eingeschaltet zeigen', async () => {
-    renderWithProviders(<FeatureSelection selected={['budgets']} onToggle={vi.fn()} />);
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={['budgets']} onToggle={vi.fn()} />);
     expect(await findFeatureSwitch('budgets')).toBeChecked();
     expect(await findFeatureSwitch('trading')).not.toBeChecked();
   });
@@ -24,13 +28,13 @@ describe('FeatureSelection', () => {
   it('sollte einen Bereich umschalten können', async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
-    renderWithProviders(<FeatureSelection selected={[]} onToggle={onToggle} />);
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={[]} onToggle={onToggle} />);
     await user.click(await findFeatureSwitch('trading'));
     expect(onToggle).toHaveBeenCalledWith('trading');
   });
 
   it('sollte die Kernbereiche als immer sichtbar ausweisen, aber nicht als Schalter', () => {
-    renderWithProviders(<FeatureSelection selected={ALL} onToggle={vi.fn()} />);
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={ALL} onToggle={vi.fn()} />);
     // Kernbereiche erscheinen als Aufzählung, nicht als abwählbarer Schalter.
     expect(screen.getByText('Immer dabei')).toBeInTheDocument();
     // Ueber die Feature-Ids statt ueber Beschriftungen: eine Negativ-Aussage
@@ -41,17 +45,17 @@ describe('FeatureSelection', () => {
   });
 
   it('sollte erklären, dass abgewähltes nur ausgeblendet und nicht gesperrt ist', () => {
-    renderWithProviders(<FeatureSelection selected={[]} onToggle={vi.fn()} />);
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={[]} onToggle={vi.fn()} />);
     expect(screen.getByText(/nur ausgeblendet, nicht gesperrt/)).toBeInTheDocument();
   });
 
   it('sollte zählen, wie viele Bereiche aktiv sind', () => {
-    renderWithProviders(<FeatureSelection selected={['budgets', 'debts']} onToggle={vi.fn()} />);
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={['budgets', 'debts']} onToggle={vi.fn()} />);
     expect(screen.getByText(`2 von ${ALL.length} Bereichen aktiv`)).toBeInTheDocument();
   });
 
   it('sollte auf Englisch dieselben Bereiche anbieten', () => {
-    renderWithProviders(<FeatureSelection selected={['budgets']} onToggle={vi.fn()} />, {
+    renderWithProviders(<FeatureSelection catalog={catalog} selected={['budgets']} onToggle={vi.fn()} />, {
       locale: 'en',
     });
     expect(screen.getAllByRole('switch')).toHaveLength(ALL.length);

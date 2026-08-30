@@ -12,6 +12,10 @@
  * Freischaltung zu erzwingen, die es im echten Gebrauch auch nicht gibt.
  */
 export const ALL_ROUTES = [
+  // Der Einstieg. Er bleibt auch nach dem Durchlauf erreichbar und setzt dann
+  // bei der Lebenssituation auf — die Fläche gehört damit in dieselbe Prüfung
+  // wie jede andere.
+  "/willkommen",
   "/coach",
   "/dashboard",
   "/transactions",

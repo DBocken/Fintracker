@@ -3782,6 +3782,94 @@ export const de = {
     resetConfirmButtonLoading: 'Wird gelöscht…',
     resetCancelButton: 'Abbrechen',
   },
+  onboardingFlow: {
+    // Schritt 1 — Sprache. `greeting` wird für JEDE Sprache gelesen, nicht nur
+    // für die aktive: die Sprachwahl muss lesbar sein, ohne dass man die
+    // gerade eingestellte Sprache versteht (dieselbe Begründung wie das
+    // Endonym in `locale-options.ts`).
+    greeting: 'Willkommen',
+    languageTitle: 'Wähle deine Sprache',
+    languageHint: 'Du kannst sie später jederzeit in den Einstellungen wechseln.',
+    languageChoose: 'Auf {language} fortfahren',
+
+    // Schritt 2 — der Weg
+    pathTitle: 'Du hast zwei Möglichkeiten.',
+    pathAnonymousLabel: 'Anonym',
+    pathAnonymousDescription:
+      'Du kannst alle kostenlosen Funktionen nutzen — mit einer Einschränkung: Die Banksynchronisierung benötigt ein Konto.',
+    pathAccountLabel: 'Angemeldet',
+    pathAccountDescription:
+      'Du kannst alle kostenlosen Funktionen ohne Einschränkung nutzen. Zusätzlich kannst du bezahlpflichtige Optionen buchen.',
+    pathLocalNote: 'In beiden Fällen bleiben deine Finanzdaten auf deinem Gerät.',
+
+    // Schritt 3 — Anmeldung
+    authTitle: 'Anmelden oder registrieren',
+    authSubtitle: 'Beide Wege führen zum selben Konto.',
+    authGoogleLabel: 'Mit Google fortfahren',
+    authGoogleDescription: 'Ein Klick, kein zusätzliches Passwort.',
+    authEmailLabel: 'Mit E-Mail und Passwort',
+    authEmailDescription: 'Registrieren oder anmelden mit deiner E-Mail-Adresse.',
+    authFutureProviders:
+      'Zukünftig werden weitere Zugangsdienste angeboten. Dein Datenstand bleibt erhalten.',
+    authError: 'Die Anmeldung konnte nicht gestartet werden. Versuche es noch einmal.',
+    authSwitchToAnonymous: 'Doch lieber anonym starten',
+    authGoogleMobile: 'Google-Anmeldung (mobil)',
+    authGoogleDirect: 'Google-Anmeldung (direkt)',
+    authOpenInNewTab: 'Im neuen Tab öffnen',
+    authIframeWarning:
+      'Hinweis: Google verhindert Anmeldungen im eingebetteten Vorschaufenster. Öffne die Anmeldung in einem neuen Tab oder starte den Google-Login direkt.',
+
+    // Schritt 4 — Begrüßung
+    greetingKnownTitle: 'Hallo {name}',
+    greetingKnownBody: 'Schön, dass du da bist. Richten wir die App auf dich aus.',
+    greetingAnonymousTitle: 'Du hast anonym ausgewählt. Wie soll ich dich ansprechen?',
+    greetingNameLabel: 'Dein Name',
+    greetingNamePlaceholder: 'zum Beispiel Dana',
+    greetingLocalNote:
+      'Alles wird lokal auf deinem Gerät gespeichert, keine Rückübertragung an den Server.',
+    greetingSkipName: 'Ohne Namen fortfahren',
+
+    // Schritt 6 — Bereiche
+    featuresTitle: 'Welche Funktionen sind für dich wichtig?',
+    featuresSubtitle: 'Du kannst dies jederzeit in den Einstellungen ändern.',
+
+    // Schritt 7 — Premium
+    premiumTitle: 'Vieles ist kostenlos. Das Mächtigste ist Premium.',
+    premiumIntro:
+      'Während viele Funktionen bereits kostenlos sind, bleiben die stärksten den Premium-Nutzern vorbehalten.',
+    premiumFreeHeading: 'Immer kostenlos',
+    premiumPaidHeading: 'Mit Premium',
+    premiumFreeImport: 'Datei-Import, Kategorien und Auswertungen',
+    premiumFreeCoach: 'Coach, Budgets und Schuldenplan',
+    premiumFreeBank: 'Bankanbindung und einfache Verträge',
+    premiumPaidAnalytics: 'Tiefe Auswertungen und Berichte',
+    premiumPaidSimulation: 'Simulation und erweiterte Prognose',
+    premiumPaidContracts: 'Vertragserkennung mit Kündigungsfristen',
+    premiumPaidOccasions: 'Anlässe, Belegzeilen und Familienmodus',
+    premiumAccountNote:
+      'Buchen kannst du Premium nur mit einem Konto — anonym bleibt alles Kostenlose offen.',
+    premiumOpenBilling: 'Preise ansehen',
+    premiumLater: 'Weiter',
+
+    // Schritt 8 — Datenquelle und Tutorial
+    startTutorialTitle: 'Möchtest du ein Tutorial starten?',
+    startTutorialDemoNote:
+      'Für das Tutorial wird die App zunächst mit Beispieldaten befüllt. Du kannst sie jederzeit wieder entfernen.',
+    startTutorialYes: 'Tutorial starten',
+    startTutorialNo: 'Selbst erkunden',
+    startBankNeedsAccount:
+      'Die Banksynchronisierung benötigt ein Konto. Du kannst dich später jederzeit anmelden.',
+
+    // Gemeinsam
+    next: 'Weiter',
+    back: 'Zurück',
+    skip: 'Später entscheiden',
+    progressLabel: 'Schritt {current} von {total}',
+    saveError: 'Deine Auswahl konnte nicht gespeichert werden.',
+    loadError: 'Deine Einstellungen konnten nicht gelesen werden. Lade die Seite neu.',
+    retry: 'Erneut versuchen',
+  },
+
   login: {
     headline: 'Dein Geld heute verstehen – ohne Tabellenstress.',
     privacyTitle: 'Deine Daten verlassen dein Gerät nie.',

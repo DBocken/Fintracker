@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import {
   freezeTime,
-  dismissOnboarding,
+  completeOnboarding,
   createBudgetFromSuggestion,
   dismissTourInvitation,
 } from "./fixtures/vertical-slice";
@@ -58,11 +58,8 @@ test.describe("Vertical Slice Visual Regression (WP-4.6)", () => {
 
     await freezeTime(page);
 
-    // Onboarding → Demo (Zeit eingefroren → Datensatz deterministisch).
-    await page.goto("/");
-    await page.getByRole("button", { name: "Demo ansehen" }).click();
-    await expect(page).toHaveURL(/\/coach$/);
-    await dismissOnboarding(page);
+    // Einstieg → Demo (Zeit eingefroren → Datensatz deterministisch).
+    await completeOnboarding(page, { source: "demo" });
     // Verbleibende UI-Timer (Toasts, Fade-ins) abspielen → statischer Zustand.
     await page.clock.runFor(6000);
 

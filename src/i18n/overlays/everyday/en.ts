@@ -161,6 +161,16 @@ export const everydayEn: TranslationOverlay = {
         'Investing regularly means that over the years you also earn on the gains you already made.',
     },
   },
+  onboardingFlow: {
+    pathAnonymousDescription:
+      'You can use every free feature — with one limitation: connecting your bank needs an account.',
+    startBankNeedsAccount:
+      'Connecting your bank needs an account. You can sign in later at any time.',
+    premiumPaidContracts: 'Spot contracts, including the deadlines for cancelling',
+    premiumPaidSimulation: 'Play through what happens — and look further ahead',
+    authFutureProviders:
+      'More ways to sign in will follow. Whatever you have recorded stays as it is.',
+  },
   upsell: {
     features: {
       trading: {

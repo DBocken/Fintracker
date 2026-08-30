@@ -43,6 +43,16 @@ export interface UserSettings {
    * es wird nirgends mehr geschrieben.
    */
   business_mode?: boolean;
+  /**
+   * Anrede des Nutzers auf den Flächen der App.
+   *
+   * Beim anonymen Weg selbst gewählt („Wie soll ich dich ansprechen?"), beim
+   * Konto-Weg der Vorname aus dem Anbieterprofil. Steht hier und nicht nur in
+   * der Identität, weil der anonyme Fall gar keine Identität hat — und weil
+   * eine später gesetzte Anrede auch einen Angemeldeten überschreiben darf.
+   * `null` = gefragt und nicht beantwortet.
+   */
+  display_name?: string | null;
   /** Im Onboarding gewählte Lebenssituation. Dient nur der Vorauswahl. */
   onboarding_life_situation?: LifeSituationId | null;
   /** Zusätzlich gewählte Umstände (rein additiv, siehe `@/lib/life-situations`). */
