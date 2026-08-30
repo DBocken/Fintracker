@@ -2,6 +2,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { type NavFeatureId } from '@/lib/life-situations';
 import { useI18n } from '@/i18n/useI18n';
+import { useFeatureLabel } from './use-feature-label';
 import type { FeatureCatalog } from '../domain/feature-rows';
 
 interface FeatureSelectionProps {
@@ -33,6 +34,8 @@ export default function FeatureSelection({
   hideHeading = false,
 }: FeatureSelectionProps) {
   const { t } = useI18n();
+  // Bereichsnamen laufen über EINEN Auflösungspunkt — Begründung dort.
+  const labelOf = useFeatureLabel();
 
   return (
     <div className="space-y-5">
@@ -60,7 +63,7 @@ export default function FeatureSelection({
         return (
           <div key={group.id} className="space-y-1">
             <h3 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {t(group.labelKey, group.label)}
+              {labelOf(group)}
             </h3>
             <div className="divide-y rounded-md border">
               {group.rows.map((item) => {
@@ -72,7 +75,7 @@ export default function FeatureSelection({
                     <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="min-w-0 flex-1">
                       <Label htmlFor={inputId} className="cursor-pointer text-sm">
-                        {t(item.labelKey, item.label)}
+                        {labelOf(item)}
                       </Label>
                       {item.subtitle && (
                         <p className="truncate text-[11px] text-muted-foreground">
@@ -106,7 +109,7 @@ export default function FeatureSelection({
                 className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" />
-                {t(item.labelKey, item.label)}
+                {labelOf(item)}
               </span>
             );
           })}

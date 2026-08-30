@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import type { NavFeatureId } from '@/lib/life-situations';
 import { useI18n } from '@/i18n/useI18n';
 import FeatureSelection from '../FeatureSelection';
+import { useFeatureLabel } from '../use-feature-label';
 import type { FeatureCatalog, FeatureRow } from '../../domain/feature-rows';
 
 export interface FeaturesStepProps {
@@ -42,6 +43,7 @@ export default function FeaturesStep({
   onBack,
 }: FeaturesStepProps) {
   const { t } = useI18n();
+  const labelOf = useFeatureLabel();
   const [anpassen, setAnpassen] = useState(false);
   const gewaehlt = chosenRows(catalog, selected);
 
@@ -72,7 +74,7 @@ export default function FeaturesStep({
                   className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm"
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-                  {t(row.labelKey, row.label)}
+                  {labelOf(row)}
                 </li>
               );
             })}

@@ -131,11 +131,21 @@ describe('i18n-Aufrufstellen', () => {
     // Register liefert nie fertigen Text). Der Fleck ist ausgeleuchtet:
     // `features/accounts/domain/__tests__/questions.test.ts` prüft für JEDE
     // gelieferte Zeile, dass ihr `labelKey` in ALLEN Sprachen auflöst.
+    // Gesenkt auf 81 mit dem Dichte-Umbau des Einstiegs: Die Bereichsnamen
+    // liefen an fünf Stellen einzeln durch `t(row.labelKey, row.label)` —
+    // dieselbe durchgereichte Bauform, fünfmal abgeschrieben. Sie laufen jetzt
+    // über EINEN Auflösungspunkt (`features/onboarding/presentation/
+    // use-feature-label.ts`); der Fleck ist damit klein und benannt.
+    //
+    // 81 ist der GEMESSENE Stand, nicht ein bequemer darüber: Eine Ratsche,
+    // die über dem Ist-Wert steht, misst nichts — sie dokumentiert nur, dass
+    // jemand einmal vorsichtig war (AGENTS.md §3, „Eine Ratsche steht auf dem
+    // GEMESSENEN Stand").
     let dynamic = 0;
     for (const file of files) {
       const source = readFileSync(`${process.cwd()}/${file}`, 'utf8');
       dynamic += [...source.matchAll(DYNAMIC_CALL)].length;
     }
-    expect(dynamic).toBeLessThanOrEqual(83);
+    expect(dynamic).toBeLessThanOrEqual(81);
   });
 });
