@@ -2,34 +2,40 @@
  * Die Rechnung hinter der Auflösung — rein, ohne React, ohne Canvas (§3).
  *
  * Der Eindruck, den sie erzeugen soll: Was abgewählt wurde, zerfällt zu Asche,
- * die ein gedachter Wind nach links treibt und die danach aufsteigt. Genau
- * diese zwei Phasen stecken in {@link advanceParticle} — eine gleichförmige
- * Bewegung zur Seite und eine wachsende Auftriebsbeschleunigung, die die Bahn
- * nach oben abknicken lässt.
+ * die ein gedachter Wind nach links treibt und die danach aufsteigt.
  *
- * **Warum ohne Rasterung des DOM.** Ein echter Schnappschuss des Elements
- * bräuchte eine Bibliothek wie html2canvas — eine neue Abhängigkeit, spürbar
- * im Bündelbudget und ohne Gewinn für den Eindruck. Die Partikel werden
- * stattdessen über der Bounding-Box gesät und in der Vordergrundfarbe des
- * Elements gezeichnet, während das Element selbst ausblendet. Das liest sich
- * als Zerfall und bleibt in jedem Skin farbrichtig.
+ * **Ein Partikel ist ein Bildpunkt, kein Platzhalter.** Ein rotes 10×10-Feld
+ * ergibt 100 rote Partikel; ein Buchstabe zerfällt in genau die Punkte, aus
+ * denen er besteht. Woher diese Punkte kommen, weiss diese Datei nicht — sie
+ * bekommt sie als {@link DissolvePoint}-Liste gereicht (erzeugt von
+ * `features/shared/presentation/dissolve-raster.ts`, das dafür ein Canvas
+ * braucht und deshalb nicht hier liegen kann).
+ *
+ * **Vor seinem Zerfall steht ein Partikel still und voll sichtbar.** Das ist
+ * der Kern des Eindrucks und nicht bloss eine Feinheit: Solange die Fläche
+ * erodiert, muss der noch nicht zerfallene Teil *unverändert dastehen*. Wäre
+ * er unsichtbar, sähe man ein Ausblenden mit Funkenflug; wäre das echte
+ * Element noch da, sähe man beides doppelt. Deshalb übernehmen die Partikel
+ * das Bild vollständig, und das Element verschwindet im selben Augenblick.
  */
 
 /**
  * Obergrenze über ALLE gleichzeitig zerfallenden Flächen.
  *
- * Keine Grenzkonstante ohne Prüfstelle (AGENTS.md §3): `seedParticles`
- * schneidet hier wirklich ab, und `dissolve-particles.test.ts` zählt nach.
- * Der Wert ist gemessen an der teuersten Fläche des Flusses (die Sprachwahl
- * mit drei Kacheln) und lässt auf einem Mittelklasse-Android Luft.
+ * **Vorläufiger Wert zum Ausprobieren.** Er ist bewusst grosszügig, damit der
+ * Zerfall bei einer Kachel wirklich pixelfein aussieht; der endgültige Wert
+ * wird gemessen, nicht geschätzt (siehe `docs/architecture/…` bzw. die
+ * Messnotiz im PR). Keine Grenzkonstante ohne Prüfstelle (AGENTS.md §3):
+ * `seedParticles` schneidet hier wirklich ab, und
+ * `dissolve-particles.test.ts` zählt nach.
  */
-export const DISSOLVE_MAX_PARTICLES = 900;
+export const DISSOLVE_MAX_PARTICLES = 6000;
 
-/** Partikel je 1000 px² Fläche, bevor die Obergrenze greift. */
-const PARTICLE_DICHTE = 0.9;
-
-/** Lebensdauer eines Partikels in Millisekunden. */
+/** Lebensdauer eines Partikels in Millisekunden (Mittelwert; streut je Partikel). */
 export const DISSOLVE_PARTICLE_LIFE_MS = 900;
+
+/** Streuung der Lebensdauer: 0,5 heisst 50 %–150 % des Mittelwerts. */
+const LEBENSDAUER_STREUUNG = 0.5;
 
 /**
  * Zeitversatz über die Breite einer Fläche.
@@ -38,42 +44,60 @@ export const DISSOLVE_PARTICLE_LIFE_MS = 900;
  * Ohne diesen Versatz löste sich die Fläche überall gleichzeitig auf — das
  * sieht nach Ausblenden aus, nicht nach Zerfall.
  */
-export const DISSOLVE_STAGGER_MS = 420;
+export const DISSOLVE_STAGGER_MS = 520;
+
+/** Zufälliger Anteil des Zeitversatzes, damit die Kante ausfranst statt zu schneiden. */
+const VERSATZ_RAUSCHEN_MS = 160;
 
 /** Gesamtdauer, nach der garantiert nichts mehr zu sehen ist. */
-export const DISSOLVE_DURATION_MS = DISSOLVE_STAGGER_MS + DISSOLVE_PARTICLE_LIFE_MS;
+export const DISSOLVE_DURATION_MS =
+  DISSOLVE_STAGGER_MS + VERSATZ_RAUSCHEN_MS + DISSOLVE_PARTICLE_LIFE_MS * (1 + LEBENSDAUER_STREUUNG);
 
-/** Windgeschwindigkeit nach links, in Pixeln pro Sekunde. */
-const WIND_MIN = 40;
-const WIND_MAX = 150;
+/** Grundwind nach links, in Pixeln pro Sekunde. */
+const WIND_MIN = 30;
+const WIND_MAX = 130;
+
+/**
+ * Böen — der Teil, der „manche ganz schnell" ausmacht.
+ *
+ * Ohne sie zieht die ganze Asche als gleichförmige Wolke ab, und das wirkt
+ * mechanisch. Eine Minderheit deutlich schnellerer Partikel gibt dem Ganzen
+ * erst den Eindruck von Wind: Die schnellen sind lange fort, während die
+ * übrigen noch treiben.
+ */
+const BOEEN_ANTEIL = 0.14;
+const BOEEN_FAKTOR_MIN = 2.4;
+const BOEEN_FAKTOR_MAX = 4.5;
 
 /** Auftriebsbeschleunigung nach oben, in Pixeln pro Sekunde². */
-const AUFTRIEB_MIN = 120;
-const AUFTRIEB_MAX = 340;
+const AUFTRIEB_MIN = 100;
+const AUFTRIEB_MAX = 380;
 
-export interface DissolveRect {
+/** Ein abgetasteter Bildpunkt der Fläche: Ort im Viewport und seine Farbe. */
+export interface DissolvePoint {
   x: number;
   y: number;
-  width: number;
-  height: number;
+  /** `rgba(r, g, b, a)` bzw. jede vom Canvas verstandene Farbe. */
+  color: string;
+  /** Anteil von der rechten Kante der Quellfläche (0 rechts, 1 links). */
+  vonRechts: number;
 }
 
 export interface DissolveParticle {
-  /** Startpunkt im Viewport. */
+  /** Ruheort im Viewport — dort steht der Partikel, bis sein Zerfall beginnt. */
   x: number;
   y: number;
+  color: string;
   /** Geschwindigkeit zur Seite (negativ = nach links), px/s. */
   vx: number;
   /** Anfangsgeschwindigkeit senkrecht, px/s. */
   vy: number;
   /** Auftriebsbeschleunigung nach oben, px/s². */
   auftrieb: number;
-  /** Kantenlänge in Pixeln. */
-  groesse: number;
   /** Zeitversatz bis zum Zerfall dieses Partikels, ms. */
   verzoegerung: number;
-  /** Index der Fläche, aus der er stammt — bestimmt die Farbe. */
-  quelle: number;
+  /** Eigene Lebensdauer, ms. */
+  lebensdauer: number;
 }
 
 /**
@@ -99,69 +123,74 @@ function zwischen(random: () => number, min: number, max: number): number {
 }
 
 /**
- * Verteilt Partikel über die übergebenen Flächen.
+ * Macht aus abgetasteten Bildpunkten Partikel.
  *
- * Die Zahl folgt der Fläche, damit eine grosse Kachel nicht dünner zerfällt
- * als eine kleine — gedeckelt durch {@link DISSOLVE_MAX_PARTICLES}, damit eine
- * grosse Fläche das Bildschirmgerät nicht in die Knie zwingt. Der Deckel wird
- * anteilig verteilt, nicht nach dem Windhundprinzip: sonst zerfiele die letzte
- * Kachel gar nicht.
+ * Übersteigt die Punktmenge {@link DISSOLVE_MAX_PARTICLES}, wird
+ * **gleichmässig ausgedünnt** statt vorne abgeschnitten: Ein `slice` würde je
+ * nach Abtastreihenfolge die untere Hälfte der Fläche gar nicht zerfallen
+ * lassen.
  */
 export function seedParticles(
-  rects: readonly DissolveRect[],
+  points: readonly DissolvePoint[],
   random: () => number = createRandom(1),
 ): DissolveParticle[] {
-  const flaechen = rects.map((r) => Math.max(0, r.width) * Math.max(0, r.height));
-  const gesamt = flaechen.reduce((summe, f) => summe + f, 0);
-  if (gesamt <= 0) return [];
+  if (points.length === 0) return [];
 
-  const gewuenscht = (gesamt / 1000) * PARTICLE_DICHTE;
-  const faktor = gewuenscht > DISSOLVE_MAX_PARTICLES ? DISSOLVE_MAX_PARTICLES / gewuenscht : 1;
+  const schritt = points.length > DISSOLVE_MAX_PARTICLES ? points.length / DISSOLVE_MAX_PARTICLES : 1;
 
   const partikel: DissolveParticle[] = [];
-  rects.forEach((rect, index) => {
-    const anzahl = Math.floor(((flaechen[index] / 1000) * PARTICLE_DICHTE) * faktor);
-    for (let i = 0; i < anzahl; i += 1) {
-      const x = rect.x + random() * rect.width;
-      const y = rect.y + random() * rect.height;
-      // Anteil von der RECHTEN Kante aus: 0 rechts, 1 links.
-      const vonRechts = rect.width > 0 ? (rect.x + rect.width - x) / rect.width : 0;
-      partikel.push({
-        x,
-        y,
-        vx: -zwischen(random, WIND_MIN, WIND_MAX),
-        vy: zwischen(random, -12, 12),
-        auftrieb: zwischen(random, AUFTRIEB_MIN, AUFTRIEB_MAX),
-        groesse: zwischen(random, 1, 2.6),
-        verzoegerung: vonRechts * DISSOLVE_STAGGER_MS,
-        quelle: index,
-      });
-    }
-  });
+  // Die Schleifengrenze zählt PARTIKEL, nicht Fliesskomma-Schritte: Ein
+  // gebrochener Schritt liefert sonst einen Durchlauf zu viel, und die
+  // Obergrenze wäre um genau eins verfehlt.
+  const anzahl = Math.min(points.length, DISSOLVE_MAX_PARTICLES);
+  for (let n = 0; n < anzahl; n += 1) {
+    const punkt = points[Math.floor(n * schritt)];
+    if (!punkt) continue;
+
+    const boe = random() < BOEEN_ANTEIL ? zwischen(random, BOEEN_FAKTOR_MIN, BOEEN_FAKTOR_MAX) : 1;
+    partikel.push({
+      x: punkt.x,
+      y: punkt.y,
+      color: punkt.color,
+      vx: -zwischen(random, WIND_MIN, WIND_MAX) * boe,
+      vy: zwischen(random, -14, 14),
+      // Schnelle Partikel steigen flacher — sie sind fort, bevor der Auftrieb
+      // greift. Das hält die Böen als Striche erkennbar statt als Fontänen.
+      auftrieb: zwischen(random, AUFTRIEB_MIN, AUFTRIEB_MAX) / boe,
+      verzoegerung: punkt.vonRechts * DISSOLVE_STAGGER_MS + random() * VERSATZ_RAUSCHEN_MS,
+      lebensdauer:
+        DISSOLVE_PARTICLE_LIFE_MS *
+        zwischen(random, 1 - LEBENSDAUER_STREUUNG, 1 + LEBENSDAUER_STREUUNG),
+    });
+  }
   return partikel;
 }
 
 export interface DissolveSample {
   x: number;
   y: number;
-  /** 0 = unsichtbar (noch nicht zerfallen oder schon verweht). */
+  /** 1 = unversehrt (noch nicht zerfallen), 0 = verweht. */
   alpha: number;
 }
 
 /**
  * Ort und Deckkraft eines Partikels zum Zeitpunkt `zeitMs` nach dem Start.
  *
- * Erst zur Seite (gleichförmig), dann nach oben (beschleunigt) — die Bahn
- * knickt dadurch von selbst ab, ohne dass irgendwo eine Phase umgeschaltet
- * werden müsste.
+ * Drei Abschnitte:
+ * 1. **Vor der Verzögerung:** in Ruhe, voll sichtbar. Der noch nicht
+ *    zerfallene Teil der Fläche steht unverändert da.
+ * 2. **Zerfall:** erst zur Seite (gleichförmig), dann nach oben
+ *    (beschleunigt) — die Bahn knickt von selbst ab, ohne dass irgendwo eine
+ *    Phase umgeschaltet werden müsste.
+ * 3. **Danach:** fort.
  */
 export function advanceParticle(partikel: DissolveParticle, zeitMs: number): DissolveSample {
   const lokal = zeitMs - partikel.verzoegerung;
-  if (lokal <= 0 || lokal >= DISSOLVE_PARTICLE_LIFE_MS) {
-    return { x: partikel.x, y: partikel.y, alpha: 0 };
-  }
+  if (lokal <= 0) return { x: partikel.x, y: partikel.y, alpha: 1 };
+  if (lokal >= partikel.lebensdauer) return { x: partikel.x, y: partikel.y, alpha: 0 };
+
   const s = lokal / 1000;
-  const fortschritt = lokal / DISSOLVE_PARTICLE_LIFE_MS;
+  const fortschritt = lokal / partikel.lebensdauer;
   return {
     x: partikel.x + partikel.vx * s,
     y: partikel.y + partikel.vy * s - 0.5 * partikel.auftrieb * s * s,

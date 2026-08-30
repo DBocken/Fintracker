@@ -1,15 +1,17 @@
 /**
  * DissolveTransition — die Auflösung des Abgewählten.
  *
- * Was abgewählt wurde, zerfällt zu Asche: Ein gedachter Wind treibt sie nach
- * links, danach steigt sie auf. Die Rechnung dazu steht rein und ohne Canvas
- * in `@/lib/dissolve-particles`; hier liegt nur, was ohne Browser nicht geht —
+ * Was abgewählt wurde, zerfällt in **genau seine eigenen Bildpunkte**: Ein
+ * gedachter Wind treibt sie nach links, danach steigen sie auf. Die Rechnung
+ * dazu steht rein und ohne Canvas in `@/lib/dissolve-particles`, die
+ * Abtastung in `./dissolve-raster`; hier liegt nur, was beides zusammenführt —
  * Messen, Zeichnen, Zeitnehmen.
  *
- * Die Komponente übernimmt **beides**: sie zeichnet die Partikel UND blendet
- * die Zielelemente aus. Bewusst an einer Stelle — läge das Ausblenden bei der
- * Aufrufstelle, müssten sich zwei Dateien über dieselbe Dauer einig sein, und
- * genau solche Absprachen driften.
+ * **Das Element verschwindet sofort, es blendet nicht aus.** Sobald die
+ * Abtastung steht, tragen die Partikel das Bild vollständig — vor ihrem
+ * Zerfall stehen sie still und voll sichtbar an ihrem Platz. Ein gleichzeitig
+ * ausblendendes Element wäre ein zweites, halb durchsichtiges Abbild daneben;
+ * die Fläche soll erodieren, nicht verblassen.
  *
  * Bei `prefers-reduced-motion` entsteht **kein** Canvas und keine
  * rAF-Schleife: Der Fluss darf ohne Bewegung nicht langsamer sein, deshalb
@@ -23,10 +25,11 @@ import {
   createRandom,
   seedParticles,
   type DissolveParticle,
-  type DissolveRect,
+  type DissolvePoint,
 } from '@/lib/dissolve-particles';
 import { MOTION_DURATIONS, MOTION_EASINGS } from '@/lib/motion-tokens';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { DISSOLVE_SAMPLE_STRIDE, samplePoints } from './dissolve-raster';
 
 export interface DissolveTransitionProps {
   /**
@@ -40,13 +43,15 @@ export interface DissolveTransitionProps {
   onComplete: () => void;
 }
 
-/** Vordergrundfarbe des Elements, als Farbe der Asche. */
-function elementFarbe(element: HTMLElement): string {
-  try {
-    return window.getComputedStyle(element).color || 'currentColor';
-  } catch {
-    return 'currentColor';
+/** Nimmt das Element aus dem Bild und aus jeder Bedienung. */
+function verstecke(el: HTMLElement, sofort: boolean): void {
+  if (sofort) {
+    el.style.visibility = 'hidden';
+  } else {
+    el.style.transition = `opacity ${MOTION_DURATIONS.fast}ms ${MOTION_EASINGS.build}`;
+    el.style.opacity = '0';
   }
+  el.style.pointerEvents = 'none';
 }
 
 export default function DissolveTransition({
@@ -73,35 +78,20 @@ export default function DissolveTransition({
       .map((ref) => ref.current)
       .filter((el): el is HTMLElement => el !== null);
 
-    // Ausblenden gehört in beide Fälle — nur die Dauer unterscheidet sich.
-    const fadeMs = reduce ? MOTION_DURATIONS.fast : DISSOLVE_DURATION_MS * 0.75;
-    for (const el of elemente) {
-      el.style.transition = `opacity ${fadeMs}ms ${MOTION_EASINGS.build}, filter ${fadeMs}ms ${MOTION_EASINGS.build}, transform ${fadeMs}ms ${MOTION_EASINGS.build}`;
-      el.style.opacity = '0';
-      el.style.pointerEvents = 'none';
-      if (!reduce) {
-        el.style.filter = 'blur(6px)';
-        el.style.transform = 'translateX(-12px)';
-      }
-    }
-
     if (reduce) {
+      for (const el of elemente) verstecke(el, false);
       const timer = window.setTimeout(() => completeRef.current(), MOTION_DURATIONS.fast);
       return () => window.clearTimeout(timer);
     }
 
+    // Erst abtasten, dann verstecken — in dieser Reihenfolge, sonst hat die
+    // Abtastung nichts mehr zu lesen.
+    const punkte: DissolvePoint[] = elemente.flatMap((el) => samplePoints(el));
+    for (const el of elemente) verstecke(el, punkte.length > 0);
+
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d') ?? null;
-
-    const rects: DissolveRect[] = elemente.map((el) => {
-      const r = el.getBoundingClientRect();
-      return { x: r.left, y: r.top, width: r.width, height: r.height };
-    });
-    const farben = elemente.map(elementFarbe);
-    const partikel: DissolveParticle[] = seedParticles(rects, createRandom(Date.now() & 0xffff));
-
-    let frame = 0;
-    const start = performance.now();
+    const partikel: DissolveParticle[] = seedParticles(punkte, createRandom(Date.now() & 0xffff));
 
     if (canvas && ctx) {
       const dpr = window.devicePixelRatio || 1;
@@ -110,16 +100,19 @@ export default function DissolveTransition({
       ctx.scale(dpr, dpr);
     }
 
+    let frame = 0;
+    const start = performance.now();
+
     const schritt = (jetzt: number) => {
       const t = jetzt - start;
-      if (ctx && canvas) {
+      if (ctx) {
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         for (const p of partikel) {
           const probe = advanceParticle(p, t);
           if (probe.alpha <= 0) continue;
           ctx.globalAlpha = probe.alpha;
-          ctx.fillStyle = farben[p.quelle] ?? 'currentColor';
-          ctx.fillRect(probe.x, probe.y, p.groesse, p.groesse);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(probe.x, probe.y, DISSOLVE_SAMPLE_STRIDE, DISSOLVE_SAMPLE_STRIDE);
         }
         ctx.globalAlpha = 1;
       }
