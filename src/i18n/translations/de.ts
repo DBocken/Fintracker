@@ -3868,6 +3868,13 @@ export const de = {
       'Die Banksynchronisierung benötigt ein Konto. Du kannst dich später jederzeit anmelden.',
 
     // Gemeinsam
+    restartAction: 'Einstieg neu starten',
+    restartCancel: 'Abbrechen',
+    restartConfirmTitle: 'Einstieg neu starten?',
+    restartConfirmBody:
+      'Du gehst den Einstieg noch einmal von der Sprachwahl an durch. Deine Buchungen, Konten und Budgets bleiben unverändert — nur die Antworten aus der Einrichtung werden neu gefragt.',
+    restartError: 'Der Einstieg konnte nicht zurückgesetzt werden.',
+
     next: 'Weiter',
     back: 'Zurück',
     skip: 'Später entscheiden',

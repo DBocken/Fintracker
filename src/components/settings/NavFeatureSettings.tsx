@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import FeatureSelection from '@/features/onboarding/presentation/FeatureSelection';
 import { onboardingFeatureCatalog } from '@/components/layout/nav-config';
+import RestartOnboardingButton from '@/features/onboarding/presentation/RestartOnboardingButton';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
 import {
   LIFE_SITUATIONS,
@@ -137,11 +138,19 @@ export default function NavFeatureSettings() {
             // `undefined` = „nie gefragt" — genau der Zustand, in dem der
             // Einstieg wieder greift. Er setzt dann NICHT bei der Sprachwahl
             // auf, sondern bei der Lebenssituation: Sprache und Zugang sind für
-            // diesen Nutzer entschiedene Tatsachen (`earliestOpenStep`).
+            // diesen Nutzer entschiedene Tatsachen (`firstRunStep`).
             onClick={() => mutation.mutate({ onboarding_life_situation: undefined })}
           >
             {t('onboarding.manage.restart', 'Situation neu wählen')}
           </Button>
+          {/* Der ganze Einstieg von der Sprachwahl an — daneben, weil es eine
+              andere Handlung ist als „nur die Situation neu".
+              Steht hier UND im Profil, und das ist kein Versehen: Wer anonym
+              unterwegs ist, hat gar kein Profil (`UserQuickProfile` zeigt ihm
+              den Anmelde-Einstieg), und genau dieser Nutzer ist der Regelfall
+              dieser App. Ein Weg, den die Hälfte der Nutzer nicht sieht, ist
+              keiner. */}
+          <RestartOnboardingButton />
         </div>
       </CardContent>
     </Card>

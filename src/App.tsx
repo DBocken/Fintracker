@@ -7,6 +7,7 @@ import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import OnboardingGate from "@/features/onboarding/presentation/OnboardingGate";
 import { useOnboardingStatus } from "@/features/onboarding/application/use-onboarding-status";
+import LoginRedirect from "@/features/onboarding/presentation/LoginRedirect";
 import { syncCategoryTemplate } from "@/services/category-template-service";
 import { runStoreMigrations } from "@/services/local-store-migrations";
 import AppShell from "@/components/layout/AppShell";
@@ -171,10 +172,13 @@ function App() {
             {onboarding.required && <Route path="/privacy" element={<PrivacyPage />} />}
 
             {/* Der Altpfad bleibt als Weiterleitung: Lesezeichen und
-                Verweise von aussen zeigen weiter auf `/login`. */}
+                Verweise von aussen zeigen weiter auf `/login`. Wer noch nicht
+                angemeldet ist, landet im ANMELDE-Schritt des Flusses — nicht
+                an dessen Wiederaufsetzpunkt, der für einen anonym gestarteten
+                Nutzer die Lebenssituation wäre. */}
             <Route
               path="/login"
-              element={<Navigate to={isAuthenticated ? "/coach" : "/willkommen"} replace />}
+              element={isAuthenticated ? <Navigate to="/coach" replace /> : <LoginRedirect />}
             />
 
             <Route

@@ -3845,6 +3845,13 @@ export const en = {
     startBankNeedsAccount:
       'Bank synchronisation requires an account. You can sign in later at any time.',
 
+    restartAction: 'Restart the intro',
+    restartCancel: 'Cancel',
+    restartConfirmTitle: 'Restart the intro?',
+    restartConfirmBody:
+      'You will walk through the intro again, starting from the language choice. Your transactions, accounts and budgets stay untouched — only the answers from the setup are asked again.',
+    restartError: 'The intro could not be reset.',
+
     next: 'Continue',
     back: 'Back',
     skip: 'Decide later',
