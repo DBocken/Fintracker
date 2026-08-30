@@ -502,6 +502,13 @@ versehentlich untergraben und Überlegungen nicht neu erarbeitet werden:
 > Daten, gleiche Berechnungen, gleiches ViewModel — progressive Verzweigung,
 > keine doppelten Queries.
 
+Wer entscheidet, welche Variante ein Nutzer bekommt, und was „einfaches,
+sauberes Modell" überprüfbar heißt, steht in
+[`docs/architecture/darstellungsdichte.md`](docs/architecture/darstellungsdichte.md):
+**kompakt** und **fokussiert**, zugeordnet ohne Schalter über den App-Kontext
+und **eine** Schwelle von 768 CSS-Pixeln. Diese Datei bleibt bei Widerspruch
+maßgeblich.
+
 ## 5. TDD & Teststruktur
 
 Ablauf: **Ziel verstehen → Test schreiben (rot) → minimale Implementierung
