@@ -60,6 +60,7 @@ wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
 | [`architecture/money-euro-float.md`](architecture/money-euro-float.md) | Euro-Float in der Persistenz, Cent in der Rechnung (2026-08-08) |
 | [`architecture/eu-souveraenitaet.md`](architecture/eu-souveraenitaet.md) | Anbieter und Subdienstleister EU-only; Software self-hosted statt SaaS; Rollen-Taxonomie, Push-/Telemetrie-Prinzipien (2026-08-10) |
 | [`architecture/supabase-abloesung.md`](architecture/supabase-abloesung.md) | Supabase: Naht jetzt, Ablösung mittelfristig, Neubau-Stopp ab sofort (2026-08-10) |
+| [`architecture/darstellungsdichte.md`](architecture/darstellungsdichte.md) | Zwei Darstellungsdichten (kompakt/fokussiert), Zuordnung ohne Schalter über App-Kontext und 768-CSS-Pixel-Schwelle (2026-08-30) |
 
 ## Geltend — Sicherheit & Datenschutz
 
