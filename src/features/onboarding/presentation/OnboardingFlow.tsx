@@ -29,6 +29,7 @@ import PathStep from './steps/PathStep';
 import AuthStep from './steps/AuthStep';
 import GreetingStep from './steps/GreetingStep';
 import SituationStep from './steps/SituationStep';
+import ModifiersStep from './steps/ModifiersStep';
 import FeaturesStep from './steps/FeaturesStep';
 import PremiumStep from './steps/PremiumStep';
 import StartStep from './steps/StartStep';
@@ -128,12 +129,24 @@ export default function OnboardingFlow({ catalog }: OnboardingFlowProps) {
       case 'situation':
         return (
           <SituationStep
-            value={draft.lifeSituation ?? null}
-            modifiers={draft.modifiers ?? []}
-            onChange={(id: LifeSituationId) =>
-              patchDraft({ lifeSituation: id, features: undefined })
-            }
-            onToggleModifier={(id: ModifierId) => {
+            onChoose={(id: LifeSituationId) => {
+              patchDraft({ lifeSituation: id, features: undefined });
+              gehe(flow.advanceFrom('situation'));
+            }}
+            onSkip={() => {
+              // `null` = gefragt und übersprungen. Ohne Situation bleibt die
+              // Navigation vollständig — und die Umstände hätten nichts, was
+              // sie ergänzen könnten.
+              patchDraft({ lifeSituation: null, modifiers: [], features: undefined });
+              gehe('premium');
+            }}
+          />
+        );
+      case 'umstaende':
+        return (
+          <ModifiersStep
+            selected={draft.modifiers ?? []}
+            onToggle={(id: ModifierId) => {
               const aktuell = draft.modifiers ?? [];
               patchDraft({
                 modifiers: aktuell.includes(id)
@@ -142,13 +155,8 @@ export default function OnboardingFlow({ catalog }: OnboardingFlowProps) {
                 features: undefined,
               });
             }}
-            onContinue={() => gehe(flow.advanceFrom('situation'))}
-            onSkip={() => {
-              // `null` = gefragt und übersprungen. Ohne Situation bleibt die
-              // Navigation vollständig.
-              patchDraft({ lifeSituation: null, features: undefined });
-              gehe('premium');
-            }}
+            onContinue={() => gehe(flow.advanceFrom('umstaende'))}
+            onBack={() => gehe(flow.retreatFrom('umstaende'))}
           />
         );
       case 'bereiche':

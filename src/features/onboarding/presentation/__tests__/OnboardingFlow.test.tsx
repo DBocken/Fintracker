@@ -143,6 +143,38 @@ describe('OnboardingFlow', () => {
     expect(window.localStorage.getItem(ONBOARDING_DRAFT_KEY)).toContain('Dana');
   });
 
+  it('sollte Lebenssituation und Umstände auf ZWEI Seiten verteilen', async () => {
+    // Der Dichtebruch, der den Umbau ausgelöst hat: beides zusammen waren 17
+    // Auswahlelemente in zwei Auswahllogiken auf einer Seite.
+    const user = userEvent.setup();
+    window.localStorage.setItem(ANONYMOUS_MODE_KEY, 'true');
+    window.localStorage.setItem(
+      ONBOARDING_DRAFT_KEY,
+      JSON.stringify({ step: 'situation', path: 'anonymous' }),
+    );
+    renderFlow('/willkommen/situation');
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+
+    await user.click(screen.getByRole('button', { name: /Familie mit Kindern/ }));
+    await waitFor(() => expect(adresse()).toBe('/willkommen/umstaende'));
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Nichts davon' }));
+    await waitFor(() => expect(adresse()).toBe('/willkommen/bereiche'));
+  });
+
+  it('sollte „Später entscheiden" an den Umständen vorbeiführen', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(ANONYMOUS_MODE_KEY, 'true');
+    window.localStorage.setItem(
+      ONBOARDING_DRAFT_KEY,
+      JSON.stringify({ step: 'situation', path: 'anonymous' }),
+    );
+    renderFlow('/willkommen/situation');
+    await user.click(screen.getByRole('button', { name: 'Später entscheiden' }));
+    await waitFor(() => expect(adresse()).toBe('/willkommen/premium'));
+  });
+
   it('sollte am Ende genau EINEN Schreibvorgang auslösen', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(ANONYMOUS_MODE_KEY, 'true');

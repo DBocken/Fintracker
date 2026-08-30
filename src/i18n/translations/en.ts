@@ -3813,6 +3813,13 @@ export const en = {
     featuresTitle: 'Which features matter to you?',
     featuresSubtitle: 'You can change this any time in the settings.',
 
+    modifiersNone: 'None of these',
+    featuresChosen: 'This is what we will show you',
+    featuresCoreHint:
+      'Coach, transactions and accounts are always included. Anything switched off is only hidden, not locked.',
+    featuresAdjust: 'Adjust areas',
+    featuresAdjustDone: 'Done',
+
     premiumTitle: 'Much is free. The most powerful part is Premium.',
     premiumIntro:
       'While many features are already free, the most powerful ones are reserved for Premium users.',

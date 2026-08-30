@@ -16,6 +16,11 @@ import type { OnboardingDraft, OnboardingPath } from './onboarding-draft';
  * Die Schritte in ihrer Reihenfolge. Die Kennungen sind zugleich die
  * URL-Segmente unter `/willkommen/…` — deutsch wie `/fragen`, damit die
  * Adresszeile dieselbe Sprache spricht wie die Oberfläche.
+ *
+ * Lebenssituation und Umstände sind **zwei** Schritte, nicht einer. Zusammen
+ * waren es 17 Auswahlelemente in zwei verschiedenen Auswahllogiken auf einer
+ * Seite — der Dichtebruch, der den ganzen Fluss auffällig gemacht hat
+ * (`docs/architecture/darstellungsdichte.md`).
  */
 export const ONBOARDING_STEPS = [
   'sprache',
@@ -23,6 +28,7 @@ export const ONBOARDING_STEPS = [
   'anmeldung',
   'begruessung',
   'situation',
+  'umstaende',
   'bereiche',
   'premium',
   'start',

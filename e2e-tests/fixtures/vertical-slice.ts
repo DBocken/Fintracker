@@ -43,8 +43,9 @@ const ZIEL: Record<"csv" | "bank" | "demo", RegExp> = {
 };
 
 /**
- * Führt den kompletten Einstieg durch — Sprache, Weg, Anrede, Situation,
- * Premium, Datenquelle, Tutorial.
+ * Führt den kompletten Einstieg durch — Sprache, Weg, Anrede, Situation
+ * (übersprungen, damit auch die Umstände entfallen), Premium, Datenquelle,
+ * Tutorial.
  *
  * Jeder Schritt wartet auf die ADRESSE des nächsten und nicht auf eine
  * Animation: Die Auflösung des Abgewählten läuft über echte Zeit, und ein
@@ -66,6 +67,8 @@ export async function completeOnboarding(
   await expect(page).toHaveURL(/\/willkommen\/begruessung$/);
   await page.getByRole("button", { name: "Ohne Namen fortfahren" }).click();
 
+  // „Später entscheiden" überspringt Lebenssituation UND Umstände — ohne
+  // Situation hätten die Umstände nichts, was sie ergänzen könnten.
   await expect(page).toHaveURL(/\/willkommen\/situation$/);
   await page.getByRole("button", { name: "Später entscheiden" }).click();
 

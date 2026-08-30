@@ -1,49 +1,63 @@
 /**
  * Schritt 5 — die Lebenssituation.
  *
- * Sie steht bewusst VOR der Bereichsauswahl und nicht dahinter: Sie ist die
- * einzige Quelle der Vorauswahl (`resolveFeatureSelection`) — ohne sie stünde
- * der nächste Schritt auf einer leeren Liste.
+ * Sie steht bewusst VOR der Bereichsauswahl: Sie ist die einzige Quelle der
+ * Vorauswahl (`resolveFeatureSelection`) — ohne sie stünde der übernächste
+ * Schritt auf einer leeren Liste.
+ *
+ * **Nur die Situation, nicht auch die Umstände.** Beides zusammen waren 17
+ * Auswahlelemente in zwei verschiedenen Auswahllogiken auf einer Seite. Die
+ * Umstände sind jetzt ein eigener Schritt (`ModifiersStep`) —
+ * `docs/architecture/darstellungsdichte.md`, Regel „Aussage → Detail →
+ * Konfiguration".
+ *
+ * Die Wahl führt unmittelbar weiter, wie in jedem anderen Auswahl-Schritt des
+ * Flusses: Ein zusätzlicher „Weiter"-Knopf wäre eine zweite Entscheidung für
+ * eine bereits getroffene.
  */
 
 import { Button } from '@/components/ui/button';
-import type { LifeSituationId, ModifierId } from '@/lib/life-situations';
+import { LIFE_SITUATIONS, type LifeSituationId } from '@/lib/life-situations';
 import { useI18n } from '@/i18n/useI18n';
-import LifeSituationPicker from '../LifeSituationPicker';
+import DissolveChoiceGrid from '../DissolveChoiceGrid';
 
 export interface SituationStepProps {
-  value: LifeSituationId | null;
-  modifiers: readonly ModifierId[];
-  onChange: (id: LifeSituationId) => void;
-  onToggleModifier: (id: ModifierId) => void;
-  onContinue: () => void;
+  onChoose: (id: LifeSituationId) => void;
   onSkip: () => void;
 }
 
-export default function SituationStep({
-  value,
-  modifiers,
-  onChange,
-  onToggleModifier,
-  onContinue,
-  onSkip,
-}: SituationStepProps) {
+export default function SituationStep({ onChoose, onSkip }: SituationStepProps) {
   const { t } = useI18n();
 
   return (
     <div className="space-y-6">
-      <LifeSituationPicker
-        value={value}
-        modifiers={modifiers}
-        onChange={onChange}
-        onToggleModifier={onToggleModifier}
+      <div className="space-y-1">
+        <h1 id="onboarding-situation-title" className="font-display text-2xl font-semibold">
+          {t('onboarding.title', 'Welche Situation beschreibt dich am ehesten?')}
+        </h1>
+        <p className="text-sm text-muted-foreground">{t('onboarding.subtitle', '')}</p>
+      </div>
+
+      <DissolveChoiceGrid
+        ariaLabelledBy="onboarding-situation-title"
+        className="sm:grid-cols-2"
+        items={LIFE_SITUATIONS.map((situation) => ({
+          id: situation.id,
+          content: (
+            <>
+              <span className="font-medium">{t(situation.labelKey, situation.id)}</span>
+              <span className="text-sm leading-snug text-muted-foreground">
+                {t(situation.descriptionKey, '')}
+              </span>
+            </>
+          ),
+        }))}
+        onSelect={(id) => onChoose(id as LifeSituationId)}
       />
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+
+      <div className="border-t pt-4">
         <Button variant="ghost" onClick={onSkip}>
           {t('onboardingFlow.skip', 'Später entscheiden')}
-        </Button>
-        <Button onClick={onContinue} disabled={value === null}>
-          {t('onboardingFlow.next', 'Weiter')}
         </Button>
       </div>
     </div>

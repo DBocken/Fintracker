@@ -3833,6 +3833,13 @@ export const de = {
     featuresTitle: 'Welche Funktionen sind für dich wichtig?',
     featuresSubtitle: 'Du kannst dies jederzeit in den Einstellungen ändern.',
 
+    modifiersNone: 'Nichts davon',
+    featuresChosen: 'Das blenden wir für dich ein',
+    featuresCoreHint:
+      'Coach, Buchungen und Konten sind immer dabei. Abgewähltes ist nur ausgeblendet, nicht gesperrt.',
+    featuresAdjust: 'Bereiche anpassen',
+    featuresAdjustDone: 'Fertig',
+
     // Schritt 7 — Premium
     premiumTitle: 'Vieles ist kostenlos. Das Mächtigste ist Premium.',
     premiumIntro:

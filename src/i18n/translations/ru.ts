@@ -3813,6 +3813,13 @@ export const ru = {
     featuresTitle: 'Какие функции для вас важны?',
     featuresSubtitle: 'Это можно в любой момент изменить в настройках.',
 
+    modifiersNone: 'Ничего из этого',
+    featuresChosen: 'Вот что мы покажем',
+    featuresCoreHint:
+      'Помощник, операции и счета доступны всегда. Отключённое лишь скрыто, а не заблокировано.',
+    featuresAdjust: 'Настроить разделы',
+    featuresAdjustDone: 'Готово',
+
     premiumTitle: 'Многое бесплатно. Самое мощное — в Premium.',
     premiumIntro:
       'Многие функции уже бесплатны, но самые мощные доступны только пользователям Premium.',
