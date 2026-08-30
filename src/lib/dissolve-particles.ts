@@ -73,6 +73,27 @@ const BOEEN_FAKTOR_MAX = 4.5;
 const AUFTRIEB_MIN = 100;
 const AUFTRIEB_MAX = 380;
 
+/**
+ * Wirbel — echter Wind trägt nicht geradeaus.
+ *
+ * **Bewusst keine Partikelsimulation.** Ein Strömungsfeld zu rechnen hiesse,
+ * für jeden Partikel in jedem Bild seine Nachbarschaft zu befragen; das kostet
+ * genau auf dem Gerät am meisten, das am wenigsten Luft hat. Stattdessen
+ * schwingt jeder Partikel für sich um seine Bahn — eigene Phase, eigene
+ * Frequenz, eigene Auslenkung. Aus vielen unabhängigen Schwingungen entsteht
+ * derselbe Eindruck von Verwirbelung, und die Rechnung bleibt eine
+ * Sinusfunktion je Partikel.
+ *
+ * Die Auslenkung wächst über die Lebenszeit von null an: Der Partikel steht
+ * ruhig, löst sich, und erst der Wind bringt ihn ins Trudeln.
+ */
+const WIRBEL_AMPLITUDE_MIN = 2;
+const WIRBEL_AMPLITUDE_MAX = 16;
+const WIRBEL_FREQUENZ_MIN = 2.5;
+const WIRBEL_FREQUENZ_MAX = 9;
+/** Senkrecht fällt der Wirbel flacher aus — sonst hüpft die Asche. */
+const WIRBEL_Y_ANTEIL = 0.55;
+
 /** Ein abgetasteter Bildpunkt der Fläche: Ort im Viewport und seine Farbe. */
 export interface DissolvePoint {
   x: number;
@@ -98,6 +119,12 @@ export interface DissolveParticle {
   verzoegerung: number;
   /** Eigene Lebensdauer, ms. */
   lebensdauer: number;
+  /** Startpunkt der eigenen Schwingung, damit nicht alle im Gleichtakt trudeln. */
+  wirbelPhase: number;
+  /** Auslenkung der Schwingung am Ende der Lebenszeit, px. */
+  wirbelAmplitude: number;
+  /** Schwingungen pro Sekunde (Bogenmass). */
+  wirbelFrequenz: number;
 }
 
 /**
@@ -161,6 +188,12 @@ export function seedParticles(
       lebensdauer:
         DISSOLVE_PARTICLE_LIFE_MS *
         zwischen(random, 1 - LEBENSDAUER_STREUUNG, 1 + LEBENSDAUER_STREUUNG),
+      wirbelPhase: random() * Math.PI * 2,
+      // Wer von einer Böe erfasst wird, trudelt weniger — er ist fort, bevor
+      // ihn der Wirbel packt. Das hält die schnellen Partikel als Striche
+      // erkennbar.
+      wirbelAmplitude: zwischen(random, WIRBEL_AMPLITUDE_MIN, WIRBEL_AMPLITUDE_MAX) / boe,
+      wirbelFrequenz: zwischen(random, WIRBEL_FREQUENZ_MIN, WIRBEL_FREQUENZ_MAX),
     });
   }
   return partikel;
@@ -181,7 +214,8 @@ export interface DissolveSample {
  *    zerfallene Teil der Fläche steht unverändert da.
  * 2. **Zerfall:** erst zur Seite (gleichförmig), dann nach oben
  *    (beschleunigt) — die Bahn knickt von selbst ab, ohne dass irgendwo eine
- *    Phase umgeschaltet werden müsste.
+ *    Phase umgeschaltet werden müsste. Darüber liegt der Wirbel: eine
+ *    Schwingung je Partikel, deren Auslenkung von null an wächst.
  * 3. **Danach:** fort.
  */
 export function advanceParticle(partikel: DissolveParticle, zeitMs: number): DissolveSample {
@@ -191,9 +225,20 @@ export function advanceParticle(partikel: DissolveParticle, zeitMs: number): Dis
 
   const s = lokal / 1000;
   const fortschritt = lokal / partikel.lebensdauer;
+  // Von null anwachsend: Am Anfang steht der Partikel ruhig, erst der Wind
+  // bringt ihn ins Trudeln. Ohne das machte die Bahn im ersten Bild einen
+  // Sprung zur Seite.
+  const wirbel = partikel.wirbelAmplitude * fortschritt;
+  const winkel = partikel.wirbelPhase + s * partikel.wirbelFrequenz;
   return {
-    x: partikel.x + partikel.vx * s,
-    y: partikel.y + partikel.vy * s - 0.5 * partikel.auftrieb * s * s,
+    x: partikel.x + partikel.vx * s + Math.sin(winkel) * wirbel,
+    y:
+      partikel.y +
+      partikel.vy * s -
+      0.5 * partikel.auftrieb * s * s +
+      // Andere Phase und Frequenz als in x — gleiche ergäbe eine Gerade
+      // schräg zur Bahn statt einer Schleife.
+      Math.cos(winkel * 0.7 + partikel.wirbelPhase) * wirbel * WIRBEL_Y_ANTEIL,
     alpha: 1 - fortschritt ** 1.5,
   };
 }

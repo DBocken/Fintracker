@@ -115,6 +115,35 @@ describe('advanceParticle', () => {
     expect(ende.y).toBeLessThan(partikel.y);
   });
 
+  it('sollte anfangs NICHT wirbeln — der Wirbel wächst von null an', () => {
+    // Ohne das machte die Bahn im ersten Bild einen Sprung zur Seite: Der
+    // Partikel stünde ruhig und wäre im nächsten Augenblick versetzt.
+    const gleichNachStart = advanceParticle(partikel, partikel.verzoegerung + 0.5);
+    const ohneWirbel = partikel.x + partikel.vx * 0.0005;
+    expect(Math.abs(gleichNachStart.x - ohneWirbel)).toBeLessThan(0.5);
+  });
+
+  it('sollte die Bahn verwirbeln statt geradeaus zu tragen', () => {
+    // Kein Strömungsfeld, nur eine Schwingung je Partikel — aber die Bahn
+    // darf keine reine Wurfparabel sein, sonst wirkt es mechanisch.
+    const stark = { ...partikel, wirbelAmplitude: 20, wirbelFrequenz: 8, wirbelPhase: 0 };
+    const abweichungen: number[] = [];
+    for (let ms = 20; ms < stark.lebensdauer; ms += 20) {
+      const s = ms / 1000;
+      const probe = advanceParticle(stark, stark.verzoegerung + ms);
+      abweichungen.push(probe.x - (stark.x + stark.vx * s));
+    }
+    // Die Abweichung wechselt das Vorzeichen — sie schwingt, sie driftet nicht.
+    expect(Math.max(...abweichungen)).toBeGreaterThan(1);
+    expect(Math.min(...abweichungen)).toBeLessThan(-1);
+  });
+
+  it('sollte jeden Partikel eigen trudeln lassen, nicht im Gleichtakt', () => {
+    const viele = seedParticles(punkte(30, 30), createRandom(17));
+    const phasen = new Set(viele.map((p) => p.wirbelPhase.toFixed(3)));
+    expect(phasen.size).toBeGreaterThan(viele.length / 2);
+  });
+
   it('sollte über die Lebensdauer verblassen', () => {
     const frueh = advanceParticle(partikel, partikel.verzoegerung + 20);
     const spaet = advanceParticle(partikel, partikel.verzoegerung + partikel.lebensdauer * 0.8);
