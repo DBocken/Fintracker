@@ -10,6 +10,7 @@
  * bedeutsam wird, nicht erst in den Kaufvorgang.
  */
 
+import type { ReactNode } from 'react';
 import { Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
@@ -22,18 +23,26 @@ export interface PremiumStepProps {
   onOpenBilling: () => void;
 }
 
-const FREE_KEYS = [
-  'onboardingFlow.premiumFreeImport',
-  'onboardingFlow.premiumFreeCoach',
-  'onboardingFlow.premiumFreeBank',
-];
-
-const PAID_KEYS = [
-  'onboardingFlow.premiumPaidAnalytics',
-  'onboardingFlow.premiumPaidSimulation',
-  'onboardingFlow.premiumPaidContracts',
-  'onboardingFlow.premiumPaidOccasions',
-];
+/**
+ * Die Aufzählungen stehen als AUSGESCHRIEBENE `t()`-Aufrufe da, nicht als
+ * Liste von Schlüsseln, die eine Schleife durchreicht.
+ *
+ * Eine Liste wäre kürzer und trotzdem falsch: Ein aus einer Variablen
+ * gebauter Schlüssel ist für `call-site-keys.test.ts` nicht mehr prüfbar —
+ * ein Tippfehler darin rendert den rohen Punkt-String auf den Bildschirm,
+ * und die Locale-Parität sieht das nicht (sie vergleicht die Bäume
+ * gegeneinander, nicht die Aufrufstellen). Die Ratsche für durchgereichte
+ * Schlüssel gilt den Stellen, an denen die Durchreichung der ENTWURF ist
+ * (Register-Einträge, Nav-Labels); hier ist sie nur Bequemlichkeit.
+ */
+function Punkt({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-2 text-sm text-muted-foreground">
+      {icon}
+      <span>{children}</span>
+    </li>
+  );
+}
 
 export default function PremiumStep({
   anonymous,
@@ -42,6 +51,8 @@ export default function PremiumStep({
   onOpenBilling,
 }: PremiumStepProps) {
   const { t } = useI18n();
+  const frei = <Check className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />;
+  const premium = <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-premium" aria-hidden="true" />;
 
   return (
     <div className="space-y-6">
@@ -58,12 +69,9 @@ export default function PremiumStep({
             {t('onboardingFlow.premiumFreeHeading', 'Immer kostenlos')}
           </h2>
           <ul className="mt-3 space-y-2">
-            {FREE_KEYS.map((key) => (
-              <li key={key} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />
-                <span>{t(key, '')}</span>
-              </li>
-            ))}
+            <Punkt icon={frei}>{t('onboardingFlow.premiumFreeImport', '')}</Punkt>
+            <Punkt icon={frei}>{t('onboardingFlow.premiumFreeCoach', '')}</Punkt>
+            <Punkt icon={frei}>{t('onboardingFlow.premiumFreeBank', '')}</Punkt>
           </ul>
         </div>
 
@@ -73,12 +81,10 @@ export default function PremiumStep({
             {t('onboardingFlow.premiumPaidHeading', 'Mit Premium')}
           </h2>
           <ul className="mt-3 space-y-2">
-            {PAID_KEYS.map((key) => (
-              <li key={key} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-premium" aria-hidden="true" />
-                <span>{t(key, '')}</span>
-              </li>
-            ))}
+            <Punkt icon={premium}>{t('onboardingFlow.premiumPaidAnalytics', '')}</Punkt>
+            <Punkt icon={premium}>{t('onboardingFlow.premiumPaidSimulation', '')}</Punkt>
+            <Punkt icon={premium}>{t('onboardingFlow.premiumPaidContracts', '')}</Punkt>
+            <Punkt icon={premium}>{t('onboardingFlow.premiumPaidOccasions', '')}</Punkt>
           </ul>
         </div>
       </div>
