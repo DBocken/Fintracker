@@ -152,3 +152,67 @@ describe('transactionStorage.clearLocalCache() räumt auch die Chunk-Ablage auf 
     expect(await getTransactions(100)).toEqual([]);
   });
 });
+
+describe('[REGRESSION] Serialisierung der Chunk-Schreibpfade', () => {
+  /**
+   * Audit 2026-09, F1: Lesen → `await` → Schreiben lief ohne Lock; nur der
+   * Index war gesperrt. Zwei gleichzeitige Aufrufe lasen denselben Stand, und
+   * der zweite schrieb eine Fassung ohne die Buchung des ersten — lautlos.
+   *
+   * Der Deadlock-Test steht bewusst zuerst: Legt man den Lock auf BEIDE Ebenen
+   * (Legacy-Methode und ihre Chunk-Schwester, an die sie delegiert), wartet die
+   * äußere auf sich selbst — `withKeyLock` ist nicht reentrant. Die drei
+   * Lost-Update-Tests darunter wären dann nicht rot, sie würden HÄNGEN; ein
+   * Test mit Zeitschranke ist der einzige, der das benennt.
+   */
+  it('[REGRESSION] sollte bei zwei gleichzeitigen Speichervorgängen nicht verklemmen', async () => {
+    const beide = Promise.all([
+      saveTransactions([tx('deadlock-a', '2026-05-10')]),
+      saveTransactions([tx('deadlock-b', '2026-05-11')]),
+    ]);
+    const zeitschranke = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Schreibpfad verklemmt: der Lock schachtelt in sich selbst')), 5000),
+    );
+
+    await expect(Promise.race([beide, zeitschranke])).resolves.toBeDefined();
+  });
+
+  it('[REGRESSION] sollte bei zwei gleichzeitigen saveTransactions im selben Quartal beide Buchungen behalten', async () => {
+    await Promise.all([
+      saveTransactions([tx('a', '2026-05-10')]),
+      saveTransactions([tx('b', '2026-05-11')]),
+    ]);
+
+    const alle = await getTransactions(100);
+    expect(alle.map((t) => t.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('[REGRESSION] sollte gleichzeitiges update und delete verschiedener Buchungen desselben Quartals nicht gegenseitig überschreiben', async () => {
+    await saveTransactions([tx('bleibt', '2026-05-10'), tx('geht', '2026-05-11')]);
+
+    // Direkt über die Storage-API: `transaction-service.updateTransaction`
+    // patcht nur Kategorie-, Vertrags- und Steuerfelder — `payee` gehört nicht
+    // dazu, und geprüft wird hier ohnehin der Schreibpfad des Storage.
+    await Promise.all([
+      transactionStorage.updateTransaction('bleibt', { payee: 'ALDI' }),
+      deleteTransaction(asTransactionId('geht')),
+    ]);
+
+    const alle = await getTransactions(100);
+    expect(alle.map((t) => t.id)).toEqual(['bleibt']);
+    expect(alle[0].payee).toBe('ALDI');
+  });
+
+  it('[REGRESSION] sollte einen Quartalswechsel per update nicht mit einem gleichzeitigen save kollidieren lassen', async () => {
+    await saveTransactions([tx('wandert', '2026-05-10')]);
+
+    await Promise.all([
+      transactionStorage.updateTransaction('wandert', { date: '2026-08-15' }),
+      saveTransactions([tx('neu', '2026-08-20')]),
+    ]);
+
+    const alle = await getTransactions(100);
+    expect(alle.map((t) => t.id).sort()).toEqual(['neu', 'wandert']);
+    expect(alle.find((t) => t.id === 'wandert')!.date).toBe('2026-08-15');
+  });
+});

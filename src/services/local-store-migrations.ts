@@ -6,6 +6,8 @@ import {
 import type { Transaction } from '@/types';
 import { quarterKeyForDate, type QuarterKey } from '@/lib/transaction-quarter';
 import { writeTransactionChunk } from './transaction-chunk-store';
+import { withKeyLock } from '@/lib/key-mutex';
+import { TRANSACTION_STORE_LOCK_KEY } from './local-storage-keys';
 import { readLegacyV3Transactions } from './transaction-storage-service';
 import { LOCAL_FINANCE_KEYS } from './local-storage-keys';
 import { idbRemove } from './idb-kv';
@@ -88,19 +90,26 @@ async function migrateTransactionsToQuarterlyChunks(): Promise<void> {
     throw new LocalEncryptionLockedError();
   }
 
-  const transactions = await readLegacyV3Transactions();
+  // Unter demselben Lock wie jeder andere Buchungs-Schreibpfad (Audit 2026-09,
+  // F1): Dieser Lauf startet, sobald der Tresor entsperrt ist, und schreibt
+  // GANZE Quartale aus dem alten Blob. Läuft nebenher ein Speichervorgang der
+  // Oberfläche, überschreibt die Migration dessen Buchung — der teuerste Fall
+  // der Familie, und der einzige, den der Plan des Audits übersehen hatte.
+  await withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
+    const transactions = await readLegacyV3Transactions();
 
-  const byQuarter = new Map<QuarterKey, Transaction[]>();
-  for (const transaction of transactions) {
-    const quarter = quarterKeyForDate(transaction.date);
-    const list = byQuarter.get(quarter);
-    if (list) list.push(transaction);
-    else byQuarter.set(quarter, [transaction]);
-  }
+    const byQuarter = new Map<QuarterKey, Transaction[]>();
+    for (const transaction of transactions) {
+      const quarter = quarterKeyForDate(transaction.date);
+      const list = byQuarter.get(quarter);
+      if (list) list.push(transaction);
+      else byQuarter.set(quarter, [transaction]);
+    }
 
-  for (const [quarter, items] of byQuarter) {
-    await writeTransactionChunk(quarter, items);
-  }
+    for (const [quarter, items] of byQuarter) {
+      await writeTransactionChunk(quarter, items);
+    }
+  });
 
   // Schritt 3: der Zeiger wird umgelegt. Beide Ablagen (localStorage-Rest aus
   // einer evtl. noch nicht gelaufenen Lazy-Migration UND IndexedDB) werden
