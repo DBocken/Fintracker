@@ -43,6 +43,18 @@ describe('findeKappungen', () => {
     expect(findeKappungen(quelle, 'src/services/x.ts')).toEqual([]);
   });
 
+  it('sollte eine benannte Konstante genauso melden wie eine Zahl', () => {
+    // Der Fund, den die erste Fassung übersah: Acht ViewModels kappten über
+    // FINANCE_TRANSACTION_LIMIT. Eine Modulkonstante IST ein Literal, nur mit
+    // Namen — und ein Name macht die Kappung nicht besser, sondern unsichtbar.
+    const funde = findeKappungen(
+      'const t = await getTransactions(FINANCE_TRANSACTION_LIMIT);',
+      'src/features/dashboard/application/use-finance-overview.ts',
+    );
+    expect(funde).toHaveLength(1);
+    expect(funde[0].limit).toBe('FINANCE_TRANSACTION_LIMIT');
+  });
+
   it('sollte ein berechnetes oder durchgereichtes Limit nicht melden', () => {
     // Nur das LITERAL ist der Befund: Wer eine Variable durchreicht, hat das
     // Limit anderswo begründet — der Wächter kann das nicht beurteilen und

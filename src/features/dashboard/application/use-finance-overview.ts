@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useI18n } from '@/i18n/useI18n';
-import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
+import { getAllTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import type { ContractDecision } from '@/lib/contract-types';
@@ -25,7 +25,7 @@ import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import { buildSankeyData } from '@/lib/chart-data/sankey';
 import { buildSpendingSunburst, buildSunburstTree } from '@/lib/chart-data/sunburst';
 import type { Transaction } from '@/types';
-import { dashboardKeys, DASHBOARD_TRANSACTION_LIMIT } from '../data/dashboard-query-keys';
+import { dashboardKeys } from '../data/dashboard-query-keys';
 import { computeEffectiveBalances, computeTotalEffectiveBalance } from '../domain/balance-calculations';
 import { computeFlowTotals, buildIncomeExpenseSeries } from '../domain/overview-calculations';
 import type { FinanceOverviewViewModel, DashboardFilterValues, SortConfig } from './finance-overview-view-model';
@@ -59,8 +59,8 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   const { data: txs = [], isLoading: txsLoading, isError: txsError } = useQuery<Transaction[], Error>({
     // Limit im Query-Key (F-PERF-3), sonst Cache-Kollision mit dem 1000er-Load
     // von useAutomationSuggestions. Prefix ["transactions"] invalidiert weiterhin.
-    queryKey: dashboardKeys.transactions(DASHBOARD_TRANSACTION_LIMIT),
-    queryFn: () => getTransactions(DASHBOARD_TRANSACTION_LIMIT),
+    queryKey: dashboardKeys.transactionsAll,
+    queryFn: () => getAllTransactions(),
   });
 
   const { data: cats = [], isError: catsError } = useQuery({

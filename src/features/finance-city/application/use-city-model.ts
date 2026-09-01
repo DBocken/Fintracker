@@ -19,11 +19,11 @@
  */
 import { useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { evaluateMilestones } from '@/services/milestones-service';
 import { buildSunburstTree } from '@/lib/chart-data/sunburst';
 import { deriveIncomeStreams } from '@/lib/income-streams';
-import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { useI18n } from '@/i18n/useI18n';
 import { buildCityModelFromData } from '../domain/city-data-adapter';
@@ -104,8 +104,8 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
   } = useQuery({
     // Limit im Query-Key (F-PERF-3-Muster) — identisch zum Dashboard, sonst
     // Cache-Kollision/-Duplikat statt geteiltem Cache.
-    queryKey: financeKeys.transactions(FINANCE_TRANSACTION_LIMIT),
-    queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
+    queryKey: financeKeys.transactionsAll,
+    queryFn: () => getAllTransactions(),
   });
 
   const {

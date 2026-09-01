@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
-import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
-import { getTransactions, getCategories, getUserSettings } from '@/services/transaction-service';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
+import { getAllTransactions, getCategories, getUserSettings } from '@/services/transaction-service';
 import { getAllocationMap } from '@/services/transaction-allocation-service';
 import {
   getSpecialCategories,
@@ -252,8 +252,8 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
   const [ergebnis, setErgebnis] = useState<MoneyQuestionOutcome>({ art: 'leer' });
 
   const transaktionen = useQuery({
-    queryKey: financeKeys.transactions(FINANCE_TRANSACTION_LIMIT),
-    queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
+    queryKey: financeKeys.transactionsAll,
+    queryFn: () => getAllTransactions(),
   });
   const kategorien = useQuery({ queryKey: financeKeys.categories, queryFn: getCategories });
   const konten = useQuery({ queryKey: financeKeys.accounts, queryFn: getAccounts });

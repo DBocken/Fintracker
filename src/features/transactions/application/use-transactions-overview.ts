@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useI18n } from '@/i18n/useI18n';
-import { getTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
+import { getAllTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import type { ContractDecision } from '@/lib/contract-types';
@@ -25,7 +25,7 @@ import {
 } from '@/features/shared/domain/dashboard-filtering';
 import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import type { Transaction } from '@/types';
-import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
+import { transactionsKeys } from '../data/transactions-query-keys';
 import { computeEffectiveBalances } from '@/features/shared/domain/balance-calculations';
 import {
   computeScopedBalance,
@@ -89,8 +89,8 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     isError: txsError,
     refetch: refetchTxs,
   } = useQuery<Transaction[]>({
-    queryKey: transactionsKeys.transactions(FINANCE_TRANSACTION_LIMIT),
-    queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
+    queryKey: transactionsKeys.transactionsAll,
+    queryFn: () => getAllTransactions(),
   });
   // WP-9.6: Auch die Nebendaten in denselben Fehlerzustand. Ohne Kategorien
   // wird jede Buchung als „ohne Kategorie" angezeigt, ohne Konten fehlt die

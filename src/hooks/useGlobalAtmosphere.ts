@@ -28,8 +28,8 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
-import { getTransactions } from '@/services/transaction-service';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
+import { getAllTransactions } from '@/services/transaction-service';
 import { getBudgetOverview, currentMonthKey } from '@/services/budget-service';
 import type { BudgetOverview } from '@/services/budget-service';
 import { monthKeyOf } from '@/lib/budget-logic';
@@ -46,8 +46,8 @@ import { useAtmosphereState, type AtmosphereState } from './useAtmosphereState';
 export function useGlobalAtmosphere(reference: Date = new Date()): AtmosphereState {
   // `enabled: false`: nur am Cache lauschen, nie selbst anstoßen. Siehe Kopf.
   const { data: transactions } = useQuery<Transaction[]>({
-    queryKey: financeKeys.transactions(FINANCE_TRANSACTION_LIMIT),
-    queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
+    queryKey: financeKeys.transactionsAll,
+    queryFn: () => getAllTransactions(),
     enabled: false,
   });
 

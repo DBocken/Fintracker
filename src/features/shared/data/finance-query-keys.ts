@@ -4,7 +4,16 @@ import type { QueryClient } from '@tanstack/react-query';
 // jede Abweichung würde bestehende Caches und Invalidierungen stillschweigend trennen.
 export const financeKeys = {
   transactionsRoot: ['transactions'] as const,
-  transactions: (limit: number) => ['transactions', limit] as const,
+  /**
+   * Der GANZE Buchungsbestand (Audit 2026-09, F2).
+   *
+   * Vorher hing der Key an einem Limit — `['transactions', 5000]` —, und das
+   * Limit war der eigentliche Fehler: Jede Fläche lud einen Ausschnitt und
+   * rechnete darauf weiter. Ohne Kappung gibt es nur noch EINE Menge, also
+   * auch nur einen Key; nebenbei teilen sich die Flächen jetzt einen
+   * Cache-Eintrag statt je einen pro geratener Zahl.
+   */
+  transactionsAll: ['transactions', 'all'] as const,
   categories: ['categories'] as const,
   accounts: ['accounts'] as const,
   contractDecisions: ['contract-decisions'] as const,
@@ -17,9 +26,14 @@ export const financeKeys = {
   allocationMap: ['allocations', 'map'] as const,
 } as const;
 
-// Dashboard lädt bewusst 5000 Buchungen (F-PERF-3): Limit im Key verhindert
-// Cache-Kollision mit dem 1000er-Load von useAutomationSuggestions.
-export const FINANCE_TRANSACTION_LIMIT = 5000;
+// `FINANCE_TRANSACTION_LIMIT = 5000` stand hier bis zum Audit 2026-09 (F2).
+// Der Kommentar daneben las sich vernünftig — „Limit im Key verhindert
+// Cache-Kollision" —, und genau das machte die Kappung unsichtbar: Sie sah aus
+// wie eine Cache-Entscheidung, war aber eine Datenentscheidung. Acht
+// ViewModels rechneten darauf Summen, Verläufe und Vorschläge; ab 5.000
+// Buchungen waren sie falsch, ohne dass etwas rot wurde. Die Konstante ist
+// weg, der Key heisst `transactionsAll`, und `check:transaction-limits` hält
+// beides fest.
 
 /**
  * WP 4.3 (PERF-5): Root-Keys von Abfragen, die NACHWEISLICH unabhängig von
