@@ -16,7 +16,7 @@ import { dashboardKeys } from '../../data/dashboard-query-keys';
 import { useFinanceOverview } from '../use-finance-overview';
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock('react-hot-toast', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
+import { getAllTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { getAllocationMap } from '@/services/transaction-allocation-service';
@@ -96,7 +96,7 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
-  vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
+  vi.mocked(getAllTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getAccounts).mockResolvedValue(FIXTURE_ACCOUNTS);
   vi.mocked(getContractDecisionMap).mockResolvedValue(new Map());
@@ -236,7 +236,7 @@ describe('useFinanceOverview', () => {
     it('sollte customPeriod leeren wenn keine Perioden verfügbar sind', async () => {
       // Ohne Buchungen liefert listAvailablePeriods() eine leere Liste ->
       // die Range-Vorbelegung muss auf '' zurückfallen statt eine Periode zu raten.
-      vi.mocked(getTransactions).mockResolvedValue([]);
+      vi.mocked(getAllTransactions).mockResolvedValue([]);
       const { result } = await renderOverview();
 
       act(() => {
@@ -263,7 +263,7 @@ describe('useFinanceOverview', () => {
 
   describe('Notiz-Suche', () => {
     it('sollte über die Notiz an der Buchung und die Notiz einer Split-Zeile filtern', async () => {
-      vi.mocked(getTransactions).mockResolvedValue([
+      vi.mocked(getAllTransactions).mockResolvedValue([
         ...FIXTURE_TRANSACTIONS,
         { id: asTransactionId('tx-note'), date: '2026-05-12', amount: -80, payee: 'Baumarkt', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING, tax_note: 'Rechnung 2026-104' },
       ]);
@@ -335,7 +335,7 @@ describe('useFinanceOverview', () => {
       const pending = new Promise<Transaction[]>((resolve) => {
         resolveTransactions = resolve;
       });
-      vi.mocked(getTransactions).mockReturnValue(pending);
+      vi.mocked(getAllTransactions).mockReturnValue(pending);
 
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useFinanceOverview(), { wrapper });

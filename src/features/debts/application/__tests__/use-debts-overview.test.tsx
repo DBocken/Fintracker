@@ -27,7 +27,7 @@ vi.mock('@/services/debt-service', async (importOriginal) => {
   };
 });
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
 }));
 vi.mock('@/services/financial-health-service', () => ({
   getFinancialHealth: vi.fn(),
@@ -37,7 +37,7 @@ vi.mock('react-hot-toast', () => ({
 }));
 
 import { getDebts, getDebtTransactionAssignments } from '@/services/debt-service';
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import { getFinancialHealth } from '@/services/financial-health-service';
 
 function makeDebt(overrides: Partial<Debt>): Debt {
@@ -61,7 +61,7 @@ const LANGLAEUFER = makeDebt({ id: 'a', balance: 12000, min_payment: 100, intere
 function setupQueries(debts: Debt[]) {
   vi.mocked(getDebts).mockResolvedValue(debts);
   vi.mocked(getDebtTransactionAssignments).mockResolvedValue([]);
-  vi.mocked(getTransactions).mockResolvedValue([]);
+  vi.mocked(getAllTransactions).mockResolvedValue([]);
   vi.mocked(getFinancialHealth).mockResolvedValue({
     monthlyIncome: 2500,
     monthlyExpenses: 2000,
@@ -138,7 +138,7 @@ describe('useDebtsOverview', () => {
   it('[ZUSTAND /debts:fehler] sollte einen Lesefehler als Fehler melden, nicht als leere Liste', async () => {
     vi.mocked(getDebts).mockRejectedValue(new Error('IndexedDB kaputt'));
     vi.mocked(getDebtTransactionAssignments).mockResolvedValue([]);
-    vi.mocked(getTransactions).mockResolvedValue([]);
+    vi.mocked(getAllTransactions).mockResolvedValue([]);
     vi.mocked(getFinancialHealth).mockResolvedValue({
       monthlyIncome: 0,
       monthlyExpenses: 0,

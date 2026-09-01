@@ -8,6 +8,7 @@ import { transactionSchema } from '@/lib/schemas/transaction.schema';
 import { recordSkipped } from './data-integrity-report';
 import { idbGet, idbRemove } from './idb-kv';
 import { quarterKeyForDate, type QuarterKey } from '@/lib/transaction-quarter';
+import { buildCsvContentKey } from '@/lib/transaction-identity';
 import { withKeyLock } from '@/lib/key-mutex';
 import { TRANSACTION_STORE_LOCK_KEY } from './local-storage-keys';
 import {
@@ -41,6 +42,13 @@ export interface StorageResult<T> {
   data?: T;
   error?: string;
   cached?: boolean;
+  /**
+   * Wie viele eingehende Zeilen als inhaltliche Dublette übersprungen wurden
+   * (Audit 2026-09, F3a). Ein Import, der weniger anlegt als die Datei
+   * enthält, muss das sagen können — sonst ist die Idempotenz von einem
+   * Datenverlust nicht zu unterscheiden.
+   */
+  skippedAsDuplicate?: number;
 }
 
 // Constants
@@ -506,10 +514,32 @@ class TransactionStorageService {
     return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
     const existing = await readAllTransactionChunks();
     const knownIds = new Set(existing.map((transaction) => transaction.id).filter(Boolean));
+    // Inhaltsmenge EINMAL vor der Schleife (AGENTS.md §3): je Zeile neu
+    // aufgebaut wäre das über einen Import von 10.000 Zeilen zehntausendmal
+    // derselbe Aufbau — und zwar innerhalb des Locks.
+    const knownContent = new Set(existing.map(buildCsvContentKey));
+    let skippedByContent = 0;
 
     const byQuarter = new Map<QuarterKey, Transaction[]>();
     for (const transaction of newTransactions) {
       if (transaction.id && knownIds.has(transaction.id)) continue;
+      // Zweite, inhaltliche Dedup für den CSV-Pfad (Audit 2026-09, F3a).
+      // Sie fängt genau das, was der Vorkommenszähler nicht kann: eine
+      // Bestands-Buchung mit ALTER ID-Form, und einen zweiten Export, der
+      // mitten in eine Reihe identischer Zeilen schneidet. Bewusst nur für
+      // `csv-`-IDs: Eine manuell angelegte Buchung DARF inhaltsgleich sein
+      // (zweimal derselbe Bäcker am selben Tag), und für den Bankpfad
+      // entscheidet `buildTxIdentifier` mit anderen Feldern.
+      const istCsvZeile = typeof transaction.id === 'string' && transaction.id.startsWith('csv-');
+      if (istCsvZeile && knownContent.has(buildCsvContentKey(transaction))) {
+        skippedByContent += 1;
+        continue;
+      }
+      // Bewusst NICHT die soeben angenommene Zeile nachtragen: Innerhalb
+      // EINES Stapels hat der Vorkommenszähler die Wiederholungen schon
+      // unterschieden (verschiedene IDs). Wer hier nachtrüge, machte aus zwei
+      // echten Buchungen — zweimal derselbe Bäcker am selben Tag — eine.
+      // Verglichen wird ausschließlich gegen den BESTAND.
       const quarter = quarterKeyForDate(transaction.date);
       const list = byQuarter.get(quarter);
       if (list) list.push(transaction);
@@ -522,7 +552,16 @@ class TransactionStorageService {
       await writeTransactionChunk(quarter, [...current, ...additions]);
     }
 
-    return { success: true, data: newTransactions };
+    // Übersprungene Zeilen werden GEZÄHLT, nicht still verschluckt: Ein
+    // Import, der weniger anlegt als die Datei enthält, muss erklärbar sein.
+    if (skippedByContent > 0) {
+      logger.info(
+        `[TransactionStorage] ${skippedByContent} Zeile(n) als inhaltliche Dublette übersprungen`,
+        { source: 'transaction-storage' },
+      );
+    }
+
+    return { success: true, data: newTransactions, skippedAsDuplicate: skippedByContent };
     });
   }
 

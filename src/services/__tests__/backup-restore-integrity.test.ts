@@ -4,7 +4,7 @@ import { backupService, computeBackupChecksum, type BackupData } from "../backup
 import { clearLocalKvStore } from "../idb-kv";
 import { localEncryption } from "../local-crypto";
 import { readLocalFinanceList } from "../local-finance-store";
-import { getTransactions, getUserSettings } from "../transaction-service";
+import { getAllTransactions, getUserSettings } from "../transaction-service";
 import { clearIntegrityReport, getIntegrityReport } from "../data-integrity-report";
 
 vi.mock("../auth-service", () => ({
@@ -108,7 +108,7 @@ describe("backupService.restoreBackup — Prüfsumme & Item-Validierung (WP 1.5,
     await expect(backupService.restoreBackup(tampered)).rejects.toThrow();
 
     // Nichts geschrieben — die Ablehnung ist alles-oder-nichts für die GANZE Datei.
-    expect((await getTransactions(100)).filter((tx) => tx.id === "tx-integrity-1")).toHaveLength(0);
+    expect((await getAllTransactions()).filter((tx) => tx.id === "tx-integrity-1")).toHaveLength(0);
   });
 
   it("[REGRESSION] sollte ein altes Backup ohne Prüfsumme weiterhin importieren, mit Hinweis", async () => {
@@ -119,7 +119,7 @@ describe("backupService.restoreBackup — Prüfsumme & Item-Validierung (WP 1.5,
     expect(result.success).toBe(true);
     expect(result.details.transactions).toBe(1);
     expect(result.warnings.some((w) => w.length > 0)).toBe(true);
-    expect((await getTransactions(100)).filter((tx) => tx.id === "tx-integrity-1")).toHaveLength(1);
+    expect((await getAllTransactions()).filter((tx) => tx.id === "tx-integrity-1")).toHaveLength(1);
   });
 
   it("Roundtrip: Export → Import derselben Datei ⇒ Prüfsumme passt, Daten identisch", async () => {

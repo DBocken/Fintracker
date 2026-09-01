@@ -23,7 +23,7 @@ vi.mock('@/hooks/useReducedMotion', () => ({
 
 const getTransactionsSpy = vi.fn();
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: (...args: unknown[]) => getTransactionsSpy(...args),
+  getAllTransactions: (...args: unknown[]) => getTransactionsSpy(...args),
 }));
 
 const getBudgetOverviewSpy = vi.fn();

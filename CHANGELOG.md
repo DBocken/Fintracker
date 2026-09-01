@@ -24,6 +24,39 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **Beim gleichzeitigen Speichern konnte eine Buchung verschwinden.** Lesen,
+  Entschlüsseln, Schreiben lief ohne Sperre — zwei Vorgänge, die sich
+  überschnitten, lasen denselben Stand, und der zweite schrieb eine Fassung
+  ohne die Buchung des ersten. Kein Fehler, keine Lücke, nach der man suchen
+  würde; ab dann stimmte jede Summe nicht mehr. Alle Buchungs-Schreibpfade
+  laufen jetzt nacheinander, der Migrationslauf eingeschlossen.
+
+- **Auswertungen rechneten heimlich nur mit einem Ausschnitt.** Steuerbericht,
+  EÜR, Vertragserkennung, Dubletten-Prüfung und die Kategorie-Lernfunktion
+  luden je nach Fläche die 500 bis 10.000 jüngsten Buchungen — und niemand
+  merkte es, weil ein Ausschnitt aussieht wie ein Bestand. Wer mehr Buchungen
+  hat, bekam falsche Summen und übersehene Jahresverträge. Diese Flächen
+  lesen jetzt den ganzen Bestand.
+
+- **Der Bank-Abgleich legte alte Buchungen bei jedem Sync neu an.** Die
+  Dubletten-Prüfung sah nur die 5.000 jüngsten Buchungen, die Bank liefert
+  aber zwei Jahre. Ab etwa 5.000 Buchungen wuchs der Bestand dadurch mit
+  jedem Abgleich.
+
+- **Zwei überlappende CSV-Exporte verdoppelten die gemeinsamen Buchungen.**
+  Die Kennung enthielt die Zeilennummer, und dieselbe Buchung steht in einem
+  zweiten Export an anderer Stelle. Erkannt wird jetzt der Inhalt, nicht die
+  Position.
+
+- **Ein Snapshot vom Zweitgerät konnte die Arbeit von gestern überschreiben.**
+  Ist er neuer, wurde er bisher ohne Rückfrage übernommen — der Zeitstempel
+  sagt aber nur, wann exportiert wurde, nicht wann zuletzt gearbeitet wurde.
+  Fremde Snapshots werden jetzt immer bestätigt, solange lokal etwas liegt.
+
+- **Ohne verfügbaren lokalen Speicher tat Speichern so, als hätte es
+  geklappt.** Im privaten Modus oder bei blockierten Websitedaten verschwand
+  die Eingabe beim nächsten Start. Jetzt sagt die App es, statt zu schweigen.
+
 - **Das lokale Modell startete nie: „no available backend found."** Das
   Modell lag längst auf dem Gerät (135 MB im Cache), aber seine
   WASM-Laufzeit wollte die Bibliothek per Vorgabe von einem CDN

@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock('@/services/account-service', () => ({
   getAccounts: vi.fn(),
 }));
 
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { AdvancedBalanceChart } from '@/components/AdvancedBalanceChart';
 import { AccountCards } from '@/components/accounts/AccountCards';
@@ -139,7 +139,7 @@ describe('AdvancedBalanceChart – Props statt eigener Query', () => {
       <AdvancedBalanceChart endBalanceFromAccounts={950} transactions={FIXTURE_TRANSACTIONS} isLoading={false} />,
     );
 
-    expect(getTransactions).not.toHaveBeenCalled();
+    expect(getAllTransactions).not.toHaveBeenCalled();
     expect(screen.getByText('Wie entwickelt sich mein Kontostand?')).toBeInTheDocument();
   });
 });

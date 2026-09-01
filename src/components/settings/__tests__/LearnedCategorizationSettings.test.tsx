@@ -9,7 +9,7 @@ const getCategories = vi.fn();
 const getMerchantRules = vi.fn();
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: (...args: unknown[]) => getTransactions(...args),
+  getAllTransactions: (...args: unknown[]) => getTransactions(...args),
   getCategories: () => getCategories(),
 }));
 vi.mock('@/services/merchant-rules-service', () => ({
