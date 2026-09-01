@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { format } from 'date-fns';
 import {
   calculateDeterministicForecast,
@@ -347,37 +347,42 @@ describe('Forecast — Zinsen, die keinen Cent ergeben', () => {
 });
 
 describe('Forecast — Voreinstellungen der Konfiguration', () => {
-  it('setzt ohne Startdatum den heutigen Tag und ohne Horizont sechs Monate', () => {
-    const result = calculateDeterministicForecast({ accounts: [checking(100)] }, {});
-    expect(result.config.startDate).toBe(format(new Date(), 'yyyy-MM-dd'));
-    expect(result.config.months).toBe(6);
-    // Die Monatsliste zählt die BERÜHRTEN Kalendermonate von [Start, Start+6M).
-    // Am Monatsersten sind das genau sechs, an jedem anderen Tag sieben (der
-    // angebrochene erste plus sechs). Eine feste 7 war deshalb ein Test, der
-    // an 30 von 31 Tagen zufällig recht hatte.
-    const laeuftAbMonatserstem = new Date().getDate() === 1;
-    expect(result.monthly).toHaveLength(laeuftAbMonatserstem ? 6 : 7);
-  });
+  /**
+   * [REGRESSION] Der Test schrieb die Zahl 7 fest und las das heutige Datum aus
+   * der echten Uhr. Beides zusammen ist eine Kalenderfalle: Der Horizont endet
+   * bei `addMonths(start, months)` exklusiv (`forecast.ts`), also überstreicht
+   * er ab einem Monatsersten GENAU sechs Kalendermonate und ab jedem anderen
+   * Tag sieben. An jedem Monatsersten fiel der Test daher um, ohne dass sich
+   * am Code etwas geändert hätte — zuletzt am 2026-09-01. Statt die eine
+   * bequeme Zahl zu fixieren, hält der Test die Zeit an und prüft beide
+   * Kalenderlagen; die Sechs-Monats-Zusage ist die Konfiguration, nicht die
+   * Zahl der Körbe.
+   */
+  it('[REGRESSION] setzt ohne Startdatum den heutigen Tag und ohne Horizont sechs Monate', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-09-15T09:00:00Z'));
+      const mitten = calculateDeterministicForecast({ accounts: [checking(100)] }, {});
+      expect(mitten.config.startDate).toBe(format(new Date(), 'yyyy-MM-dd'));
+      expect(mitten.config.months).toBe(6);
+      // Start mitten im Monat: der angebrochene Startmonat und der angebrochene
+      // Endmonat sind zwei verschiedene Körbe.
+      expect(mitten.monthly).toHaveLength(7);
+      expect(mitten.monthly[0].month).toBe('2026-09');
+      expect(mitten.monthly.at(-1)!.month).toBe('2027-03');
 
-  it('[REGRESSION] zählt am Monatsersten sechs Monatsblöcke und mitten im Monat sieben', () => {
-    // Der Test darüber war datumsabhängig und fiel am 2026-09-01 rot aus,
-    // ohne dass sich an der Engine etwas geändert hatte. Hier steht dieselbe
-    // Regel mit festen Daten — sie kann an keinem Tag zufällig recht haben.
-    const amErsten = calculateDeterministicForecast(
-      { accounts: [checking(100)] },
-      { startDate: '2026-09-01', months: 6 },
-    );
-    expect(amErsten.monthly.map((m) => m.month)).toEqual([
-      '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02',
-    ]);
-
-    const mittenImMonat = calculateDeterministicForecast(
-      { accounts: [checking(100)] },
-      { startDate: '2026-09-15', months: 6 },
-    );
-    expect(mittenImMonat.monthly.map((m) => m.month)).toEqual([
-      '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03',
-    ]);
+      vi.setSystemTime(new Date('2026-09-01T09:00:00Z'));
+      const monatserster = calculateDeterministicForecast({ accounts: [checking(100)] }, {});
+      expect(monatserster.config.startDate).toBe('2026-09-01');
+      expect(monatserster.config.months).toBe(6);
+      // Start am Monatsersten: der Horizont endet mit dem Februar-Letzten, es
+      // gibt keinen angebrochenen siebten Monat.
+      expect(monatserster.monthly).toHaveLength(6);
+      expect(monatserster.monthly[0].month).toBe('2026-09');
+      expect(monatserster.monthly.at(-1)!.month).toBe('2027-02');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('drosselt beim Gegensteuern ohne eigene Vorgabe höchstens die Hälfte der Tagesausgabe', () => {
