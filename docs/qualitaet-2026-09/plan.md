@@ -16,6 +16,17 @@ Kleinere Härtungen (WP7): Snapshot-Import ersetzt lokale Daten ohne Rückfrage,
 
 Verbindlich: AGENTS.md (TDD, Tests nur in `__tests__/`, deutsche Testtitel, `[REGRESSION]`/`[INTEGRITY]`/`[SECURITY]`-Tags, Absicht vor Auftrag). Reihenfolge WP1 → WP2 → WP3 → WP4 → WP5 → WP6; WP7 unabhängig. Je WP ein eigener Commit mit Ziel + Testabdeckung in der Nachricht.
 
+> **Umgesetzt am 2026-09-01.** WP1–WP7 sind gebaut; die sechs Kästen unten
+> sind eingelöst, nicht nur notiert. Abweichungen vom Wortlaut, jeweils im
+> Commit begründet: der Lock sitzt an EINER Ebene (Weiche davor) statt an
+> allen sechs Rümpfen · der neue Kappungs-Wächter prüft auch `components`,
+> `pages` und `features` · vier der fünf angeblichen „Scroll-Listen" speisen
+> eine Auswertung und lesen deshalb den ganzen Bestand statt zu paginieren ·
+> die inhaltliche Dedup vergleicht nur gegen den Bestand, nicht innerhalb
+> eines Stapels. Zwei Dinge kamen aus der Umsetzung hinzu, die im Plan
+> fehlten: der Migrationslauf als dritter, ungesperrter Chunk-Schreiber, und
+> ein Test mit Zeitschranke, weil ein Deadlock nicht rot wird, sondern hängt.
+
 > **Prüfung des Plans gegen den Code, 2026-09-01.** Sechs Stellen tragen einen
 > eingerückten Kasten (`KORREKTUR` / `ERGÄNZUNG` / `GRENZE` / `AUFLAGE`); sie
 > gehen dem umgebenden Absatz vor. Der schwerste Fund steht in **WP1**: die
@@ -30,7 +41,7 @@ Verbindlich: AGENTS.md (TDD, Tests nur in `__tests__/`, deutsche Testtitel, `[RE
 
 ---
 
-## WP1 — Chunk- und Legacy-Schreibpfade serialisieren (F1) — M
+## ✅ WP1 — Chunk- und Legacy-Schreibpfade serialisieren (F1) — M
 
 **Dateien:** `src/services/transaction-storage-service.ts`, `src/services/local-storage-keys.ts` (neu: `TRANSACTION_STORE_LOCK_KEY`).
 
@@ -79,7 +90,7 @@ Verbindlich: AGENTS.md (TDD, Tests nur in `__tests__/`, deutsche Testtitel, `[RE
 
 Lesepfade nicht sperren.
 
-## WP2 — Wächter-Familien für Buchungs-Chunks und v3-Blob (F1) — S
+## ✅ WP2 — Wächter-Familien für Buchungs-Chunks und v3-Blob (F1) — S
 
 **Dateien:** `scripts/store-serialization-core.mjs` (`FAMILIEN`), `scripts/__tests__/store-serialization-core.test.mjs`, AGENTS.md-Zeile `check:store-serialization` (4 → 6 Familien).
 
@@ -107,7 +118,7 @@ Lesepfade nicht sperren.
 > festhalten. Eine Familie, die den dritten Schreiber per Vokabular nicht
 > sieht, misst weniger, als ihr Name verspricht. Vor dem WP1-Commit lokal einmal laufen lassen und im PR belegen, dass der Wächter rot wird; nach WP1 grün.
 
-## WP3 — Generationszähler für den Chunk-Cache (F1) — S
+## ✅ WP3 — Generationszähler für den Chunk-Cache (F1) — S
 
 **Datei:** `src/services/transaction-chunk-store.ts`.
 
@@ -117,7 +128,7 @@ Lesepfade nicht sperren.
 
 **Umsetzung:** `cacheGeneration: Map<QuarterKey, number>`; `writeTransactionChunk`, `clearAllTransactionChunks` und der Lock-Listener erhöhen sie. In beiden Lesepfaden `gen` vor dem `await` merken und `chunkCache.set` nur bei unveränderter Generation. Gelesene Items trotzdem zurückgeben.
 
-## WP4 — Speicher-API: echtes „alle" vs. begrenzte Liste (F2) — L
+## ✅ WP4 — Speicher-API: echtes „alle" vs. begrenzte Liste (F2) — L
 
 **Dateien:** `src/services/transaction-storage-service.ts`, `src/services/transaction-service.ts`, `src/lib/constants.ts` (`MAX_QUERY_LIMIT` entfernen), alle Aufrufer aus `grep -rn "getTransactions([0-9]" src`.
 
@@ -167,12 +178,12 @@ Lesepfade nicht sperren.
 
 **Phase 2 (eigener PR, nicht hier):** `financeKeys.transactionsAll = ['transactions','all']` in `features/shared/data/finance-query-keys.ts`, Verbraucher mit `select:`-Projektion; `['transactions', locale]` in Tax/EÜR dort einfalten.
 
-## WP5 — GoCardless-Dedup über den ganzen Bestand (F3b) — S, nach WP4
+## ✅ WP5 — GoCardless-Dedup über den ganzen Bestand (F3b) — S, nach WP4
 
 **Datei:** `src/services/gocardless-sync-service.ts:288`. `getTransactions(5000)` → `getAllTransactions()` gefiltert auf `account_id === account.id`.
 **Test** (`gocardless-dedupe-identifier.test.ts`): `[REGRESSION] sollte eine Buchung erkennen, die älter ist als die 5000 jüngsten Buchungen`.
 
-## WP6 — CSV-Import idempotent (F3a) — M
+## ✅ WP6 — CSV-Import idempotent (F3a) — M
 
 **Dateien:** `src/services/csv-service.ts:187-196`, `src/services/transaction-storage-service.ts` (Save-Dedup, innerhalb des WP1-Locks), neu `src/lib/transaction-identity.ts` (rein).
 
@@ -201,7 +212,7 @@ Lesepfade nicht sperren.
    > wenn der zweite Export mitten in der Wiederholungsreihe beginnt`.
 2. Bestandsnutzer: alte `csv-…`-IDs bleiben (Allocations/Schulden referenzieren sie, keine Migration). Innerhalb des Save-Locks eine inhaltliche Zweit-Dedup: `buildCsvContentKey(tx)` aus `lib/transaction-identity.ts` über den Bestand, eingehende Zeile überspringen, wenn Inhalt existiert **und** die eingehende ID mit `csv-` beginnt. Nicht mit `buildTxIdentifier` (GoCardless) verschmelzen, andere Felder. Übersprungene Zeilen im Import-Ergebnis zählen, nicht still.
 
-## WP7 — Kleine Härtungen — je S, unabhängig
+## ✅ WP7 — Kleine Härtungen — je S, unabhängig
 
 1. `local-crypto.ts enable()` (~488-496): erst `CHECK_KEY`, dann `saveConfig`. Test `local-crypto.test.ts`: `[SECURITY] sollte bei Abbruch nach der Konfiguration keinen Tresor ohne Prüfblob hinterlassen`.
 2. `idb-kv.ts:80`: `idbSet`/`idbRemove` werfen `IndexedDbUnavailableError` statt No-op (`idbGet`/`idbKeys` bleiben leer).
