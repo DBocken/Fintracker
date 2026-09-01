@@ -91,7 +91,7 @@ Verbindlich: AGENTS.md (TDD, Tests nur in `__tests__/`, deutsche Testtitel, `[RE
 - Storage: `[REGRESSION] sollte einen Reimport mit neuer ID-Form nicht neben einer Alt-ID-Buchung gleichen Inhalts anlegen`
 
 **Umsetzung:**
-1. `index` in den Hash-Teilen durch `occurrence` ersetzen: `Map<string, number>` über `[date, amount, payee, description, currency, iban].join('')`, synchron vor dem `Promise.all` gezählt (Reihenfolge = Zeilenreihenfolge, deterministisch).
+1. `index` in den Hash-Teilen durch `occurrence` ersetzen: `Map<string, number>` über `[date, amount, payee, description, currency, iban].join('\u001f')`, synchron vor dem `Promise.all` gezählt (Reihenfolge = Zeilenreihenfolge, deterministisch).
 2. Bestandsnutzer: alte `csv-…`-IDs bleiben (Allocations/Schulden referenzieren sie, keine Migration). Innerhalb des Save-Locks eine inhaltliche Zweit-Dedup: `buildCsvContentKey(tx)` aus `lib/transaction-identity.ts` über den Bestand, eingehende Zeile überspringen, wenn Inhalt existiert **und** die eingehende ID mit `csv-` beginnt. Nicht mit `buildTxIdentifier` (GoCardless) verschmelzen, andere Felder. Übersprungene Zeilen im Import-Ergebnis zählen, nicht still.
 
 ## WP7 — Kleine Härtungen — je S, unabhängig
