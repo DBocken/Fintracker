@@ -87,7 +87,7 @@ Kein starrer Durchlauf — ein Abhängigkeitsgraph:
 ```text
 Phase 0 → vor allem anderen (Souveränität des Ist-Zustands)
 Phase 1 (Release) und Phase 2 (Identity) → unabhängig, parallel möglich
-Phase 5 (Native) → hängt an nichts, parallel ab Phase 0
+Phase 5 (Native) → 5.1 hängt an nichts; 5.2 braucht 1.1 und 4.2
 Phase 3 (EU-Standbein) → braucht 0; liefert die Grundlage für 4, 6, 7
 Phase 4 (Observability) → braucht 3.4
 Phase 6 (Payments) → braucht 2 und 3
@@ -97,6 +97,32 @@ Phase 7 (Ablösung) → braucht 2 und 3; 6 vorher empfohlen (Generalprobe)
 Harte Kanten im Kleinen: 0.8 vor jedem Paket, das externe Hosts ändert ·
 2.1 vor 2.2 · 3.2 vor 3.3 vor 3.4 · 3.4 vor 3.5 und vor Phase 4 ·
 2.4 vor 7.1 · 7.3 vor jedem Cutover in 7.
+
+**Nachgetragene Kanten (2026-09-01).** Vier Abhängigkeiten standen im Fließtext
+der Pakete, aber in keinem Graphen — und eine davon ist bereits verletzt
+worden:
+
+- **1.1 vor 2.4, 3.2, 4.5 und 5.2.** Diese vier Pakete schreiben ihr Ergebnis
+  in `docs/betrieb.md`; WP 1.1 legt die Datei überhaupt erst an. Ohne die
+  Kante entsteht der Katalog aus 2.4 in einer Datei, die es nicht gibt — oder,
+  schlimmer, jedes Paket legt sich seine eigene an.
+- **4.2 vor 5.2.** WP 5.2 verlangt „Data-Safety-Formular **konsistent mit
+  WP 4.2**". Eine Konsistenzforderung gegen ein Paket, das noch nicht gelaufen
+  ist, ist keine — sie friert im Store-Formular einen Datenfluss ein, den
+  Phase 4 danach ändert. Der Graph sagte bis hierher „Phase 5 hängt an
+  nichts"; das stimmt für 5.1, nicht für 5.2.
+- **3.3 vor der Inbetriebnahme jedes zustandsbehafteten eigenen Dienstes.**
+  WP 3.3 formuliert das als Ziel („vom ersten Tag an"), aber als Kante stand
+  es nirgends — und WP 6.2 ist mit der Akzeptanzzeile „Dienst im Backup/Uptime
+  aus Phase 3" abgehakt worden, obwohl Phase 3 nicht existiert. Das war
+  vertretbar, weil nichts deployt ist; genau deshalb gehört das Gate an die
+  **Inbetriebnahme**, nicht an das Bauen (neu: WP 6.4).
+- **0.12 vor 7.2.** Der ID-erhaltende Import braucht einen Export, den heute
+  niemand zieht (siehe WP 0.12).
+
+Die Kanten sind bindend wie die obigen. Wo ein bereits abgehaktes Paket sie
+verletzt hat, steht die Auflösung im Paket selbst — nachträgliches Abhaken
+rückgängig zu machen wäre Buchhaltung, nicht Sicherheit.
 
 ---
 
@@ -283,6 +309,34 @@ nach `docs/archive/` verschieben, Archiv-Banner setzen, `docs/README.md`
 umtragen (Faustregel dort).
 **Akzeptanz:** Verzeichnis unter `docs/archive/` mit Banner · keine offene
 Checkbox, die der Abschlussbericht als erledigt führt · Issue-Links gesetzt.
+
+### - [ ] WP 0.12 · [OPS] Auth-Bestand exportierbar machen (Folge aus BTR-S3) · S
+**Ziel:** Der einzige unersetzliche Datenbestand in fremder Hand — die
+Nutzeridentitäten bei Supabase — überlebt Anbieter-, Konto- und Bedienfehler,
+und WP 7.2 hat die Quelle, die es voraussetzt.
+**Warum jetzt und nicht in Phase 7:** WP 0.3 hat im Dashboard-Auszug
+`No backups` gefunden. Der Betreiber hat entschieden, an Supabase nichts zu
+ändern — das ist zulässig, beantwortet aber nur die Frage „bauen wir dort
+noch etwas?" und nicht „was passiert, wenn das Projekt morgen weg ist?".
+Lokale Finanzdaten liegen auf dem Gerät (§1) und sind nicht betroffen; die
+**Identität** ist es sehr wohl. Ohne sie ist jeder Bestandsnutzer ausgesperrt
+und WP 7.2 („ID-erhaltender Import, bcrypt-Hashes aus Supabase") gegenstandslos
+— ein Paket, dessen Datengrundlage niemand erzeugt (AGENTS.md §3, „Eine
+Datengrundlage ohne Erzeuger ist keine").
+**Vorgehen:** 1. Regelmäßiger Export der Auth-Tabellen (IDs, E-Mails,
+bcrypt-Hashes, Provider-Zuordnung) über die Management-/DB-Schnittstelle,
+verschlüsselt abgelegt — Ziel ist der Zweitanbieter aus WP 3.3, bis dahin ein
+benannter, verschlüsselter Zwischenweg (im PR begründet). 2. **Restore-Probe
+gegen die Zielform:** Der Export wird einmal in ein leeres Postgres eingespielt
+und auf Vollständigkeit geprüft — ein Export, den niemand eingelesen hat, ist
+eine Datei, kein Backup (dieselbe Messlatte wie der Migrations-CI-Job aus
+WP 6.2). 3. Aufnahme in das Anbieter-Register als wiederkehrende Prüfung; die
+Personenbezugs-Folgen (Speicherort, Frist, Löschung) im VVT aus WP 0.9.
+**Wächter:** wiederkehrende Prüfung (Intervall + nächster Termin im Register),
+nach WP 3.3 abgelöst durch den dortigen Restore-Cron (Skript).
+**Akzeptanz:** Ein Export liegt vor und ist **einmal eingelesen worden**
+(Protokoll unter `belege/`) · Registerzeile mit Intervall und Termin ·
+VVT-Eintrag für den Exportbestand.
 
 ---
 
@@ -568,7 +622,7 @@ Nummer bleibt frei, statt nachzurücken.)*
 
 ---
 
-## Phase 5 — Native-Lebenszyklus (parallel ab Phase 0) · [#305](https://github.com/DBocken/Fintracker/issues/305)
+## Phase 5 — Native-Lebenszyklus (5.1 parallel ab Phase 0; 5.2 nach 1.1 und 4.2) · [#305](https://github.com/DBocken/Fintracker/issues/305)
 
 ### - [ ] WP 5.1 · App-State-Maschine: Background/Resume schützt Schlüssel und Syncs (BTR-6) · S
 **Ziel:** Die Android-App verhält sich beim Backgrounding/Resume so bewusst
@@ -721,6 +775,43 @@ unverändert** — der Entitlement-Host existiert noch nicht (WP 3.2), und die
 Adresse kommt zur Laufzeit aus `VITE_ENTITLEMENT_BASE_URL`. Sie muss mit dem
 Deployment in `connect-src`; ohne sie blockt die CSP die erste Abfrage.
 
+### - [ ] WP 6.4 · Inbetriebnahme-Gate des EntitlementService (Folge aus 6.2/6.3) · S
+**Ziel:** Der Tag, an dem `VITE_ENTITLEMENT_BASE_URL` gesetzt wird, ist ein
+geprüfter Vorgang und kein Nebeneffekt eines Deploys.
+**Warum das ein eigenes Paket ist:** WP 6.2 und 6.3 haben drei Folgen
+ausdrücklich benannt und keiner eine Stelle gegeben, an der sie eingelöst
+werden. Alle drei treten **gleichzeitig** ein, nämlich beim ersten Setzen der
+Variablen, und keine ist aus dem Code sichtbar:
+
+1. **Die CSP kennt den Host nicht.** `connect-src` führt heute Supabase und die
+   Modell-Hosts; die Entitlement-Adresse kommt zur Laufzeit aus der Umgebung.
+   Die erste Abfrage wird also blockiert — in Produktion, nicht im Test.
+2. **Bestandsnutzer mit `alphatester` verlieren Premium.** WP 6.3 hat den
+   lokalen Bypass geschlossen; sobald ein Serverurteil existiert, gewinnt es.
+   Ohne vorher eingetragene `promo`-Zeilen stehen genau die Nutzer ohne Zugang
+   da, die am längsten dabei sind. Der Satz „brauchen vor dem Deployment eine
+   `promo`-Zeile" stand bisher in einem Erledigt-Vermerk — das ist eine
+   Fußnote, kein Auftrag.
+3. **Der Dienst ist zustandsbehaftet und hat kein Offsite-Backup** (WP 3.3,
+   nachgetragene Kante oben).
+
+**Vorgehen:** 1. Reihenfolge als Checkliste im Runbook, jeder Punkt einzeln
+belegt: `promo`-Zeilen für den Bestand **vor** dem Scharfschalten · Host in
+`connect-src` + Anbieter-Register + Datenschutztext **im selben Release**
+(stehende Regel 8) · Dienst in Backup und Uptime aus WP 3.3/3.4 · erst dann
+`VITE_ENTITLEMENT_BASE_URL`. 2. **Wächter gegen die unsichtbare Adresse:**
+`check:external-endpoints` liest Literale und kann eine zur Laufzeit
+konfigurierte Adresse strukturell nie sehen — dieselbe Art Blindstelle wie
+`node_modules` vor dem Tesseract-Fund. Ersatz ist kein Literal im Code, sondern
+eine Prüfung an der Build-Konfiguration: Ist `VITE_ENTITLEMENT_BASE_URL`
+gesetzt, muss ihr Host in der CSP von `vercel.json` **und** im Register stehen,
+sonst bricht der Build benannt ab. 3. `[REGRESSION]`-Test für den
+Alpha-Tester-Pfad: Ein Nutzer mit `promo`-Zeile behält Premium, sobald der
+Dienst antwortet.
+**Akzeptanz:** Build mit gesetzter, aber nicht deklarierter Adresse schlägt
+nachweislich fehl (Testfall) · Checkliste im Runbook, jeder Punkt belegt ·
+Alpha-Tester-Regressionstest grün · erste echte Abfrage in Produktion belegt.
+
 ---
 
 ## Phase 7 — Supabase-Ablösung + Server-DR (braucht 2 + 3; 6 empfohlen zuerst) · [#307](https://github.com/DBocken/Fintracker/issues/307)
@@ -838,7 +929,11 @@ Registerzeile) · Texte konsistent · ADR abgeschlossen.
    Anbieter-Register.
 2. **`check:external-endpoints` ist grün** und beweist damit: kein externer
    Host im Code, der nicht im Register erklärt ist — und keine CSP-Zeile ohne
-   Registerzeile.
+   Registerzeile. **Dazu gehört seit WP 6.4 die zweite Hälfte:** jede zur
+   Laufzeit konfigurierte Adresse (`VITE_*_URL`) ist ebenfalls deklariert. Ohne
+   sie überspricht sich das Kriterium — der Wächter liest Literale, und
+   ausgerechnet die Adressen, die sich ohne Codeänderung ändern lassen, wären
+   die einzigen, die er nie sieht.
 3. **Ein Release ist ein getaggtes, referenzierbares Artefakt** mit SBOM;
    Rollback ist geprobt und im Runbook beschrieben.
 4. **Telemetrie und Crash-Events laufen hinter den Allowlist-Wächtern**, und
