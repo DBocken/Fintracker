@@ -351,7 +351,33 @@ describe('Forecast — Voreinstellungen der Konfiguration', () => {
     const result = calculateDeterministicForecast({ accounts: [checking(100)] }, {});
     expect(result.config.startDate).toBe(format(new Date(), 'yyyy-MM-dd'));
     expect(result.config.months).toBe(6);
-    expect(result.monthly).toHaveLength(7);
+    // Die Monatsliste zählt die BERÜHRTEN Kalendermonate von [Start, Start+6M).
+    // Am Monatsersten sind das genau sechs, an jedem anderen Tag sieben (der
+    // angebrochene erste plus sechs). Eine feste 7 war deshalb ein Test, der
+    // an 30 von 31 Tagen zufällig recht hatte.
+    const laeuftAbMonatserstem = new Date().getDate() === 1;
+    expect(result.monthly).toHaveLength(laeuftAbMonatserstem ? 6 : 7);
+  });
+
+  it('[REGRESSION] zählt am Monatsersten sechs Monatsblöcke und mitten im Monat sieben', () => {
+    // Der Test darüber war datumsabhängig und fiel am 2026-09-01 rot aus,
+    // ohne dass sich an der Engine etwas geändert hatte. Hier steht dieselbe
+    // Regel mit festen Daten — sie kann an keinem Tag zufällig recht haben.
+    const amErsten = calculateDeterministicForecast(
+      { accounts: [checking(100)] },
+      { startDate: '2026-09-01', months: 6 },
+    );
+    expect(amErsten.monthly.map((m) => m.month)).toEqual([
+      '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02',
+    ]);
+
+    const mittenImMonat = calculateDeterministicForecast(
+      { accounts: [checking(100)] },
+      { startDate: '2026-09-15', months: 6 },
+    );
+    expect(mittenImMonat.monthly.map((m) => m.month)).toEqual([
+      '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03',
+    ]);
   });
 
   it('drosselt beim Gegensteuern ohne eigene Vorgabe höchstens die Hälfte der Tagesausgabe', () => {
