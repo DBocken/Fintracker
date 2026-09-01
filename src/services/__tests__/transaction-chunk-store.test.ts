@@ -308,3 +308,72 @@ describe('transaction-chunk-store: lock() verwirft den GESAMTEN Cache (WP 4.1b, 
     spy.mockRestore()
   })
 })
+
+describe('[REGRESSION] Chunk-Cache: ein laufendes Lesen darf nichts Veraltetes ablegen (Audit 2026-09, F1)', () => {
+  /**
+   * Die Lücke: `readChunkRaw` entschlüsselt (echtes `await`), und ERST DANACH
+   * legt der Lesepfad das Ergebnis in den Cache. Wird währenddessen geschrieben,
+   * invalidiert der Schreibpfad einen Cache-Eintrag, den es noch gar nicht
+   * gibt — und das verspätete Lesen legt anschließend den ALTEN Stand ab. Ab
+   * da liefert jeder Leser die überholte Fassung, bis irgendetwas den Cache
+   * erneut verwirft. Der Lock aus WP1 hilft hier nicht: Lesepfade sind
+   * bewusst nicht gesperrt.
+   */
+  function aufgehalteneEntschluesselung(quartalsSchluessel: string) {
+    let freigeben: (() => void) | undefined;
+    let drinMelden: (() => void) | undefined;
+    // Auf den tatsächlichen EINTRITT warten, nicht auf einen Microtask: der
+    // Lesepfad holt vorher idbKeys() und den Index. Wer hier nur `await
+    // Promise.resolve()` schreibt, misst einen Ablauf, der die Entschlüsselung
+    // noch gar nicht erreicht hat — und bekommt grün, ohne etwas zu prüfen.
+    const drin = new Promise<void>((resolve) => {
+      drinMelden = resolve;
+    });
+    const original = localEncryption.loadAndMaybeDecrypt.bind(localEncryption);
+    const spy = vi
+      .spyOn(localEncryption, 'loadAndMaybeDecrypt')
+      .mockImplementation(async (key: string) => {
+        const ergebnis = await original(key);
+        if (key.endsWith(quartalsSchluessel)) {
+          drinMelden?.();
+          await new Promise<void>((resolve) => {
+            freigeben = resolve;
+          });
+        }
+        return ergebnis;
+      });
+    return { spy, drin, freigebenAufrufen: () => freigeben?.() };
+  }
+
+  it('[REGRESSION] sollte nach einem Schreibvorgang während eines laufenden Vollesens keinen veralteten Chunk cachen', async () => {
+    await writeTransactionChunk('2026-Q1', [tx('alt', '2026-01-15')]);
+
+    const { spy, drin, freigebenAufrufen } = aufgehalteneEntschluesselung('2026-Q1');
+    const laufendesLesen = readAllTransactionChunks();
+    await drin;
+
+    spy.mockRestore();
+    await writeTransactionChunk('2026-Q1', [tx('neu', '2026-01-16')]);
+
+    freigebenAufrufen();
+    await laufendesLesen;
+
+    expect((await readTransactionChunk('2026-Q1')).map((t) => t.id)).toEqual(['neu']);
+  });
+
+  it('[REGRESSION] sollte dasselbe für readTransactionChunk sicherstellen', async () => {
+    await writeTransactionChunk('2026-Q2', [tx('alt', '2026-04-15')]);
+
+    const { spy, drin, freigebenAufrufen } = aufgehalteneEntschluesselung('2026-Q2');
+    const laufendesLesen = readTransactionChunk('2026-Q2');
+    await drin;
+
+    spy.mockRestore();
+    await writeTransactionChunk('2026-Q2', [tx('neu', '2026-04-16')]);
+
+    freigebenAufrufen();
+    await laufendesLesen;
+
+    expect((await readTransactionChunk('2026-Q2')).map((t) => t.id)).toEqual(['neu']);
+  });
+});

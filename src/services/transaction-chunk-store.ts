@@ -63,8 +63,42 @@ export class ChunkMissingError extends Error {
 // Bauform zu erfinden.
 const chunkCache = new Map<QuarterKey, Transaction[]>()
 
+/**
+ * Generation je Quartal (Audit 2026-09, F1).
+ *
+ * Der Cache wird beim Schreiben verworfen — das genügt aber nur, solange kein
+ * Lesevorgang gerade unterwegs ist. Zwischen `readChunkRaw` (entschlüsseln,
+ * echtes `await`) und `chunkCache.set(…)` liegt eine Lücke: Wird darin
+ * geschrieben, verwirft der Schreibpfad einen Eintrag, den es noch nicht gibt,
+ * und das verspätete Lesen legt danach den ALTEN Stand ab. Ab dann liefert
+ * jeder Leser die überholte Fassung.
+ *
+ * Der Zähler schließt die Lücke ohne Lock auf dem Lesepfad: Wer liest, merkt
+ * sich die Generation VOR dem `await` und cacht nur, wenn sie danach noch
+ * dieselbe ist. Die gelesenen Buchungen werden trotzdem zurückgegeben — sie
+ * waren zum Zeitpunkt des Lesens gültig; verworfen wird nur die Ablage.
+ */
+const chunkGeneration = new Map<QuarterKey, number>()
+
+function generationVon(quarter: QuarterKey): number {
+  return chunkGeneration.get(quarter) ?? 0
+}
+
+function generationErhoehen(quarter: QuarterKey): void {
+  chunkGeneration.set(quarter, generationVon(quarter) + 1)
+}
+
+/** Legt `items` nur ab, wenn seit `gen` niemand dieses Quartal geschrieben hat. */
+function cacheWennUnveraendert(quarter: QuarterKey, gen: number, items: Transaction[]): void {
+  if (generationVon(quarter) === gen) chunkCache.set(quarter, items)
+}
+
 onLocalEncryptionLock(() => {
   chunkCache.clear()
+  for (const quarter of chunkGeneration.keys()) generationErhoehen(quarter)
+  // Auch der Zähler steigt: Ein Lesevorgang, der den Lock überdauert, darf
+  // seinen vor dem Sperren entschlüsselten Stand nicht danach ablegen.
+  for (const quarter of chunkGeneration.keys()) generationErhoehen(quarter)
 })
 
 function requireUnlockedIfEncrypted(): void {
@@ -156,6 +190,7 @@ export async function readTransactionChunk(quarter: QuarterKey): Promise<Transac
   const cached = chunkCache.get(quarter)
   if (cached) return cached
 
+  const gen = generationVon(quarter)
   const index = await readIndex()
   const chunk = await readChunkRaw(quarter)
 
@@ -168,11 +203,11 @@ export async function readTransactionChunk(quarter: QuarterKey): Promise<Transac
     // Echt unbekanntes Quartal (nie geschrieben, auch nicht im Index): ein
     // legitimer Leerzustand, wird selbst gecacht, damit ein wiederholtes
     // Nachfragen nach einem tatsächlich leeren Quartal ebenfalls billig ist.
-    chunkCache.set(quarter, [])
+    cacheWennUnveraendert(quarter, gen, [])
     return []
   }
 
-  chunkCache.set(quarter, chunk)
+  cacheWennUnveraendert(quarter, gen, chunk)
   return chunk
 }
 
@@ -202,8 +237,11 @@ export async function writeTransactionChunk(quarter: QuarterKey, transactions: T
   await localEncryption.encryptAndStore(chunkStorageKey(quarter), transactions)
 
   // Cache-Invalidierung nach dem Schreiben: verwirft GENAU das betroffene
-  // Quartal, alle anderen Einträge bleiben warm (ADR "Chunk-Cache").
+  // Quartal, alle anderen Einträge bleiben warm (ADR "Chunk-Cache"). Die
+  // Generation steigt mit, damit ein Lesevorgang, der jetzt gerade zwischen
+  // Entschlüsseln und Ablegen steht, seinen überholten Stand nicht mehr cacht.
   chunkCache.delete(quarter)
+  generationErhoehen(quarter)
 
   // Index wird IMMER aus dem gerade geschriebenen Chunk abgeleitet (dessen
   // tatsächliche Länge), nie eigenständig fortgeschrieben (z. B. per
@@ -268,11 +306,12 @@ export async function readAllTransactionChunks(): Promise<Transaction[]> {
     const quarter = storageKey.slice(CHUNK_KEY_PREFIX.length)
     let items = chunkCache.get(quarter)
     if (!items) {
+      const gen = generationVon(quarter)
       // Physisch vorhanden (kommt aus idbKeys()) — kein RES-1-Fall möglich,
       // deshalb roh lesen statt über readTransactionChunk (spart den dortigen
       // zweiten Index-Read je Quartal, s.o. "kaltes Vollesen" in der ADR).
       items = (await readChunkRaw(quarter)) ?? []
-      chunkCache.set(quarter, items)
+      cacheWennUnveraendert(quarter, gen, items)
     }
     result.push(...items)
     actualCounts[quarter] = items.length
