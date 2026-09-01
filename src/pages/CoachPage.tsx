@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCoachOverview } from "@/services/coach-service";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import { evaluateMilestones } from "@/services/milestones-service";
-import { getTransactions } from "@/services/transaction-service";
+import { getTransactionsPage } from "@/services/transaction-service";
 import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/features/shared/presentation/FinanceEmptyState";
@@ -75,11 +75,11 @@ export default function CoachPage() {
     queryKey: ["has-finance-data"],
     queryFn: async () => {
       const [txs, debts, receivables] = await Promise.all([
-        getTransactions(1),
+        getTransactionsPage(1, 0),
         getDebts(),
         getReceivables(),
       ]);
-      return txs.length > 0 || debts.length > 0 || receivables.length > 0;
+      return txs.total > 0 || debts.length > 0 || receivables.length > 0;
     },
   });
 

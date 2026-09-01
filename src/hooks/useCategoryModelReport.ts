@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { CategoryModelReport } from '@/lib/category-model-evaluation';
 import { evaluateCategorizationModel } from '@/lib/category-model-evaluation';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { getMerchantRules } from '@/services/merchant-rules-service';
 
 export interface CategoryModelReportState {
@@ -30,7 +30,7 @@ export function useCategoryModelReport(): CategoryModelReportState {
     isLoading: transactionsLoading,
   } = useQuery({
     queryKey: ['transactions', 1000],
-    queryFn: () => getTransactions(1000),
+    queryFn: () => getAllTransactions(),
   });
   const {
     data: categories = [],

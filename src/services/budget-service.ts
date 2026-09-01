@@ -6,7 +6,7 @@ import {
   upsertLocalFinanceItem,
   writeLocalFinanceList,
 } from "./local-finance-store";
-import { getCategories, getTransactions } from "./transaction-service";
+import { getCategories, getAllTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
 import { computeBudgetStatus, monthKeyOf, periodKeyOf, suggestBudgets } from "@/lib/budget-logic";
 import { computeBudgetStatusWithRollover, resolveRolloverConfig } from "@/lib/budget-rollover";
@@ -92,7 +92,7 @@ export async function getBudgetOverview(reference: Date = new Date()): Promise<B
   const [budgets, categories, transactions, allocationsByTx] = await Promise.all([
     getBudgets(),
     getCategories(),
-    getTransactions(5000),
+    getAllTransactions(),
     getAllocationMap(),
   ]);
 

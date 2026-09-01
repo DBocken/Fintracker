@@ -45,7 +45,7 @@ vi.mock('../account-service', () => ({
 }));
 
 vi.mock('../transaction-service', () => ({
-  getTransactions: vi.fn(() => Promise.resolve(mockStoredTransactions)),
+  getAllTransactions: vi.fn(() => Promise.resolve(mockStoredTransactions)),
   getCategories: vi.fn(() => Promise.resolve([])),
   categorizeTransaction: vi.fn(() => null),
   categorizeTransactionConfident: vi.fn(() => null),

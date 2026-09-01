@@ -162,7 +162,17 @@ class TransactionStorageService {
   /**
    * Get all transactions
    */
-  async getTransactions(limit: number = 1000, offset: number = 0): Promise<StorageResult<Transaction[]>> {
+  /**
+   * Liest Buchungen, datum-absteigend.
+   *
+   * `limit === undefined` heisst **alle** — nicht „nimm den Standardwert"
+   * (Audit 2026-09, F2). Vorher stand hier `limit = 1000`, und jede
+   * Aufrufstelle musste eine Zahl raten; keine prüfte, ob sie gegriffen hat.
+   * Ein Ausschnitt sieht aber aus wie ein Bestand: Der Klassifikator trainiert
+   * dann auf 1.000 Buchungen, die Vertragserkennung sieht keine
+   * Jahresverträge, und eine Steuersumme ist schlicht falsch.
+   */
+  async getTransactions(limit?: number, offset: number = 0): Promise<StorageResult<Transaction[]>> {
     try {
       const localResult = await this.getLocalTransactions();
       // [REGRESSION] WP 4.1c: `getLocalTransactions()` wirft nie (siehe dort),
@@ -184,7 +194,8 @@ class TransactionStorageService {
       // reihenfolge ab und verliert die jüngsten Buchungen – wodurch laufende
       // Verträge (Gehalt, Energie) fälschlich als beendet/nicht erkannt gelten.
       const sorted = [...rows].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      return { success: true, data: sorted.slice(offset, offset + limit) };
+      const beschnitten = limit === undefined ? sorted.slice(offset) : sorted.slice(offset, offset + limit);
+      return { success: true, data: beschnitten };
     } catch (error) {
       logger.error(`[TransactionStorage] Error getting transactions: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
@@ -560,8 +571,7 @@ class TransactionStorageService {
   }
 
   private async getAllTransactions(): Promise<Transaction[]> {
-
-    const result = await this.getTransactions(10000, 0);
+    const result = await this.getTransactions(undefined, 0);
     return result.data || [];
   }
 }

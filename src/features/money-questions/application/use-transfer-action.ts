@@ -12,7 +12,7 @@
  */
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTransactions, markTransferPair, unmarkTransfer } from '@/services/transaction-service';
+import { getAllTransactions, markTransferPair, unmarkTransfer } from '@/services/transaction-service';
 import type { TransferAktionsVorschlag } from '@/features/shared/domain/question-registry';
 
 export type TransferAktionsStand =
@@ -54,7 +54,7 @@ export function useTransferAction(): TransferActionModel {
       // `unmarkTransfer` braucht die BUCHUNG, nicht ihre ID — und sie muss
       // frisch gelesen sein: Zwischen Markieren und Zurücknehmen hat sich
       // `transfer_pair_id` geändert, und genau daran hängt die Gegenbuchung.
-      const alle = await getTransactions(5000);
+      const alle = await getAllTransactions();
       for (const paar of vorschlag.paare) {
         const buchung = alle.find((t) => String(t.id) === paar.ausId);
         if (buchung) await unmarkTransfer(buchung);

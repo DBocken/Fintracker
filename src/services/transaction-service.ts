@@ -111,7 +111,7 @@ export async function getTransactionsPaginated(
   pageSize: number = 50,
   filters?: TransactionFilterOptions
 ): Promise<PaginatedTransactionsResult> {
-  const all = await getTransactions(10000);
+  const all = await getAllTransactions();
   const search = filters?.search?.trim().toLowerCase();
 
   const filtered = all.filter((tx) => {
@@ -153,6 +153,35 @@ export async function getTransactionsPaginated(
  * Sortier-Contract: transaction-storage-service sortiert VOR dem Limit
  * (sonst verliert das Limit die jüngsten Buchungen) — hier bewusst kein
  * zweites Sort. Gepinnt durch transaction-service.ordering.test.ts.
+ */
+/**
+ * Der GANZE Buchungsbestand, datum-absteigend (Audit 2026-09, F2).
+ *
+ * Die richtige Wahl für jede Auswertung: Summen, Klassifikator,
+ * Vertragserkennung, Steuer, Export. Wer stattdessen eine Zahl wählt, wählt
+ * eine falsche Summe — nur merkt es niemand, weil ein Ausschnitt aussieht wie
+ * ein Bestand.
+ */
+export async function getAllTransactions(): Promise<Transaction[]> {
+  const result = await transactionStorage.getTransactions(undefined, 0);
+  if (!result.success) throw new Error(result.error || t('transactionService.loadError'));
+  return result.data || [];
+}
+
+/** Eine Seite Buchungen — für echte Scroll-Listen, nicht für Auswertungen. */
+export async function getTransactionsPage(
+  limit: number,
+  offset: number = 0,
+): Promise<{ transactions: Transaction[]; total: number; hasMore: boolean }> {
+  const alle = await getAllTransactions();
+  const transactions = alle.slice(offset, offset + limit);
+  return { transactions, total: alle.length, hasMore: offset + transactions.length < alle.length };
+}
+
+/**
+ * @deprecated Seit dem Audit 2026-09: `getAllTransactions()` für Auswertungen,
+ * `getTransactionsPage(limit, offset)` für Listen. Ein Limit-Literal hier ist
+ * eine stille Kappung — `pnpm check:transaction-limits` verbietet es.
  */
 export async function getTransactions(limit: number = 1000): Promise<Transaction[]> {
   const result = await transactionStorage.getTransactions(limit, 0);
@@ -337,7 +366,10 @@ export async function remapCategoryInLocalTransactions(
   oldCategoryId: string,
   newCategoryId: string
 ): Promise<number> {
-  const transactions = await getTransactions(10000);
+  // Über den GANZEN Bestand: Eine Kategorie, die nur noch an alten Buchungen
+  // hängt, wäre sonst nach dem Umhängen weiterhin in Benutzung — und die
+  // gelöschte Kategorie hinterliesse Waisen (Audit 2026-09, F2).
+  const transactions = await getAllTransactions();
   let changed = 0;
 
   for (const tx of transactions) {
@@ -427,7 +459,7 @@ export async function recategorizeTransactions(): Promise<{
 }> {
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
-  const transactions = await getTransactions(10000);
+  const transactions = await getAllTransactions();
   // Modell EINMAL vor der Schleife bauen und hineinreichen — dasselbe Muster
   // wie bei `learnedRules`. Pro Buchung zu trainieren wäre quadratisch.
   const context = modellKontext(transactions, learnedRules);
@@ -497,7 +529,7 @@ export async function applyAutoCategorization(transactions: Transaction[]): Prom
   // Trainiert wird auf dem BESTAND, nicht auf den frisch importierten
   // Buchungen: Die haben noch keine bestätigte Kategorie und trügen nichts
   // bei — schlimmer noch, sie kämen ohne Label in die Zählung.
-  const context = modellKontext(await getTransactions(10000), learnedRules);
+  const context = modellKontext(await getAllTransactions(), learnedRules);
   const categorizer = createCategorizer(categories, learnedRules, context);
   return transactions.map((t) => {
     const newCat = categorizer.categorizeConfident(t);
@@ -515,7 +547,7 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
   if (!catExists) return [];
 
   const learnedRules = await getMerchantRules();
-  const all = await getTransactions(2000);
+  const all = await getAllTransactions();
   const context = modellKontext(all, learnedRules);
   const categorizer = createCategorizer(categories, learnedRules, context);
   const affected = all.filter((t) => {
@@ -529,7 +561,7 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
 export async function getTopCategorySuggestion(): Promise<CategorySuggestion | null> {
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
-  const all = await getTransactions(5000);
+  const all = await getAllTransactions();
 
   if (!all.length || !categories.length) return null;
 

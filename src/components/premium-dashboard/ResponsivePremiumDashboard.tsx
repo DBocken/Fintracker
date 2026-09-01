@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import SegmentedControl from "@/features/shared/presentation/SegmentedControl";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
-import { getTransactions, getCategories } from "../../services/transaction-service";
+import { getAllTransactions, getCategories } from "../../services/transaction-service";
 import { sumIncome, sumExpenses } from "../../lib/analysis-data";
 import { getAccounts } from "../../services/account-service";
 import { parseISO, startOfMonth, format } from "date-fns";
@@ -34,9 +34,8 @@ export function ResponsivePremiumDashboard() {
     isError: transactionsError,
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
-    // Limit im Query-Key (F-PERF-3) gegen Cache-Kollision mit dem 1000er-Load.
-    queryKey: ["transactions", 5000],
-    queryFn: () => getTransactions(5000),
+    queryKey: ["transactions", "all"],
+    queryFn: getAllTransactions,
   });
 
   const {

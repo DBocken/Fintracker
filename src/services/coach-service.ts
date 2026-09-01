@@ -1,5 +1,5 @@
 import type { CoachOverview, CoachRecommendation, BehaviorInsight, CategoryGuidance, RoadmapStage, RoadmapStageKey } from "../types";
-import { getTransactions, getCategories } from "./transaction-service";
+import { getAllTransactions, getCategories } from "./transaction-service";
 import { getDebts, calculatePayoffPlan } from "./debt-service";
 import { totalOutstandingDebt, totalMinimumPayment } from "@/lib/debt-totals";
 import { getFinancialHealth, monthlyAverages } from "./financial-health-service";
@@ -88,7 +88,7 @@ export async function getCoachOverview(options?: {
   tutorialChapter?: TutorialChapterId | null;
 }): Promise<CoachOverview> {
   const [transactions, debts, health, categories] = await Promise.all([
-    getTransactions(10000),
+    getAllTransactions(),
     getDebts(),
     getFinancialHealth(),
     getCategories(),

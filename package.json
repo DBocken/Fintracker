@@ -35,6 +35,7 @@
     "check:a11y-names": "node scripts/check-a11y-names.mjs",
     "check:state-coverage": "node scripts/check-state-coverage.mjs",
     "check:store-serialization": "node scripts/check-store-serialization.mjs",
+    "check:transaction-limits": "node scripts/check-transaction-limits.mjs",
     "check:money-format": "node scripts/check-money-format.mjs",
     "check:external-endpoints": "node scripts/check-external-endpoints.mjs",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",

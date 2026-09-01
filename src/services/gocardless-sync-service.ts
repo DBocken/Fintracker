@@ -7,7 +7,7 @@ import {
   type BankTransactionSource,
 } from '@/lib/bank-transaction-fields';
 import { updateAccount, getAccounts, type Account } from './account-service';
-import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
+import { createTransaction, getAllTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
 import { createCategorizer } from '@/lib/categorization';
 import { buildCategoryModel } from '@/lib/category-model-evaluation';
 import { getMerchantRules } from './merchant-rules-service';
@@ -180,7 +180,7 @@ export async function reconcileInternalTransfers(
  * verknüpfend bei eindeutigem Treffer, nie durch Anlegen einer Spiegelbuchung.
  */
 export async function reconcileAllInternalTransfers(): Promise<void> {
-  const allTransactions = await getTransactions(10000);
+  const allTransactions = await getAllTransactions();
   await reconcileInternalTransfers(allTransactions, allTransactions, { amountDateFallback: true });
 }
 
@@ -285,7 +285,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       return result;
     }
 
-    const existingTransactions = await getTransactions(5000);
+    const existingTransactions = await getAllTransactions();
     const existingDescriptions = new Set(
       existingTransactions.map(tx =>
         buildTxIdentifier(tx.account_id || account.id, tx.date, tx.amount, tx.original_text || '')

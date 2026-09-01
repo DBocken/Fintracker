@@ -119,6 +119,13 @@ jobs:
       - name: Serialisierung der Schreibpfade
         run: pnpm check:store-serialization
 
+      # getTransactions(limit) sortiert absteigend und schneidet ab. Rund 45
+      # Aufrufstellen waehlten ein Literal, und keine pruefte, ob es griff —
+      # ein Ausschnitt sieht aus wie ein Bestand. Ohne Ausnahmeliste
+      # (Audit 2026-09, F2).
+      - name: Stille Kappungen auf Buchungen
+        run: pnpm check:transaction-limits
+
       # Der Sanfte Modus ist ein Barrierefreiheits-Versprechen: Wer ihn
       # einschaltet, will seine Zahlen nicht sehen. Ein einziger unmaskierter
       # Betrag auf derselben Flaeche hebt es auf (Issue #296).

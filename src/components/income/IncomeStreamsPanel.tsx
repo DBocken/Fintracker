@@ -9,7 +9,7 @@ import FinanceEmptyState from '@/features/shared/presentation/FinanceEmptyState'
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import EmptyState from '@/features/shared/presentation/EmptyState';
 import { Button } from '@/components/ui/button';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { buildIncomeBreakdown, buildIncomeOverTime } from '@/lib/chart-data/income-breakdown';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { pickWrappedYear } from '@/lib/income-wrapped';
@@ -44,8 +44,8 @@ export default function IncomeStreamsPanel() {
     isError: txsError,
     refetch: refetchTxs,
   } = useQuery<Transaction[], Error>({
-    queryKey: ['transactions', 5000],
-    queryFn: () => getTransactions(5000),
+    queryKey: ['transactions', 'all'],
+    queryFn: getAllTransactions,
   });
 
   const {

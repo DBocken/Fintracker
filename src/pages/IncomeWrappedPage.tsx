@@ -5,7 +5,7 @@ import { FeatureGate } from '@/components/FeatureGate';
 import EmptyState from '@/features/shared/presentation/EmptyState';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { Button } from '@/components/ui/button';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { pickWrappedYear, buildWrappedStats } from '@/lib/income-wrapped';
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Category } from '@/types';
@@ -28,7 +28,7 @@ export default function IncomeWrappedPage() {
     refetch: refetchTx,
   } = useQuery<Transaction[], Error>({
     queryKey: ['transactions', 5000],
-    queryFn: () => getTransactions(5000),
+    queryFn: () => getAllTransactions(),
   });
   const {
     data: cats = [],

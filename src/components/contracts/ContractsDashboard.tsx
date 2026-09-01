@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { getTransactions, getCategories } from "@/services/transaction-service";
+import { getAllTransactions, getCategories } from "@/services/transaction-service";
 import { applyDetectedContracts } from "@/services/contract-detection-service";
 import {
   getContractDecisionMap,
@@ -48,7 +48,7 @@ export function ContractsDashboard() {
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
     queryKey: ["transactions", "contracts"],
-    queryFn: () => getTransactions(2000),
+    queryFn: () => getAllTransactions(),
   });
 
   const {

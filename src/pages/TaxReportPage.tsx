@@ -7,7 +7,7 @@ import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useI18n } from '@/i18n/useI18n';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { getTaxYearProfile } from '@/services/tax-profile-service';
 import { useBusinessMode } from '@/hooks/useBusinessMode';
 import { buildTaxYearReport, hasEuerMarkings } from '@/lib/tax-report';
@@ -44,7 +44,7 @@ export default function TaxReportPage() {
     refetch: refetchTransactions,
   } = useQuery({
     queryKey: ['transactions', locale],
-    queryFn: () => getTransactions(5000),
+    queryFn: () => getAllTransactions(),
   });
   const {
     data: categories = [],

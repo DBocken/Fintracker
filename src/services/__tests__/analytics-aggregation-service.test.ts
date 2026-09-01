@@ -17,11 +17,11 @@ import { asTransactionId } from '@/lib/ids';
  */
 
 vi.mock('../transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
 }));
 
-import { getTransactions, getCategories } from '../transaction-service';
+import { getAllTransactions, getCategories } from '../transaction-service';
 import { buildAnalyticsPackage } from '../analytics-aggregation-service';
 
 const CATEGORY: Category = {
@@ -35,7 +35,7 @@ function tx(amount: number, date = '2026-01-10', id = Math.random().toString(36)
 }
 
 function withData(transactions: Transaction[], categories: Category[] = [CATEGORY]) {
-  vi.mocked(getTransactions).mockResolvedValue(transactions);
+  vi.mocked(getAllTransactions).mockResolvedValue(transactions);
   vi.mocked(getCategories).mockResolvedValue(categories);
 }
 

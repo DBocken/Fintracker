@@ -25,9 +25,14 @@ export const LOCAL_STORAGE_QUOTE_BYTES = 5 * 1024 * 1024; // ~5MB
 // API / Pagination
 // ============================================
 export const DEFAULT_PAGE_SIZE = 50;
-export const MAX_PAGE_SIZE = 500;
-export const DEFAULT_QUERY_LIMIT = 1000;
-export const MAX_QUERY_LIMIT = 10000;
+
+// `MAX_PAGE_SIZE`, `DEFAULT_QUERY_LIMIT` und `MAX_QUERY_LIMIT` standen hier bis
+// zum Audit 2026-09 (F2) — und wurden von niemandem gelesen. Dieselbe Klasse
+// wie `MAX_TRANSACTIONS_LOCAL` weiter oben: Eine Grenzkonstante ohne Prüfstelle
+// beruhigt beim Lesen und schützt beim Laufen nicht. Die Kappung, die es
+// wirklich gab, stand als Literal an 44 Aufrufstellen; sie ist jetzt weg
+// (`getAllTransactions()` / `getTransactionsPage()`), erzwungen durch
+// `pnpm check:transaction-limits`.
 
 // ============================================
 // Dates

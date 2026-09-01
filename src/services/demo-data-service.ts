@@ -1,7 +1,7 @@
 import { format, startOfMonth, subMonths, addDays } from 'date-fns';
 import type { Account, Debt, Transaction } from '@/types';
 import { mutateLocalFinanceList } from './local-finance-store';
-import { getTransactions, saveTransactions, deleteTransaction } from './transaction-service';
+import { getAllTransactions, saveTransactions, deleteTransaction } from './transaction-service';
 import { t } from '@/i18n/serviceT';
 
 /**
@@ -233,7 +233,7 @@ export function isDemoDataActive(): boolean {
  * Lost-Update, keine Nebenläufigkeit, die sich hier lohnt.
  */
 async function replaceDemoTransactions(newDemoTransactions: Transaction[]): Promise<void> {
-  const existing = await getTransactions(10000);
+  const existing = await getAllTransactions();
   const staleDemoIds = existing.filter(isDemoRecord).map((tx) => tx.id!);
 
   for (const id of staleDemoIds) {
