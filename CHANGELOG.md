@@ -22,6 +22,8 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+## 2026.9.1 — 2026-09-02
+
 ### Behoben
 
 - **Beim gleichzeitigen Speichern konnte eine Buchung verschwinden.** Lesen,
