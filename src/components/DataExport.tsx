@@ -12,7 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import { sumIncome, sumExpenses } from '@/lib/analysis-data';
 import { transactionStorage } from '@/services/transaction-storage-service';
 import { useI18n } from '@/i18n/useI18n';
@@ -35,7 +35,7 @@ export function DataExport() {
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
     queryKey: ['transactions', 'export'],
-    queryFn: () => getTransactions(10000),
+    queryFn: () => getAllTransactions(),
   });
 
   const filteredTransactions = useMemo(() => {

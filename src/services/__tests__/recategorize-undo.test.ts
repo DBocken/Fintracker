@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Transaction } from "../../types";
 import { localEncryption } from "../local-crypto";
-import { saveTransactions, getTransactions, restoreCategorization } from "../transaction-service";
+import { saveTransactions, getAllTransactions, restoreCategorization } from "../transaction-service";
 
 /**
  * T1.17 / F-UX-1: Der Undo nach einer Sammel-Neukategorisierung war eine
@@ -24,14 +24,14 @@ describe("[INTEGRITY] restoreCategorization (T1.17)", () => {
 
     // Sammeländerung simulieren: Buchung auf eine andere Kategorie setzen.
     await restoreCategorization([{ id: "tx-undo-1", category_id: "cat-b", auto_mapped: false }]);
-    let stored = (await getTransactions(100)).find((t) => t.id === "tx-undo-1");
+    let stored = (await getAllTransactions()).find((t) => t.id === "tx-undo-1");
     expect(stored?.category_id).toBe("cat-b");
     expect(stored?.auto_mapped).toBe(false);
 
     // Undo: exakt die Vorwerte wiederherstellen.
     const restored = await restoreCategorization([{ id: "tx-undo-1", category_id: "cat-a", auto_mapped: true }]);
     expect(restored).toBe(1);
-    stored = (await getTransactions(100)).find((t) => t.id === "tx-undo-1");
+    stored = (await getAllTransactions()).find((t) => t.id === "tx-undo-1");
     expect(stored?.category_id).toBe("cat-a");
     expect(stored?.auto_mapped).toBe(true);
   });
@@ -45,7 +45,7 @@ describe("[INTEGRITY] restoreCategorization (T1.17)", () => {
     await saveTransactions([tx]);
 
     await restoreCategorization([{ id: "tx-undo-2", category_id: null, auto_mapped: false }]);
-    const stored = (await getTransactions(100)).find((t) => t.id === "tx-undo-2");
+    const stored = (await getAllTransactions()).find((t) => t.id === "tx-undo-2");
     expect(stored?.category_id).toBeNull();
     expect(stored?.auto_mapped).toBe(false);
   });

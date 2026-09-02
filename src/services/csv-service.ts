@@ -2,6 +2,7 @@ import { parse } from 'papaparse';
 import type { Transaction } from '../types';
 import { parseGermanNumber } from '../lib/money';
 import { asTransactionId } from '../lib/ids';
+import { createOccurrenceCounter } from '../lib/transaction-identity';
 import { t } from '../i18n/serviceT';
 
 export const MAX_CSV_FILE_BYTES = 10 * 1024 * 1024;
@@ -174,6 +175,12 @@ export async function parseCsv(
   if (result.errors.length > 0) throw new Error(t('csvService.corruptedFormat', '{error}').replace('{error}', result.errors[0].message));
   if (result.data.length > MAX_CSV_ROWS) throw new Error(t('csvService.tooManyRows', '{maxRows}').replace('{maxRows}', String(MAX_CSV_ROWS)));
 
+  // Der Vorkommenszähler läuft SYNCHRON und in Zeilenreihenfolge, bevor
+  // irgendetwas parallel wird: Er beantwortet „das wievielte Mal dieser Inhalt
+  // in dieser Datei" — und das ist nur deterministisch, solange niemand
+  // nebenher zählt.
+  const zaehleVorkommen = createOccurrenceCounter();
+
   return Promise.all(result.data.map(async (row: Record<string, string>, index: number) => {
     const rawIban = mapping.ibanColumn ? (row[mapping.ibanColumn] || '').trim() : '';
     const counterpartyIban = rawIban.replace(/\s+/g, '').toUpperCase() || null;
@@ -184,9 +191,21 @@ export async function parseCsv(
     const payee = row[mapping.payeeColumn] || '';
     const description = row[mapping.descriptionColumn] || '';
     const currency = row[mapping.currencyColumn!] || 'EUR';
+    // Statt des Zeilenindex (Audit 2026-09, F3a): Der Index machte dieselbe
+    // Buchung in zwei überlappenden Exporten zu zwei Buchungen, weil sie dort
+    // an verschiedenen Stellen stand. Der Vorkommenszähler hängt nur am
+    // INHALT und bleibt über Dateigrenzen hinweg gleich.
+    const vorkommen = zaehleVorkommen({
+      date,
+      amount,
+      payee,
+      description,
+      currency,
+      counterparty_iban: counterpartyIban,
+    });
     const id = await stableCsvTransactionId([
       mapping.bankName,
-      index,
+      vorkommen,
       date,
       amount.toFixed(2),
       payee,

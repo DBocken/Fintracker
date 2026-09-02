@@ -41,3 +41,31 @@ export class StorageQuotaExceededError extends Error {
     }
   }
 }
+
+/**
+ * IndexedDB ist gar nicht verfügbar — und es sollte geschrieben werden
+ * (Audit 2026-09, WP7).
+ *
+ * Vorher war ein Schreibversuch ohne IndexedDB ein stilles **No-op**: Die
+ * Funktion kehrte zurück, als sei gespeichert worden. Das ist die schlimmste
+ * Auskunft von allen — der Nutzer hat die Buchung eingegeben, die Fläche hat
+ * sie angezeigt, und beim nächsten Start ist sie weg, ohne dass irgendwo
+ * etwas schiefgegangen wäre. Lesen darf weiterhin leer zurückkommen (nichts
+ * gespeichert ist nichts zu lesen); Schreiben nicht.
+ *
+ * Die Meldung nennt die wahrscheinliche Ursache und einen Ausweg, statt nur
+ * das Problem zu benennen.
+ */
+export class IndexedDbUnavailableError extends Error {
+  readonly code = ERROR_CODES.STORAGE_UNAVAILABLE;
+  override name = 'IndexedDbUnavailableError';
+
+  constructor() {
+    super(
+      t(
+        'storage.indexedDbUnavailable',
+        'Der lokale Speicher ist nicht verfügbar, deine Eingabe wurde NICHT gespeichert. Das passiert meist im privaten Modus oder wenn der Browser Websitedaten blockiert.',
+      ),
+    );
+  }
+}

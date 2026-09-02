@@ -1,7 +1,7 @@
 import type { Debt, DebtPriority, DebtType } from "../types";
 import type { DebtTransactionAssignment } from "@/lib/debt-types";
 import { getCurrentUserId } from "./auth-service";
-import { getTransactions } from "./transaction-service";
+import { getAllTransactions } from "./transaction-service";
 import { t } from "../i18n/serviceT";
 import {
   calculatePayoffPlan,
@@ -144,7 +144,7 @@ export async function assignTransactionToDebt(params: {
   const debt = debts.find((entry) => entry.id === params.debtId);
   if (!debt) throw new Error(t("debtService.debtNotFound"));
 
-  const transaction = (await getTransactions(10000)).find((entry) => entry.id === params.transactionId);
+  const transaction = (await getAllTransactions()).find((entry) => entry.id === params.transactionId);
   if (!transaction) throw new Error(t("debtService.transactionNotFound"));
 
   const amount = Math.abs(Number(transaction.amount) || 0);

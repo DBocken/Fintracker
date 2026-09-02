@@ -15,7 +15,7 @@
  */
 import type { Transaction } from "@/types";
 import { mapCycleToRhythmus } from "@/lib/contract-types";
-import { getTransactions, getCategories, updateTransaction, type TransactionUpdate } from "./transaction-service";
+import { getAllTransactions, getCategories, updateTransaction, type TransactionUpdate } from "./transaction-service";
 import { computeContracts, computeIncomeContracts } from "@/lib/contract-derivation";
 
 /**
@@ -57,7 +57,7 @@ export function findSimilarContractTransactions(
  */
 export async function applyDetectedContracts(): Promise<number> {
   const [transactions, categories] = await Promise.all([
-    getTransactions(2000),
+    getAllTransactions(),
     getCategories(),
   ]);
 

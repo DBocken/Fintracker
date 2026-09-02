@@ -14,8 +14,8 @@ android {
         // CalVer selbst monoton ist. Play verlangt < 2 100 000 000 — die Formel
         // bleibt bis zum Jahr 209 999 darunter. Vorher stand hier `1`/`1.0`
         // (Capacitor-Vorgabe, nie gepflegt; Befund GOV-3).
-        versionCode 20260900
-        versionName "2026.9.0"
+        versionCode 20260901
+        versionName "2026.9.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

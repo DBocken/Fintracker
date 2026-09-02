@@ -7,7 +7,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { getAccounts, createAccount } from "@/services/account-service";
-import { getTransactions } from "@/services/transaction-service";
+import { getAllTransactions } from "@/services/transaction-service";
 import { getNetWorthBreakdown } from "@/services/net-worth-service";
 import { detectCashWithdrawals, findCashAccount, moveWithdrawalToCash } from "@/services/cash-service";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
@@ -53,7 +53,9 @@ export function CashSection() {
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
     queryKey: ["transactions", "cash-atm"],
-    queryFn: () => getTransactions(500),
+    // `detectCashWithdrawals` ist eine Auswertung, keine Liste — auf 500
+    // Buchungen beschnitten übersieht sie jede ältere Abhebung.
+    queryFn: getAllTransactions,
     enabled: !!cashAccount,
   });
   const atmSuggestions = cashAccount ? detectCashWithdrawals(transactions, cashAccount.id) : [];

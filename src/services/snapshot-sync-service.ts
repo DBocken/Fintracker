@@ -331,8 +331,15 @@ export function compareSnapshotForImport(
     deviceId: parsed.device_id,
   };
 
+  // Ein fremdes Gerät wird IMMER bestätigt, sobald lokal etwas liegt (Audit
+  // 2026-09, WP7). Vorher entschied ein Zeitvergleich: Ist der fremde
+  // Snapshot jünger, ersetzte er den lokalen Bestand ohne Rückfrage. Der
+  // Zeitstempel sagt aber nur, wann der Snapshot ERZEUGT wurde — nicht, wann
+  // hier zuletzt gearbeitet wurde; Änderungszeiten werden gar nicht
+  // verfolgt. Ein heute erzeugter Export eines seit Wochen unbenutzten
+  // Zweitgeräts überschrieb damit die Arbeit von gestern, lautlos.
   const requiresConfirmation = isForeignDevice
-    ? localMeta !== null && new Date(parsed.created_at).getTime() < new Date(localMeta.created_at).getTime()
+    ? localMeta !== null
     : remote.version < localVersion;
 
   return { requiresConfirmation, isForeignDevice, local, remote };

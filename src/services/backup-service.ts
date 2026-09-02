@@ -4,7 +4,7 @@ import { logger } from '@/utils/logger';
 import type { Category, Account, UserSettings } from '../types';
 import {
   getCategories,
-  getTransactions,
+  getAllTransactions,
   getUserSettings,
   saveTransactions,
   updateUserSettings,
@@ -764,7 +764,7 @@ class BackupService {
 
   private async fetchTransactions(_userId: string): Promise<import('../types').Transaction[]> {
     try {
-      return await getTransactions(10000);
+      return await getAllTransactions();
     } catch (error) {
       logger.error(`[BackupService] Error fetching local transactions: ${error instanceof Error ? error.message : String(error)}`, { source: 'backup' });
       return [];
@@ -781,7 +781,7 @@ class BackupService {
     // und wiederhergestellte Buchungen behalten gültige Kategorie-/Konto-Bezüge (T1.4).
     // `saveTransactions` gibt die gespeicherten Inputs zurück; für die Restore-
     // Zusammenfassung zählen wir daher nur tatsächlich neue Backup-IDs.
-    const existingIds = new Set((await getTransactions(10000)).map((tx) => tx.id));
+    const existingIds = new Set((await getAllTransactions()).map((tx) => tx.id));
     const newTransactions = transactions.filter((tx) => tx.id && !existingIds.has(tx.id));
     if (newTransactions.length === 0) return 0;
 

@@ -1,5 +1,5 @@
 import type { Category, Transaction } from '@/types';
-import { getTransactions, getCategories } from './transaction-service';
+import { getAllTransactions, getCategories } from './transaction-service';
 import { getDebts } from './debt-service';
 import { getPortfolios } from './portfolio-service';
 import { detectSalarySeries } from '@/lib/salary-detection';
@@ -66,7 +66,7 @@ export function incomeVariesAcross(transactions: Transaction[]): boolean {
 
 export async function collectOnboardingSignals(now: Date = new Date()): Promise<OnboardingSignals> {
   const [transactions, categories, debts, portfolios] = await Promise.all([
-    getTransactions(2000),
+    getAllTransactions(),
     getCategories(),
     getDebts(),
     getPortfolios(),

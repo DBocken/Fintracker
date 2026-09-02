@@ -139,4 +139,70 @@ describe('findeUnserialisierteSchreibpfade', () => {
       'Kategorien',
     );
   });
+
+  it('sollte die Buchungs-Chunk-Familie kennen (Chunk lesen, Chunk schreiben, kein Lock)', () => {
+    const quelle = `
+      async function deleteLocalTransactionChunked(id) {
+        const chunk = await readTransactionChunk(quarter);
+        await writeTransactionChunk(quarter, chunk.filter((tx) => tx.id !== id));
+      }
+    `;
+    const funde = findeUnserialisierteSchreibpfade(quelle, 'src/services/transaction-storage-service.ts');
+    expect(funde).toHaveLength(1);
+    expect(funde[0].familie).toBe('Buchungs-Chunks');
+  });
+
+  it('sollte readAllTransactionChunks gefolgt von writeTransactionChunk als Paar werten', () => {
+    const quelle = `
+      async function saveLocalTransactionsChunked(neue) {
+        const alle = await readAllTransactionChunks();
+        await writeTransactionChunk(quartal, [...alle, ...neue]);
+      }
+    `;
+    expect(
+      findeUnserialisierteSchreibpfade(quelle, 'src/services/transaction-storage-service.ts')[0].familie,
+    ).toBe('Buchungs-Chunks');
+  });
+
+  it('sollte auch den Migrationspfad sehen, der aus dem v3-Blob in Chunks schreibt', () => {
+    // Der dritte Schreiber: `local-store-migrations.ts` liest NICHT über
+    // readTransactionChunk, sondern über readLegacyV3Transactions — ohne
+    // dieses Verb wäre ausgerechnet der Pfad unsichtbar, der ganze Quartale
+    // überschreibt.
+    const quelle = `
+      async function migrateTransactionsToQuarterlyChunks() {
+        const transactions = await readLegacyV3Transactions();
+        for (const [quarter, items] of byQuarter) {
+          await writeTransactionChunk(quarter, items);
+        }
+      }
+    `;
+    expect(
+      findeUnserialisierteSchreibpfade(quelle, 'src/services/local-store-migrations.ts')[0].familie,
+    ).toBe('Buchungs-Chunks');
+  });
+
+  it('sollte den v3-Blob (getLocalTransactions → setLocalTransactions) als Familie kennen', () => {
+    const quelle = `
+      async function saveLocalTransactions(neue) {
+        const existing = await this.getLocalTransactions();
+        await this.setLocalTransactions([...existing.data, ...neue]);
+      }
+    `;
+    expect(
+      findeUnserialisierteSchreibpfade(quelle, 'src/services/transaction-storage-service.ts')[0].familie,
+    ).toBe('Buchungs-Blob (v3)');
+  });
+
+  it('sollte schweigen, wenn der Chunk-Ablauf in withKeyLock steht', () => {
+    const quelle = `
+      async function deleteLocalTransactionChunked(id) {
+        return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
+          const chunk = await readTransactionChunk(quarter);
+          await writeTransactionChunk(quarter, chunk.filter((tx) => tx.id !== id));
+        });
+      }
+    `;
+    expect(findeUnserialisierteSchreibpfade(quelle, 'src/services/transaction-storage-service.ts')).toEqual([]);
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   idbGet,
   idbSet,
@@ -8,7 +8,7 @@ import {
   collectLegacyDataKeys,
   migrateLocalStorageToIdb,
 } from "../idb-kv";
-import { StorageQuotaExceededError } from "@/lib/storage-errors";
+import { IndexedDbUnavailableError, StorageQuotaExceededError } from "@/lib/storage-errors";
 
 describe("idb-kv Grundoperationen", () => {
   beforeEach(async () => {
@@ -149,5 +149,54 @@ describe("idb-kv Laufzeitfehler (RES-6, WP 1.6)", () => {
       openSpy.mockRestore();
       vi.resetModules();
     }
+  });
+});
+
+describe("[REGRESSION] Schreiben ohne IndexedDB scheitert benannt (Audit 2026-09, WP7)", () => {
+  /**
+   * Vorher war das ein stilles No-op: `idbSet` kehrte zurück, als sei
+   * gespeichert worden. Der Nutzer gibt eine Buchung ein, die Fläche zeigt
+   * sie, und beim nächsten Start ist sie weg — ohne dass irgendwo etwas
+   * schiefgegangen wäre. Ein leiser Fehler ist hier schlimmer als ein lauter.
+   */
+  const echtesIndexedDb = globalThis.indexedDB;
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, "indexedDB", {
+      value: echtesIndexedDb,
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  function ohneIndexedDb() {
+    Object.defineProperty(globalThis, "indexedDB", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+  }
+
+  it("[REGRESSION] sollte beim Schreiben werfen statt still nichts zu tun", async () => {
+    ohneIndexedDb();
+    await expect(idbSet("k", "v")).rejects.toBeInstanceOf(IndexedDbUnavailableError);
+  });
+
+  it("[REGRESSION] sollte auch beim Löschen werfen", async () => {
+    ohneIndexedDb();
+    await expect(idbRemove("k")).rejects.toBeInstanceOf(IndexedDbUnavailableError);
+  });
+
+  it("sollte beim LESEN weiterhin leer zurückkommen statt zu werfen", async () => {
+    // Nichts gespeichert ist nichts zu lesen — das ist kein Fehler, und ein
+    // Wurf hier würde jeden Startpfad abbrechen.
+    ohneIndexedDb();
+    await expect(idbGet("k")).resolves.toBeNull();
+    await expect(idbKeys()).resolves.toEqual([]);
+  });
+
+  it("sollte eine benannte, handlungsleitende Meldung tragen", async () => {
+    ohneIndexedDb();
+    await expect(idbSet("k", "v")).rejects.toThrow(/nicht gespeichert/i);
   });
 });

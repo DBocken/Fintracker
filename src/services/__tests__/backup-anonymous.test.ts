@@ -5,7 +5,7 @@ import { clearLocalKvStore } from "../idb-kv";
 import { transactionStorage } from "../transaction-storage-service";
 import { LOCAL_USER_ID } from "../local-settings-service";
 import { localEncryption } from "../local-crypto";
-import { getTransactions, saveTransactions } from "../transaction-service";
+import { getAllTransactions, saveTransactions } from "../transaction-service";
 
 /**
  * WP 7.3 (TEST-6): Sicherung und Wiederherstellung OHNE Anmeldung — der
@@ -70,13 +70,13 @@ describe("Backup ohne Anmeldung (local-first)", () => {
     // Chunk-Cache; roh geleert bliebe der Bestand im Speicher stehen und die
     // Wiederherstellung würde ihn danach ein zweites Mal anhängen.
     await transactionStorage.clearLocalCache();
-    expect(await getTransactions(100)).toHaveLength(0);
+    expect(await getAllTransactions()).toHaveLength(0);
 
     const result = await backupService.restoreBackup(backup);
 
     expect(result.success).toBe(true);
     expect(result.details.transactions).toBe(1);
-    const restored = await getTransactions(100);
+    const restored = await getAllTransactions();
     expect(restored).toHaveLength(1);
     expect(restored[0].id).toBe("tx-anon-1");
     expect(restored[0].amount).toBe(-42.5);

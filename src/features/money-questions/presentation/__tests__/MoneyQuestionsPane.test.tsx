@@ -57,7 +57,7 @@ vi.mock('@/services/semantic-intent-service', async (echt) => {
 });
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: (...a: unknown[]) => getTransactions(...a),
+  getAllTransactions: (...a: unknown[]) => getTransactions(...a),
   getCategories: () => getCategories(),
   getUserSettings: () => getUserSettings(),
 }));

@@ -1,5 +1,5 @@
 import type { Transaction, Debt } from "../types";
-import { getTransactions } from "./transaction-service";
+import { getAllTransactions } from "./transaction-service";
 import { getDebts } from "./debt-service";
 import { totalMinimumPayment } from "@/lib/debt-totals";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "./net-worth-service";
@@ -64,7 +64,7 @@ const WEIGHTS: Record<string, number> = {
 
 export async function getFinancialHealth(): Promise<FinancialHealth> {
   const [transactions, debts, netWorth] = await Promise.all([
-    getTransactions(10000),
+    getAllTransactions(),
     getDebts(),
     getNetWorthBreakdown(),
   ]);

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { CategorizationContext } from '@/lib/categorization';
 import { buildCategoryModel } from '@/lib/category-model-evaluation';
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import { getMerchantRules } from '@/services/merchant-rules-service';
 
 /** Kein Bestand, kein Modell — die Kaskade verhält sich dann exakt wie zuvor. */
@@ -34,7 +34,7 @@ const OHNE_MODELL: CategorizationContext = {};
 export function useCategoryModel(): CategorizationContext {
   const { data: transactions = [], isError: transactionsError } = useQuery({
     queryKey: ['transactions', 1000],
-    queryFn: () => getTransactions(1000),
+    queryFn: () => getAllTransactions(),
   });
   const { data: rules = [], isError: rulesError } = useQuery({
     queryKey: ['merchant-rules'],

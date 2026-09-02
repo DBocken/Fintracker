@@ -22,7 +22,7 @@ vi.mock('@/services/account-service', () => ({
   createAccount: vi.fn(),
 }));
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn().mockResolvedValue([]),
+  getAllTransactions: vi.fn().mockResolvedValue([]),
   createTransaction: vi.fn(),
   getCategories: vi.fn().mockResolvedValue([]),
 }));
@@ -38,7 +38,7 @@ vi.mock('@/services/cash-service', () => ({
 
 import { CashSection } from '../CashSection';
 import { getAccounts, createAccount } from '@/services/account-service';
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import { detectCashWithdrawals, findCashAccount, moveWithdrawalToCash } from '@/services/cash-service';
 import { asTransactionId } from '@/lib/ids';
 
@@ -118,7 +118,7 @@ describe('CashSection – Query-Invalidierung (PERF-2, WP 4.2)', () => {
 
       vi.mocked(getAccounts).mockResolvedValue([cashAccount]);
       vi.mocked(findCashAccount).mockReturnValue(cashAccount);
-      vi.mocked(getTransactions).mockResolvedValue([withdrawal]);
+      vi.mocked(getAllTransactions).mockResolvedValue([withdrawal]);
       vi.mocked(detectCashWithdrawals).mockReturnValue([withdrawal]);
       vi.mocked(moveWithdrawalToCash).mockResolvedValue(makeTx({ id: 'cash-credit-1' }));
 

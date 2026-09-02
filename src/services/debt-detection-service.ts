@@ -1,5 +1,5 @@
 import type { DebtPriority, DebtType, Transaction } from "../types";
-import { getTransactions } from "./transaction-service";
+import { getAllTransactions } from "./transaction-service";
 import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import { BNPL_PROVIDERS, getDebts, suggestDebtPriority } from "./debt-service";
 import { t } from "../i18n/serviceT";
@@ -29,7 +29,7 @@ function isExistingDebt(name: string, existingNames: Set<string>): boolean {
 }
 
 export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
-  const transactions = await getTransactions(2000);
+  const transactions = await getAllTransactions();
   const debts = await getDebts();
   const existingNames = new Set<string>();
   debts.forEach((d) => {

@@ -9,13 +9,13 @@ import { monthKeyOf } from "@/lib/budget-logic";
 import { currentMonthKey, lastNMonths } from "./budget-service";
 import { getFinancialHealth } from "./financial-health-service";
 import { getDebts } from "./debt-service";
-import { getTransactions } from "./transaction-service";
+import { getAllTransactions } from "./transaction-service";
 
 const WINDOW_MONTHS = 6;
 
 /** Median der Monatsausgaben (|Ausgaben| ohne Transfers) über das Fenster. */
 function medianMonthlyExpenses(
-  transactions: Awaited<ReturnType<typeof getTransactions>>,
+  transactions: Awaited<ReturnType<typeof getAllTransactions>>,
   reference: Date,
 ): number {
   const months = new Set(lastNMonths(currentMonthKey(reference), WINDOW_MONTHS));
@@ -33,7 +33,7 @@ export async function getFinanceFoundation(reference: Date = new Date()): Promis
   const [health, debts, transactions] = await Promise.all([
     getFinancialHealth(),
     getDebts(),
-    getTransactions(5000),
+    getAllTransactions(),
   ]);
 
   // Konsumschulden = alle offenen Schulden außer Immobilienkrediten.

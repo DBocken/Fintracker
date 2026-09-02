@@ -22,7 +22,7 @@ vi.mock('@/services/special-category-service', () => ({
   assignTransaction: (input: unknown) => spies.assign(input) ?? Promise.resolve({}),
   unassign: (id: string) => spies.unassign(id) ?? Promise.resolve(),
 }));
-vi.mock('@/services/transaction-service', () => ({ getTransactions: async () => store.transactions }));
+vi.mock('@/services/transaction-service', () => ({ getAllTransactions: async () => store.transactions }));
 
 const t1: Transaction = {
   id: asTransactionId('t1'), date: '2026-09-05', amount: -45, payee: 'Taverne', description: '', original_text: '',

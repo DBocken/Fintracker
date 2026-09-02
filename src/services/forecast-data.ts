@@ -14,7 +14,7 @@ import type { Account, Category, Transaction } from '@/types';
 import type { ContractRow } from '@/lib/contract-types';
 import { getAccounts } from '@/services/account-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
-import { getCategories, getTransactions } from '@/services/transaction-service';
+import { getCategories, getAllTransactions } from '@/services/transaction-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import type { ContractDecision } from '@/lib/contract-types';
 import { computeContracts } from '@/lib/contract-derivation';
@@ -443,7 +443,7 @@ export async function buildForecastInput(): Promise<ForecastInput> {
       getNetWorthBreakdown(),
       getCategories(),
       getContractDecisionMap(),
-      getTransactions(10000),
+      getAllTransactions(),
       getReplacementPlans(),
     ]);
 

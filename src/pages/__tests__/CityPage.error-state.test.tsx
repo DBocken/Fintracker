@@ -17,7 +17,7 @@ import { renderWithProviders } from '@/test-utils/render';
 
 vi.mock('@/services/transaction-service', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  getTransactions: () => Promise.reject(new Error('IndexedDB nicht erreichbar')),
+  getAllTransactions: () => Promise.reject(new Error('IndexedDB nicht erreichbar')),
 }));
 
 import CityPage from '../CityPage';

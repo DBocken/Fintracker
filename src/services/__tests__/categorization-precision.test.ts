@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { applyAutoCategorization, recategorizeTransactions, saveTransactions, getTransactions } from '../transaction-service';
+import { applyAutoCategorization, recategorizeTransactions, saveTransactions, getAllTransactions } from '../transaction-service';
 import { explainCategorization, MIN_SILENT_ASSIGN_CONFIDENCE } from '@/lib/categorization';
 import { transactionStorage } from '../transaction-storage-service';
 import { DEFAULT_LOCAL_CATEGORIES } from '@/lib/default-categories';
@@ -107,7 +107,7 @@ describe('Konfidenz-Floor für stille Zuweisung', () => {
 
       const summary = await recategorizeTransactions();
 
-      const all = await getTransactions(100);
+      const all = await getAllTransactions();
       const after = all.find((x) => x.id === seeded.id);
       expect(after?.category_id).toBe('local-cat-restaurant');
       // Bestätigte Buchungen tauchen auch nicht im Undo-Snapshot auf.
@@ -125,7 +125,7 @@ describe('Konfidenz-Floor für stille Zuweisung', () => {
 
       await recategorizeTransactions();
 
-      const all = await getTransactions(100);
+      const all = await getAllTransactions();
       const after = all.find((x) => x.id === seeded.id);
       expect(after?.category_id).toBe('local-cat-supermarkt');
     });
@@ -136,7 +136,7 @@ describe('Konfidenz-Floor für stille Zuweisung', () => {
 
       await recategorizeTransactions();
 
-      const all = await getTransactions(100);
+      const all = await getAllTransactions();
       const after = all.find((x) => x.id === seeded.id);
       // Regex-Fallback (0,55) liegt unter dem Floor → bleibt unkategorisiert
       // (erscheint stattdessen als Vorschlag in der Coach-Inbox).

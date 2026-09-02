@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock('@/services/contract-decision-service', () => ({
 }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
 
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 
@@ -145,7 +145,7 @@ describe('Views – keine eigenen Service-Queries', () => {
     );
     rendered.unmount();
 
-    expect(getTransactions).not.toHaveBeenCalled();
+    expect(getAllTransactions).not.toHaveBeenCalled();
     expect(getCategories).not.toHaveBeenCalled();
     expect(getAccounts).not.toHaveBeenCalled();
     expect(getContractDecisionMap).not.toHaveBeenCalled();

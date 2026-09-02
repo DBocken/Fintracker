@@ -4,7 +4,7 @@ import { asTransactionId } from '@/lib/ids';
 import { idbSet, idbRemove } from '../idb-kv';
 import { localEncryption } from '../local-crypto';
 import { transactionStorage } from '../transaction-storage-service';
-import { getTransactions } from '../transaction-service';
+import { getAllTransactions } from '../transaction-service';
 import { getIntegrityReport, clearIntegrityReport } from '../data-integrity-report';
 
 /**
@@ -84,7 +84,7 @@ describe('[INTEGRITY] ein manipuliertes Item erreicht die Render-Schicht nie —
     const manipulated = { ...goodTransaction('manipulated'), amount: 'NaN-injection' };
     await idbSet(STORAGE_KEY, JSON.stringify([...good, manipulated]));
 
-    const transactions = await getTransactions(100);
+    const transactions = await getAllTransactions();
 
     expect(transactions.map((tx) => tx.id).sort()).toEqual(['ok-1', 'ok-2']);
     expect(transactions.find((tx) => tx.id === 'manipulated')).toBeUndefined();

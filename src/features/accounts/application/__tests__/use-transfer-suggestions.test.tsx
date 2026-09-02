@@ -28,7 +28,7 @@ vi.mock('@/services/account-service', async (importOriginal) => ({
 
 vi.mock('@/services/transaction-service', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  getTransactions: (limit?: number) => getTransactions(limit),
+  getAllTransactions: (limit?: number) => getTransactions(limit),
   markTransferPair: (a: string, b: string) => markTransferPair(a, b),
   unmarkTransfer: (tx: Transaction) => unmarkTransfer(tx),
 }));

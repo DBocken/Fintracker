@@ -6,7 +6,7 @@ import { clearLocalKvStore } from "../idb-kv";
 import { getLocalCategories } from "../local-settings-service";
 import { localEncryption } from "../local-crypto";
 import { readLocalFinanceList } from "../local-finance-store";
-import { getTransactions, getUserSettings } from "../transaction-service";
+import { getAllTransactions, getUserSettings } from "../transaction-service";
 
 vi.mock("../auth-service", () => ({
   getCurrentUserId: vi.fn(async () => "user-1"),
@@ -106,7 +106,7 @@ describe("backupService.restoreBackup", () => {
       collections: 0,
     });
 
-    expect((await getTransactions(100)).filter((tx) => tx.id === "tx-backup-1")).toHaveLength(1);
+    expect((await getAllTransactions()).filter((tx) => tx.id === "tx-backup-1")).toHaveLength(1);
     expect((await getLocalCategories()).filter((category) => category.id === "cat-backup-1")).toHaveLength(1);
     expect((await getAccounts()).filter((account) => account.id === "account-backup-1")).toHaveLength(1);
     expect(await readLocalFinanceList("debts")).toEqual([{ id: "debt-backup-1", name: "Privatdarlehen" }]);

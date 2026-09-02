@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
-import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 import type { Transaction, BudgetStatus } from '@/types';
 import { useGlobalAtmosphere } from '../useGlobalAtmosphere';
 
@@ -23,7 +23,7 @@ vi.mock('@/hooks/useReducedMotion', () => ({
 
 const getTransactionsSpy = vi.fn();
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: (...args: unknown[]) => getTransactionsSpy(...args),
+  getAllTransactions: (...args: unknown[]) => getTransactionsSpy(...args),
 }));
 
 const getBudgetOverviewSpy = vi.fn();
@@ -78,7 +78,7 @@ describe('useGlobalAtmosphere', () => {
 
   it('sollte bei Ueberschuss ohne Budgetueberschreitung warm werden', () => {
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), [
+    queryClient.setQueryData(financeKeys.transactionsAll, [
       tx('2026-03-01', 3000),
       tx('2026-03-05', -1000),
     ]);
@@ -91,7 +91,7 @@ describe('useGlobalAtmosphere', () => {
 
   it('sollte bei Fehlbetrag kuehl werden', () => {
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), [
+    queryClient.setQueryData(financeKeys.transactionsAll, [
       tx('2026-03-01', 1000),
       tx('2026-03-05', -1800),
     ]);
@@ -103,7 +103,7 @@ describe('useGlobalAtmosphere', () => {
 
   it('sollte nur Buchungen des laufenden Monats beruecksichtigen', () => {
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), [
+    queryClient.setQueryData(financeKeys.transactionsAll, [
       tx('2026-03-01', 1000),
       tx('2026-03-05', -1800),
       // Februar-Ueberschuss darf den Maerz-Fehlbetrag NICHT ausgleichen.
@@ -117,7 +117,7 @@ describe('useGlobalAtmosphere', () => {
 
   it('sollte ueberzogene Budgets aus dem Cache als Ueberschreitung zaehlen', () => {
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), [
+    queryClient.setQueryData(financeKeys.transactionsAll, [
       tx('2026-03-01', 1000),
       tx('2026-03-05', -1800),
     ]);
@@ -135,7 +135,7 @@ describe('useGlobalAtmosphere', () => {
 
   it('sollte ohne Budget-Cache keinen Alarm ausloesen', () => {
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), [
+    queryClient.setQueryData(financeKeys.transactionsAll, [
       tx('2026-03-01', 1000),
       tx('2026-03-05', -1800),
     ]);
@@ -150,7 +150,7 @@ describe('useGlobalAtmosphere', () => {
 
   it('sollte bei leerem Transaktions-Cache neutral bleiben', () => {
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), []);
+    queryClient.setQueryData(financeKeys.transactionsAll, []);
 
     const { result } = renderHook(() => useGlobalAtmosphere(REFERENCE), { wrapper });
 
@@ -161,7 +161,7 @@ describe('useGlobalAtmosphere', () => {
   it('sollte bei prefers-reduced-motion nicht pulsieren', () => {
     reduceMock.mockReturnValue(true);
     const { wrapper, queryClient } = createHookWrapper();
-    queryClient.setQueryData(financeKeys.transactions(FINANCE_TRANSACTION_LIMIT), [
+    queryClient.setQueryData(financeKeys.transactionsAll, [
       tx('2026-03-01', 1000),
       tx('2026-03-05', -1800),
     ]);

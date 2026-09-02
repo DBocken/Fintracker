@@ -8,7 +8,7 @@ import {
   DEMO_ID_PREFIX,
 } from "../demo-data-service";
 import { readLocalFinanceList, writeLocalFinanceList } from "../local-finance-store";
-import { getTransactions, saveTransactions } from "../transaction-service";
+import { getAllTransactions, saveTransactions } from "../transaction-service";
 import { clearLocalKvStore } from "../idb-kv";
 import { localEncryption } from "../local-crypto";
 import { buildDefaultCategories } from "../../data/merchant-keywords";
@@ -89,7 +89,7 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
     // andere Aufrufer (`getTransactions`), nicht mehr über den generischen
     // `readLocalFinanceList('transactions')` — der läse nach einer Migration
     // am v3-Blob vorbei (`transaction-storage-service.ts`, `hasLegacyV3Blob`).
-    const txs = await getTransactions(1000);
+    const txs = await getAllTransactions();
     const accounts = await readLocalFinanceList<Account>("accounts");
     expect(txs.length).toBeGreaterThan(30);
     expect(accounts).toHaveLength(2);
@@ -120,7 +120,7 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
     await loadDemoData(NOW);
     await removeDemoData();
 
-    expect(await getTransactions(1000)).toEqual([savedRealTx]);
+    expect(await getAllTransactions()).toEqual([savedRealTx]);
     expect(await readLocalFinanceList<Account>("accounts")).toEqual([realAccount]);
     expect(await readLocalFinanceList<Debt>("debts")).toEqual([realDebt]);
     expect(isDemoDataActive()).toBe(false);
@@ -128,9 +128,9 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
 
   it("ist idempotent: zweimal laden erzeugt keine Duplikate", async () => {
     await loadDemoData(NOW);
-    const first = await getTransactions(1000);
+    const first = await getAllTransactions();
     await loadDemoData(NOW);
-    const second = await getTransactions(1000);
+    const second = await getAllTransactions();
     expect(second).toHaveLength(first.length);
   });
 });

@@ -20,7 +20,7 @@ vi.mock('../idb-kv', async (importOriginal) => {
 import { idbSet, idbGet, clearLocalKvStore } from '../idb-kv';
 import { localEncryption } from '../local-crypto';
 import { runStoreMigrations } from '../local-store-migrations';
-import { getTransactions } from '../transaction-service';
+import { getAllTransactions } from '../transaction-service';
 import { clearIntegrityReport } from '../data-integrity-report';
 import { readTransactionChunkIndex } from '../transaction-chunk-store';
 
@@ -83,7 +83,7 @@ describe('Migrationsschritt "Transaktionen: Blob -> Quartals-Chunks" (WP 4.1c)',
     expect(localStorage.getItem(V3_KEY)).toBeNull();
     expect(localStorage.getItem(VERSION_KEY)).toBe('3');
 
-    const after = await getTransactions(100);
+    const after = await getAllTransactions();
     expect(after).toHaveLength(items.length);
     expect(after.map((t) => t.id).sort()).toEqual(items.map((t) => t.id).sort());
 
@@ -103,14 +103,14 @@ describe('Migrationsschritt "Transaktionen: Blob -> Quartals-Chunks" (WP 4.1c)',
     await runStoreMigrations();
 
     expect(await idbGet(V3_KEY)).toBeNull();
-    const after = await getTransactions(100);
+    const after = await getAllTransactions();
     expect(after.map((t) => t.id).sort()).toEqual(['e1', 'e2']);
   });
 
   it('sollte ohne jeden v3-Bestand (Neuinstallation) klaglos durchlaufen', async () => {
     await runStoreMigrations();
     expect(localStorage.getItem(VERSION_KEY)).toBe('3');
-    expect(await getTransactions(100)).toEqual([]);
+    expect(await getAllTransactions()).toEqual([]);
   });
 
   it('[REGRESSION] Abbruch VOR dem Index-Schreiben lässt den v3-Blob als Wahrheit stehen und vollständig lesbar; ein erneuter Lauf vollendet die Migration', async () => {
@@ -136,7 +136,7 @@ describe('Migrationsschritt "Transaktionen: Blob -> Quartals-Chunks" (WP 4.1c)',
     // unverändert die Wahrheit und über die normale Fassade vollständig lesbar.
     expect(localStorage.getItem(VERSION_KEY)).toBe('2');
     expect(await idbGet(V3_KEY)).not.toBeNull();
-    const duringOutage = await getTransactions(100);
+    const duringOutage = await getAllTransactions();
     expect(duringOutage.map((t) => t.id).sort()).toEqual(['t1', 't2']);
 
     // Retry ohne Fehler: vollendet die Migration; halb geschriebene Chunks
@@ -147,7 +147,7 @@ describe('Migrationsschritt "Transaktionen: Blob -> Quartals-Chunks" (WP 4.1c)',
 
     expect(localStorage.getItem(VERSION_KEY)).toBe('3');
     expect(await idbGet(V3_KEY)).toBeNull();
-    const afterRetry = await getTransactions(100);
+    const afterRetry = await getAllTransactions();
     expect(afterRetry.map((t) => t.id).sort()).toEqual(['t1', 't2']);
   });
 

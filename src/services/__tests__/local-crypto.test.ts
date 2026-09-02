@@ -502,3 +502,33 @@ describe("Lock-Kanal (WP 4.1b, PERF-1)", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 });
+
+describe('[SECURITY] enable(): Reihenfolge Prüfblob vor Konfiguration (Audit 2026-09, WP7)', () => {
+  it('[SECURITY] sollte bei Abbruch nach der Konfiguration keinen Tresor ohne Prüfblob hinterlassen', async () => {
+    // Die Config ist der Zeiger „dieser Tresor ist aktiv". Stünde sie vor dem
+    // Prüfblob und bräche der Lauf dazwischen ab, gälte der Tresor als aktiv,
+    // ohne dass sich je ein Passwort verifizieren liesse — verschlossen ohne
+    // Schlüsselloch. Der Test bricht genau dort ab, wo es weh tut: beim
+    // Schreiben, das NACH dem Prüfblob kommt.
+    localStorage.clear();
+    const echtesSetItem = Storage.prototype.setItem;
+    let abgebrochen = false;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key.includes('local_encryption_config') && !abgebrochen) {
+        abgebrochen = true;
+        throw new Error('Abbruch beim Schreiben der Konfiguration');
+      }
+      return echtesSetItem.call(this, key, value);
+    });
+
+    await expect(localEncryption.enable('passwort-123')).rejects.toThrow();
+    vi.restoreAllMocks();
+
+    const configDa = Object.keys(localStorage).some((k) => k.includes('local_encryption_config'));
+    const pruefblobDa = Object.keys(localStorage).some((k) => k.includes('local_encryption_check'));
+
+    // Entweder beides oder — wie hier — der Prüfblob ohne Config. Ein aktiver
+    // Tresor OHNE Prüfblob ist der Zustand, den es nicht geben darf.
+    expect(configDa && !pruefblobDa).toBe(false);
+  });
+});

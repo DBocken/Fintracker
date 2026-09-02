@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import type { Category, Transaction } from "../../types";
 import { localEncryption } from "../local-crypto";
 import { restoreLocalCategories, getLocalCategories } from "../local-settings-service";
-import { saveTransactions, getTransactions } from "../transaction-service";
+import { saveTransactions, getAllTransactions } from "../transaction-service";
 
 /**
  * T1.4 / F-BACKUP-1: Restore ist idempotenter Merge per ID. Ein Restore auf
@@ -42,7 +42,7 @@ describe("[INTEGRITY] Backup-Restore ist idempotent (T1.4)", () => {
     // Simuliert ein zweites Restore desselben Backups.
     await saveTransactions([tx]);
 
-    const all = await getTransactions(100);
+    const all = await getAllTransactions();
     const matches = all.filter((t) => t.id === "tx-backup-1");
     expect(matches).toHaveLength(1);
   });

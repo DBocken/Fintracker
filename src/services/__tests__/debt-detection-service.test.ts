@@ -13,7 +13,7 @@ const mockTransactions: Transaction[] = [];
 const mockDebts: Debt[] = [];
 
 vi.mock("../transaction-service", () => ({
-  getTransactions: vi.fn(() => Promise.resolve(mockTransactions)),
+  getAllTransactions: vi.fn(() => Promise.resolve(mockTransactions)),
 }));
 
 vi.mock("../debt-service", async () => {

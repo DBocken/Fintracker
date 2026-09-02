@@ -18,7 +18,7 @@ import type { Category, Transaction } from '@/types';
 import type { BudgetStatus } from '@/types';
 import type { WaterfallPlan } from './waterfall-service';
 import { supabase } from '@/integrations/supabase/client';
-import { getCategories, getTransactions } from './transaction-service';
+import { getCategories, getAllTransactions } from './transaction-service';
 import { currentMonthKey, getBudgetOverview, lastNMonths } from './budget-service';
 import { getWaterfallPlan } from './waterfall-service';
 import { getUserSettings } from './user-settings-service';
@@ -330,7 +330,7 @@ async function currentUserId(): Promise<string> {
 /** Lädt live aus dem (entsperrten) lokalen Vault und baut den Aggregat-Snapshot. */
 export async function buildSnapshotFromLiveData(now = new Date()): Promise<McpAggregateSnapshot> {
   const [transactions, categories, overview, settings] = await Promise.all([
-    getTransactions(5000),
+    getAllTransactions(),
     getCategories(),
     getBudgetOverview(now),
     getUserSettings(),

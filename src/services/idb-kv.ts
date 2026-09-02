@@ -1,5 +1,9 @@
 import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys';
-import { isQuotaExceededError, StorageQuotaExceededError } from '@/lib/storage-errors';
+import {
+  IndexedDbUnavailableError,
+  isQuotaExceededError,
+  StorageQuotaExceededError,
+} from '@/lib/storage-errors';
 
 /**
  * Minimaler IndexedDB-Key-Value-Speicher (Issue #29).
@@ -77,12 +81,15 @@ export async function idbGet(key: string): Promise<string | null> {
 }
 
 export async function idbSet(key: string, value: string): Promise<void> {
-  if (!isIndexedDbAvailable()) return;
+  // Kein stilles No-op mehr (Audit 2026-09, WP7): Wer schreibt, muss erfahren,
+  // dass nicht geschrieben wurde. Lesen (`idbGet`/`idbKeys`) darf weiterhin
+  // leer zurückkommen — nichts gespeichert ist nichts zu lesen.
+  if (!isIndexedDbAvailable()) throw new IndexedDbUnavailableError();
   await tx("readwrite", (store) => store.put(value, key));
 }
 
 export async function idbRemove(key: string): Promise<void> {
-  if (!isIndexedDbAvailable()) return;
+  if (!isIndexedDbAvailable()) throw new IndexedDbUnavailableError();
   await tx("readwrite", (store) => store.delete(key));
 }
 

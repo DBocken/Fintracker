@@ -22,6 +22,7 @@ pnpm check:query-errors || exit 1
 pnpm check:a11y-names || exit 1
 pnpm check:state-coverage || exit 1
 pnpm check:store-serialization || exit 1
+pnpm check:transaction-limits || exit 1
 pnpm check:money-format || exit 1
 pnpm check:external-endpoints || exit 1
 # Bestandspruefung: findet, was der Diff-Modus strukturell nie sieht.

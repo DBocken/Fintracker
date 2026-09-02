@@ -68,6 +68,22 @@ export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;
  */
 export const TRANSACTION_CHUNK_KEY_PREFIX = 'ausgabentracker_transactions_v4_';
 
+/**
+ * Sperr-Schlüssel für ALLE Buchungs-Schreibpfade (Audit 2026-09, F1).
+ *
+ * Bewusst **einer** für den ganzen Bestand statt einer je Quartal: `save`
+ * dedupliziert über `knownIds` quartalsübergreifend, ein `update` mit
+ * geändertem Datum berührt zwei Chunks, und der Migrationslauf schreibt alle
+ * Quartale nacheinander. Ein Lock je Quartal würde genau diese drei Fälle
+ * nicht abdecken — Schreibvorgänge sind selten, Quartals-Parallelität bringt
+ * hier nichts.
+ *
+ * Kein Speicherschlüssel: unter diesem Namen liegt nichts, er adressiert nur
+ * die Warteschlange in `withKeyLock`. Deshalb steht er auch nicht in
+ * `ENCRYPTED_STORAGE_KEYS`.
+ */
+export const TRANSACTION_STORE_LOCK_KEY = 'lock:ausgabentracker_transactions';
+
 /** Nutzerkategorien (mit Defaults). Bei aktiver Verschlüsselung ebenfalls Envelope. */
 export const LOCAL_CATEGORIES_KEY = 'ausgabentracker_categories_v1';
 

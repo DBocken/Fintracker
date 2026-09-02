@@ -30,7 +30,7 @@ vi.mock('@/services/special-category-service', () => ({
 }));
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: async () => store.transactions,
+  getAllTransactions: async () => store.transactions,
 }));
 
 const cats: SpecialCategory[] = [

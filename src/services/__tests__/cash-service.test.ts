@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { detectCashWithdrawals, recordCashWithdrawal, findCashAccount } from "../cash-service";
-import { getTransactions } from "../transaction-service";
+import { getAllTransactions } from "../transaction-service";
 import type { Account, Transaction } from "../../types";
 import { asTransactionId } from '@/lib/ids';
 
@@ -67,7 +67,7 @@ describe("recordCashWithdrawal", () => {
     expect(debit.amount).toBeCloseTo(-100);
     expect(credit.amount).toBeCloseTo(100);
 
-    const stored = await getTransactions(50);
+    const stored = await getAllTransactions();
     const storedDebit = stored.find((t) => t.id === debit.id)!;
     const storedCredit = stored.find((t) => t.id === credit.id)!;
     expect(storedDebit.is_transfer).toBe(true);

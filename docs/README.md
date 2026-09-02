@@ -138,6 +138,12 @@ Betriebsprogramms.
 | [`qualitaet-2026-08/status.md`](qualitaet-2026-08/status.md) | **Protokoll.** Paketstand, Baseline und der Wiedereinstieg für eine neue Sitzung |
 | [`qualitaet-2026-08/audit.md`](qualitaet-2026-08/audit.md) | **Protokoll.** Qualitäts-Audit vom 2026-08-08 (`main@067244f`) — die Belege zum Plan |
 
+## Laufendes Programm: Kritische Design-Schwächen (2026-09)
+
+| Datei | Rolle |
+|---|---|
+| [`qualitaet-2026-09/plan.md`](qualitaet-2026-09/plan.md) | Geltender Arbeitsplan: sieben Arbeitspakete gegen drei verifizierte Funde (unserialisierte Chunk-Schreibpfade, stilles Abschneiden durch Aufrufer-Limits, nicht idempotenter Import), je mit Tests-zuerst-Titeln und Wächter-Änderungen. Der Audit-Kontext steht im Kopf der Datei |
+
 ## Laufendes Programm: Betrieb & EU-Souveränität (2026-08)
 
 `docs/betrieb-2026-08/` ist **kein Archiv**: das Programm hat offene

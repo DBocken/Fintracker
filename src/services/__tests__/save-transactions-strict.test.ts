@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { Transaction } from "../../types";
 import { localEncryption } from "../local-crypto";
-import { saveTransactions, getTransactions } from "../transaction-service";
+import { saveTransactions, getAllTransactions } from "../transaction-service";
 
 /**
  * F-MONEY-4 / T1.3 (VE-3): saveTransactions ist die fachliche Grenze — ungültige
@@ -33,7 +33,7 @@ describe("[INTEGRITY] saveTransactions strikte Validierung (F-MONEY-4)", () => {
     const tx = { ...base, id: "tx-bad-date", date: "kein-datum", amount: -10 } as Transaction;
     await expect(saveTransactions([tx])).rejects.toThrow(/Ungültiges Buchungsdatum/);
     // Nichts wurde persistiert.
-    expect(await getTransactions(10)).toHaveLength(0);
+    expect(await getAllTransactions()).toHaveLength(0);
   });
 
   it("[REGRESSION] wirft bei leerem Datum", async () => {
@@ -44,7 +44,7 @@ describe("[INTEGRITY] saveTransactions strikte Validierung (F-MONEY-4)", () => {
   it("[REGRESSION] wirft bei unparsebarem Betrag statt still 0 zu speichern", async () => {
     const tx = { ...base, id: "tx-bad-amount", date: "2026-01-15", amount: "abc" as unknown as number } as Transaction;
     await expect(saveTransactions([tx])).rejects.toThrow(/Ungültiger Betrag/);
-    expect(await getTransactions(10)).toHaveLength(0);
+    expect(await getAllTransactions()).toHaveLength(0);
   });
 
   it("akzeptiert gültige Buchungen unverändert (inkl. deutscher Formate)", async () => {
@@ -71,7 +71,7 @@ describe("[INTEGRITY] saveTransactions strikte Validierung (F-MONEY-4)", () => {
       const tx = { ...base, id: "tx-subcent", date: "2026-01-15", amount: 0.005 } as Transaction;
       await expect(saveTransactions([tx])).rejects.toThrow(/[Cc]ent/);
       // Nichts wurde persistiert — auch kein still auf 0.00/0.01 gerundeter Wert.
-      expect(await getTransactions(10)).toHaveLength(0);
+      expect(await getAllTransactions()).toHaveLength(0);
     });
 
     it("[REGRESSION] lehnt einen negativen Sub-Cent-Betrag ab", async () => {

@@ -56,6 +56,46 @@ describe('[INTEGRITY] transaction storage idempotency', () => {
   });
 });
 
+describe('[REGRESSION] Serialisierung des v3-Schreibpfads', () => {
+  /**
+   * Dieselbe Prüfung wie im Chunk-Modus, nur für den Legacy-Zweig: Diese Datei
+   * legt den v3-Blob selbst an (`STORAGE_KEY`), `hasLegacyV3Blob()` ist damit
+   * wahr, und `saveLocalTransactions` nimmt den v3-Rumpf statt zu delegieren.
+   * Genau an dieser Weiche entscheidet sich auch, ob der Lock reentrant sein
+   * müsste — er ist es nicht, deshalb steht die Weiche VOR ihm.
+   */
+  it('[REGRESSION] sollte bei zwei gleichzeitigen saveTransactions beide Buchungen behalten', async () => {
+    // Bestand anlegen, damit der v3-Blob existiert und der Legacy-Zweig greift.
+    await transactionStorage.saveTransactions([transaction('bestand')]);
+
+    await Promise.all([
+      transactionStorage.saveTransactions([transaction('gleichzeitig-a')]),
+      transactionStorage.saveTransactions([transaction('gleichzeitig-b')]),
+    ]);
+
+    const stored = await transactionStorage.getTransactions(100, 0);
+    expect(stored.data?.map((item) => item.id).sort()).toEqual([
+      'bestand',
+      'gleichzeitig-a',
+      'gleichzeitig-b',
+    ]);
+  });
+
+  it('[REGRESSION] sollte im v3-Zweig nicht verklemmen', async () => {
+    await transactionStorage.saveTransactions([transaction('bestand')]);
+
+    const beide = Promise.all([
+      transactionStorage.saveTransactions([transaction('a')]),
+      transactionStorage.updateTransaction('bestand', { payee: 'ALDI' }),
+    ]);
+    const zeitschranke = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('v3-Schreibpfad verklemmt')), 5000),
+    );
+
+    await expect(Promise.race([beide, zeitschranke])).resolves.toBeDefined();
+  });
+});
+
 describe('Transaction window (limit) ordering', () => {
   it('[REGRESSION] behält bei einem Limit die JÜNGSTEN Buchungen, nicht die Import-Reihenfolge', async () => {
     // In Speicher-/Importreihenfolge zuerst alte, dann neue Buchungen ablegen.
