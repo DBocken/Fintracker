@@ -155,6 +155,7 @@ die beiden ADRs und das Anbieter-Register bleiben als geltende Dokumente.
 | [`betrieb-2026-08/plan.md`](betrieb-2026-08/plan.md) | Geltender Arbeitsplan: Phasen 0–7, 40 Arbeitspakete, [OPS]-Form mit `Wächter:`-Pflichtfeld, Livegang-Gate (#292/#293/#296/#298) |
 | [`betrieb-2026-08/audit.md`](betrieb-2026-08/audit.md) | **Protokoll.** Prüfung der zehn Betriebsvorschläge + Sofortbefunde (BTR-*), 2026-08-10, `main@b2513b7` |
 | [`betrieb-2026-08/status.md`](betrieb-2026-08/status.md) | **Protokoll.** Paketstand und Wiedereinstieg |
+| [`betrieb-2026-08/recherche-observability-2026-08.md`](betrieb-2026-08/recherche-observability-2026-08.md) | **Protokoll.** Markt- und Rechtsrecherche zur Observability-Architektur (2026-08-28): Drei-Ringe-Leitbild, §-25-TDDDG-Einordnung, geprüfte Alternativen, Restlücken L1–L6 |
 | `betrieb-2026-08/belege/` | **Protokoll.** Nachweise der [OPS]-Pakete (entsteht mit dem ersten Beleg) |
 
 ## Protokoll: Issue-Sichtung
@@ -187,5 +188,6 @@ wofür es steht und wo die heutige Antwort steht.
 | Datei | Inhalt |
 |---|---|
 | [`../.claude/i18n-workflow.md`](../.claude/i18n-workflow.md) | i18n-Workflow Schritt für Schritt, neue Sprache hinzufügen |
+| [`../infra/README.md`](../infra/README.md) | EU-Betriebsinfrastruktur als Code (WP 3.2/3.3): cloud-init, Compose je Standort, Backup-/Restore-Probe-Skripte, Kuma-Monitor-Register, Betreiber-Checkliste |
 | [`../src/features/*/README.md`](../src/features/) | Slice-eigene Kurzbeschreibungen |
 | [`../research/forecasting/`](../research/forecasting/) | Vorarbeiten zur Prognose |
