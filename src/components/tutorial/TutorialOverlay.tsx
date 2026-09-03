@@ -231,7 +231,7 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
             {step.premium && (
               <span
                 data-testid="tutorial-premium-badge"
-                className="shrink-0 rounded-full bg-premium px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-premium-foreground"
+                className="shrink-0 rounded-full bg-premium px-1.5 py-0.5 text-[11px] font-semibold uppercase leading-none tracking-wide text-premium-foreground"
               >
                 {t('premiumTeaser.badge', 'Pro')}
               </span>

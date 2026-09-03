@@ -38,6 +38,8 @@
     "check:transaction-limits": "node scripts/check-transaction-limits.mjs",
     "check:money-format": "node scripts/check-money-format.mjs",
     "check:external-endpoints": "node scripts/check-external-endpoints.mjs",
+    "check:type-scale": "node scripts/check-type-scale.mjs",
+    "check:touch-targets": "node scripts/check-touch-targets.mjs",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "prepare": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true"
   },

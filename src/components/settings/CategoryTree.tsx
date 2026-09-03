@@ -75,8 +75,8 @@ export function CategoryTree({
               <span className="text-lg">{category.icon}</span>
               <span className="truncate font-medium">{category.name}</span>
               {/* Höchstens zwei Statussymbole, dezent. */}
-              {isVertrag && <Badge variant="secondary" className="text-[10px]">{t('categoryTree.contractBadge')}</Badge>}
-              {isEssential && <Badge variant="secondary" className="text-[10px]">{t('categoryTree.essentialBadge')}</Badge>}
+              {isVertrag && <Badge variant="secondary" className="text-[11px]">{t('categoryTree.contractBadge')}</Badge>}
+              {isEssential && <Badge variant="secondary" className="text-[11px]">{t('categoryTree.essentialBadge')}</Badge>}
               {filterCount > 0 && (
                 <span className="shrink-0 text-xs text-muted-foreground">{t('categoryTree.rulesCount').replace('{count}', String(filterCount))}</span>
               )}

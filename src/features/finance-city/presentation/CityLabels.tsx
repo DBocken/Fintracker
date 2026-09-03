@@ -489,7 +489,7 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
                 dieser Höhe passen. */}
             <span className="truncate text-xs font-medium leading-4 text-foreground">{label.text}</span>
             {typeof label.amount === 'number' && (
-              <span className="truncate text-[10px] leading-[14px] text-muted-foreground">
+              <span className="truncate text-[11px] leading-[14px] text-muted-foreground">
                 {valueFormat === 'percent' ? formatPercent(label.amount, 0) : formatCurrency(label.amount)}
                 {typeof label.share === 'number' && (
                   // Anteil an der Gesamtausgabe hinter dem Betrag (dezent

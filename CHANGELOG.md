@@ -22,6 +22,32 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Behoben
+
+- **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
+  gerade den Stellen, an denen etwas abgelesen werden soll: die Beschriftungen
+  der Bodennavigation, die Abzeichen an Kategorien und Verträgen, das
+  Mitteltext-Label des Sunburst und — bei 8 px — die Beschriftungen der
+  Finanzlandschaft. Alle stehen jetzt mindestens auf der Lesbarkeitsgrenze.
+
+### Intern
+
+- **Zwei neue Wächter für die Maße, die Prinzip 7 bisher nur behauptet hat.**
+  „Tap-Ziele groß genug, Kontrast ausreichend" war für den Kontrast seit Langem
+  eine Zahl (4.5:1) und für die anderen beiden Maße eine Absichtserklärung.
+  `pnpm check:type-scale` verlangt jetzt 11 px für gerenderten Text (ohne
+  Ausnahmeliste, wie `check:a11y-names`), `pnpm check:touch-targets` ist eine
+  Ratsche auf Trefferbereiche unter 44 px. Beide laufen in Pre-Commit und CI.
+- **Die Tippziel-Ratsche führt zwei Spalten.** 186 der 217 Fundstellen sind
+  schlicht die kleinere Button-Variante — sie mit den 31 per Klasse auf bis zu
+  20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
+  unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
+  `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **§4 benennt jetzt vier Dimensionen der Anpassung** statt nur
+  Feature-Parität: Layout, Tippziele, Navigationsmuster (jeder Hover-Zustand
+  braucht ein Touch-Äquivalent) und Inhaltsrang — unter der Regel „anpassen,
+  nicht amputieren".
+
 ## 2026.9.1 — 2026-09-02
 
 ### Behoben

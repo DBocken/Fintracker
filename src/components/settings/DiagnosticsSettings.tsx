@@ -105,7 +105,7 @@ export default function DiagnosticsSettings() {
                   aria-controls={`diag-entry-${entry.id}`}
                 >
                   <div className="flex items-baseline gap-2">
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] uppercase text-muted-foreground">
                       {entry.source}
                       {entry.count > 1 ? ` ×${entry.count}` : ''}
                     </span>

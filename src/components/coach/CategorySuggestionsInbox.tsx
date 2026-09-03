@@ -57,7 +57,7 @@ export default function CategorySuggestionsInbox() {
                   <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     {t('coach.suggestionLabel')}
                     <span className="font-medium text-foreground">{categoryName}</span>
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${LEVEL_CLASS[level]}`}>
+                    <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${LEVEL_CLASS[level]}`}>
                       {level} {t('coach.confidenceSuffix')}
                     </span>
                   </p>

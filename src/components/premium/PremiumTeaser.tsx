@@ -74,7 +74,7 @@ export default function PremiumTeaser({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="truncate font-medium text-muted-foreground">{title}</span>
-            <span className="shrink-0 rounded-full bg-premium px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-premium-foreground">
+            <span className="shrink-0 rounded-full bg-premium px-1.5 py-0.5 text-[11px] font-semibold uppercase leading-none tracking-wide text-premium-foreground">
               {t("premiumTeaser.badge")}
             </span>
           </div>

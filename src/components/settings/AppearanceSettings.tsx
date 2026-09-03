@@ -77,7 +77,7 @@ export function AppearanceSettings() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{t(option.nameKey, option.name)}</span>
-                      {locked && <Badge variant="secondary" className="text-[10px]">{t('settings.appearance.comingSoonBadge')}</Badge>}
+                      {locked && <Badge variant="secondary" className="text-[11px]">{t('settings.appearance.comingSoonBadge')}</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground">{t(option.descriptionKey, option.description)}</div>
                   </div>

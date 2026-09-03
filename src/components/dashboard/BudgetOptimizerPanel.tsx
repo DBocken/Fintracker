@@ -425,12 +425,12 @@ function WaterfallResult({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium">{s.category}</span>
                 <span
-                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_CLASS[s.prioritaet]}`}
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${PRIORITY_CLASS[s.prioritaet]}`}
                 >
                   {getPriorityLabel(t, s.prioritaet)}
                 </span>
                 {s.kind === 'contract' && (
-                  <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                     {t('budgetOptimizer.contractBadge')}
                   </span>
                 )}
