@@ -1917,6 +1917,7 @@ export const en = {
     detailsInDashboard: 'Details in dashboard',
     focusedNextStep: 'Your next step',
     balanceLabel: 'Account balance',
+    noFixedCostsUntilPayday: 'No fixed charges left until payday',
     balanceAction: 'View transactions',
     focusedMore: 'More about your situation',
     focusedDetailTitle: 'Your financial situation',

@@ -116,6 +116,16 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
         </p>
         {disposableLoading ? (
           <Skeleton variant="shimmer" className="mt-2 h-9 w-40 rounded-lg" />
+        ) : disposable && disposable.obligations === 0 ? (
+          // Ohne offene Pflichten IST der freie Betrag der Kontostand. Die
+          // Zahl ein zweites Mal zu setzen sagt nichts — die Aussage ist
+          // dann, dass nichts mehr abgeht.
+          <p className="mt-1 text-lg font-medium leading-snug">
+            {t("coach.noFixedCostsUntilPayday")}
+            <span className="mt-0.5 block text-sm font-normal text-muted-foreground">
+              {formatCoachDaysUntil(disposable.daysUntilPayday, t)}
+            </span>
+          </p>
         ) : disposable ? (
           <>
             <p

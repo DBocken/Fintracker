@@ -1918,6 +1918,7 @@ export const de = {
     detailsInDashboard: 'Details im Dashboard',
     focusedNextStep: 'Dein nächster Schritt',
     balanceLabel: 'Kontostand',
+    noFixedCostsUntilPayday: 'Keine festen Abbuchungen mehr bis zum Gehalt',
     balanceAction: 'Buchungen ansehen',
     focusedMore: 'Mehr zu deiner Lage',
     focusedDetailTitle: 'Deine Finanzlage',

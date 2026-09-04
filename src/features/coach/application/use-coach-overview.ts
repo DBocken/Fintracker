@@ -2,7 +2,8 @@ import { useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useForecast } from '@/hooks/useForecast';
 import { getNextIncomeCharge } from '@/lib/upcoming-charges';
-import { computeDisposableUntilPayday } from '@/lib/disposable-budget';
+import { computeDisposableUntilPayday, istZahlungskonto } from '@/lib/disposable-budget';
+import { accountTypeToKind } from '@/lib/forecast-flows';
 import { computeEffectiveBalances, computeTotalEffectiveBalance } from '@/features/shared/domain/balance-calculations';
 import { getAllTransactions } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
@@ -119,9 +120,28 @@ export function useCoachOverview(): CoachViewModel {
   } = useQuery({ queryKey: financeKeys.transactionsAll, queryFn: getAllTransactions });
 
   // `null` heißt „noch nicht geladen", nicht „null Euro".
+  //
+  // Gezählt werden nur ZAHLUNGSKONTEN (Giro, Bar, Wallet) — dieselbe Menge,
+  // aus der sich der freie Betrag darunter speist. Vorher standen hier alle
+  // Konten, und auf dem Gerät las sich das als Widerspruch: „frei bis Gehalt
+  // 3.162,69 €" über einem „Kontostand 2.806,66 €", also mehr verfügbar als
+  // vorhanden. Der Unterschied war die Kreditkartenschuld (−356,03 €) — eine
+  // Verbindlichkeit, kein Guthaben, von dem sich heute etwas bezahlen lässt.
+  //
+  // Die RECHNUNG bleibt die kanonische (`computeEffectiveBalances` aus
+  // `features/shared/domain`); eingeschränkt ist nur die Kontenmenge. Ein
+  // zweiter Rechenweg wäre genau der Fehler, den der vorige Commit behoben
+  // hat.
+  //
+  // Die Buchungsseite zeigt weiterhin ALLE Konten — sie beantwortet eine
+  // andere Frage („was besitze ich"), diese Fläche „was kann ich ausgeben".
   const accountsBalance = useMemo(() => {
     if (!accounts || !allTransactions) return null;
-    return computeTotalEffectiveBalance(accounts, computeEffectiveBalances(accounts, allTransactions));
+    const zahlungskonten = accounts.filter((a) => istZahlungskonto(accountTypeToKind(a.type)));
+    return computeTotalEffectiveBalance(
+      zahlungskonten,
+      computeEffectiveBalances(zahlungskonten, allTransactions),
+    );
   }, [accounts, allTransactions]);
 
   const hasError =

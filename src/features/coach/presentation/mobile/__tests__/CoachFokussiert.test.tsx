@@ -137,6 +137,16 @@ describe('Coach — fokussierte Dichte', () => {
     expect(screen.getByText(/380/)).toBeInTheDocument();
   });
 
+  it('[MOBILE] sollte ohne offene Pflichten nicht dieselbe Zahl zweimal zeigen', () => {
+    // Ohne Abbuchungen IST der freie Betrag der Kontostand. Ihn ein zweites
+    // Mal zu setzen sagt nichts — die Aussage ist dann, dass nichts abgeht.
+    renderFokussiert(modelWith({ disposable: { ...DISPOSABLE, obligations: 0, disposable: 2806.66 } }));
+
+    expect(screen.getByText('Keine festen Abbuchungen mehr bis zum Gehalt')).toBeInTheDocument();
+    // Der Betrag steht genau einmal auf der Fläche: als Kontostand.
+    expect(screen.getAllByText(/2\.806,66/)).toHaveLength(1);
+  });
+
   it('[MOBILE] sollte „nicht bestimmbar" von „null Euro" unterscheiden', () => {
     // Ohne erkannten Geldeingang gibt es kein „bis zum Gehalt". Eine 0 wäre
     // eine falsche Auskunft statt einer fehlenden.

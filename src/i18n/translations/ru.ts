@@ -1917,6 +1917,7 @@ export const ru = {
     detailsInDashboard: 'Подробности в панели',
     focusedNextStep: 'Ваш следующий шаг',
     balanceLabel: 'Баланс счетов',
+    noFixedCostsUntilPayday: 'До зарплаты больше нет обязательных списаний',
     balanceAction: 'Показать операции',
     focusedMore: 'Подробнее о вашей ситуации',
     focusedDetailTitle: 'Ваша финансовая ситуация',
