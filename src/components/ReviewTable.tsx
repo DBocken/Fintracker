@@ -452,7 +452,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 size="sm"
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 h-8 w-8 p-0"
                 aria-label={t('reviewTable.firstPage')}
               >
                 <ChevronsLeft className="h-4 w-4" />
@@ -462,7 +462,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 h-8 w-8 p-0"
                 aria-label={t('reviewTable.previousPage')}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -475,7 +475,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 h-8 w-8 p-0"
                 aria-label={t('reviewTable.nextPage')}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -485,7 +485,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 size="sm"
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 h-8 w-8 p-0"
                 aria-label={t('reviewTable.lastPage')}
               >
                 <ChevronsRight className="h-4 w-4" />

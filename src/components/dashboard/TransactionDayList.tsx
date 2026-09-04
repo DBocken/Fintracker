@@ -278,7 +278,7 @@ export function TransactionDayList({
                 aria-expanded={splitsOpen}
                 aria-label={splitsOpen ? t('transactions.splitCollapse') : t('transactions.splitExpand')}
                 onClick={() => toggleSplit(rowId, splitsOpen)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <ChevronDown
                   className={cn(
@@ -312,7 +312,7 @@ export function TransactionDayList({
       <button
         type="button"
         onClick={transaction.id ? () => onOpenDetails(transaction) : undefined}
-        className="flex min-h-[36px] w-full items-center gap-2 rounded-lg py-1 pl-6 pr-2 text-left hover:bg-muted/50"
+        className="fokussiert:min-h-11 flex min-h-[36px] w-full items-center gap-2 rounded-lg py-1 pl-6 pr-2 text-left hover:bg-muted/50"
       >
         <span aria-hidden="true" className="w-3 shrink-0 text-xs text-muted-foreground">
           {isLastSplit ? '└' : '├'}

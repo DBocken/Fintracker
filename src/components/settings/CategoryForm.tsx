@@ -148,7 +148,7 @@ export function CategoryForm({
                   key={option.value}
                   type="button"
                   onClick={() => onColorChange(option.value)}
-                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-border' : 'border-transparent'}`}
+                  className={`fokussiert:min-h-11 fokussiert:min-w-11 w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-border' : 'border-transparent'}`}
                   style={{ backgroundColor: option.value }}
                   aria-label={t('categoryForm.colorPick').replace('{color}', option.label)}
                   aria-pressed={color === option.value}
@@ -167,7 +167,7 @@ export function CategoryForm({
                   key={`${option}-${index}`}
                   type="button"
                   onClick={() => onIconChange(option)}
-                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-border' : 'border-transparent'}`}
+                  className={`fokussiert:min-h-11 fokussiert:min-w-11 w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-border' : 'border-transparent'}`}
                   aria-label={t('categoryForm.iconPick')
                     .replace('{index}', String(index + 1))
                     .replace('{icon}', option)}

@@ -144,6 +144,40 @@ export function varianteHoehenAus(quelle) {
  *        Notnagel.
  * @returns {{ zeile: number, px: number, element: string, herkunft: 'klasse'|'variante' }[]}
  */
+/**
+ * Das Ende eines oeffnenden JSX-Tags — das erste `>`, das WIRKLICH eines ist.
+ *
+ * Die erste Fassung nahm `indexOf('>')`, und daran ist der Waechter blind
+ * geworden: Eine Pfeilfunktion im Attribut (`onClick={() => …}`) enthaelt ein
+ * `>`, und der Attributausschnitt endete dort. Stand `className` dahinter — die
+ * uebliche Reihenfolge —, sah der Waechter ihn nie. Gemessen betraf das die
+ * 26 Farb- und Symbolknoepfe des Kategorie-Formulars mit je 32 px: Die Ratsche
+ * stand auf 0 und behauptete damit, es gebe keinen Rueckfall mehr.
+ *
+ * Ein `>` zaehlt nur bei Klammertiefe 0 und ausserhalb einer Zeichenkette.
+ */
+function tagEndeAb(text, start) {
+  let tiefe = 0;
+  let anfuehrung = null;
+
+  for (let i = start; i < text.length; i += 1) {
+    const zeichen = text[i];
+
+    if (anfuehrung) {
+      if (zeichen === '\\') { i += 1; continue; }
+      if (zeichen === anfuehrung) anfuehrung = null;
+      continue;
+    }
+
+    if (zeichen === '"' || zeichen === "'" || zeichen === '`') { anfuehrung = zeichen; continue; }
+    if (zeichen === '{') { tiefe += 1; continue; }
+    if (zeichen === '}') { tiefe -= 1; continue; }
+    if (zeichen === '>' && tiefe === 0) return i;
+  }
+
+  return -1;
+}
+
 export function findeKleineTippziele(quelle, pfad, variantenPx = VARIANTEN_PX_FALLBACK) {
   if (!pfad.endsWith('.tsx')) return [];
   if (pfad.includes('__tests__') || pfad.includes('/test-utils/')) return [];
@@ -154,7 +188,7 @@ export function findeKleineTippziele(quelle, pfad, variantenPx = VARIANTEN_PX_FA
   for (const element of INTERAKTIV) {
     const opener = new RegExp(`<${element}(?=[\\s/>])`, 'g');
     for (const treffer of text.matchAll(opener)) {
-      const ende = text.indexOf('>', treffer.index);
+      const ende = tagEndeAb(text, treffer.index);
       if (ende === -1) continue;
       const attrs = text.slice(treffer.index, ende);
 

@@ -79,7 +79,7 @@ export function TransactionTable({
         variant="ghost"
         size="sm"
         onClick={() => onSort(columnKey)}
-        className="-ml-3 h-8 gap-1 px-2 font-medium"
+        className="fokussiert:min-h-11 -ml-3 h-8 gap-1 px-2 font-medium"
         aria-label={`${label} ${t("dashboard.sort")}${sortConfig?.key === columnKey ? `, aktuell ${sortConfig.direction === 'asc' ? t("dashboard.ascending") : t("dashboard.descending")}` : ''}`}
       >
         <span>{label}</span>

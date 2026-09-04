@@ -170,7 +170,7 @@ export function AccountList({
                   size="icon"
                   onClick={() => onSync(account)}
                   disabled={row.isSyncing || !row.canSync}
-                  className="h-9 w-9 text-positive hover:bg-positive/10 hover:text-positive dark:text-positive dark:hover:text-positive"
+                  className="fokussiert:min-h-11 fokussiert:min-w-11 h-9 w-9 text-positive hover:bg-positive/10 hover:text-positive dark:text-positive dark:hover:text-positive"
                   title={t('accounts.manager.syncButton')}
                   aria-label={t('accounts.manager.syncButton')}
                 >
@@ -194,7 +194,7 @@ export function AccountList({
                   variant="ghost"
                   size="icon"
                   onClick={() => onDisconnect(account)}
-                  className="h-9 w-9 text-warning hover:text-warning"
+                  className="fokussiert:min-h-11 fokussiert:min-w-11 h-9 w-9 text-warning hover:text-warning"
                   title={t('accounts.manager.disconnectButton')}
                   aria-label={t('accounts.manager.disconnectButton')}
                 >
@@ -205,7 +205,7 @@ export function AccountList({
                   variant="ghost"
                   size="icon"
                   onClick={() => onDelete(account)}
-                  className="h-9 w-9 text-warning hover:text-warning"
+                  className="fokussiert:min-h-11 fokussiert:min-w-11 h-9 w-9 text-warning hover:text-warning"
                   title={t('accounts.manager.deleteButton')}
                   aria-label={t('accounts.manager.deleteButton')}
                 >

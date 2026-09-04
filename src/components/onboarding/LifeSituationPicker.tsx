@@ -94,7 +94,7 @@ export default function LifeSituationPicker({
                 aria-checked={active}
                 onClick={() => onToggleModifier(modifier.id)}
                 className={cn(
-                  'min-h-[36px] rounded-full border px-3 py-1.5 text-xs transition-colors',
+                  'fokussiert:min-h-11 min-h-[36px] rounded-full border px-3 py-1.5 text-xs transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   active
                     ? 'border-primary bg-primary/10 font-medium text-foreground'

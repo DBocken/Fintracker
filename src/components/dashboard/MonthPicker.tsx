@@ -113,7 +113,7 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
                     setOpen(false);
                   }}
                   className={cn(
-                    "min-h-[40px] rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "fokussiert:min-h-11 min-h-[40px] rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isSelected
                       ? "border-primary bg-primary text-primary-foreground"
                       : isAvailable

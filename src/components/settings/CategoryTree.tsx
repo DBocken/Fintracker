@@ -91,7 +91,7 @@ export function CategoryTree({
                   e.stopPropagation();
                   onAddSubcategory(category.id);
                 }}
-                className="h-9 w-9 p-0"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 h-9 w-9 p-0"
                 title={t('categoryTree.addSubcategoryTitle')}
               >
                 <Plus className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function CategoryTree({
                   e.stopPropagation();
                   onEdit(category);
                 }}
-                className="h-9 w-9 p-0"
+                className="fokussiert:min-h-11 fokussiert:min-w-11 h-9 w-9 p-0"
                 title={t('categoryTree.editTitle')}
               >
                 <Edit3 className="h-4 w-4" />
@@ -116,7 +116,7 @@ export function CategoryTree({
                     e.stopPropagation();
                     onDelete(category);
                   }}
-                  className="h-9 w-9 p-0"
+                  className="fokussiert:min-h-11 fokussiert:min-w-11 h-9 w-9 p-0"
                   title={t('categoryTree.deleteTitle')}
                 >
                   <Trash2 className="h-4 w-4" />

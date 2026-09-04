@@ -157,3 +157,73 @@ describe('varianteHoehenAus', () => {
     expect(varianteHoehenAus('const x = 1;')).toBeNull();
   });
 });
+
+/**
+ * Der blinde Fleck: Ein `>` im Attribut beendet das Tag nicht.
+ *
+ * Die erste Fassung nahm `indexOf('>')` fuer das Ende des oeffnenden Tags.
+ * Eine Pfeilfunktion (`onClick={() => …}`) enthaelt aber ein `>`, und der
+ * Attributausschnitt endete dort. Stand `className` DAHINTER — die uebliche
+ * Reihenfolge —, sah der Waechter ihn nie.
+ *
+ * Gemessen betraf das 20 Bedienelemente in zehn Dateien, darunter die Farb-
+ * und Symbolknoepfe des Kategorie-Formulars mit je 32 px. Die Ratsche stand
+ * auf 0 und behauptete damit, es gebe keinen Rueckfall mehr.
+ */
+describe('Tag-Ende: ein `>` im Attribut zaehlt nicht', () => {
+  it('[REGRESSION] sollte className hinter einer Pfeilfunktion noch sehen', () => {
+    const quelle = `
+      <button
+        type="button"
+        onClick={() => onColorChange(option.value)}
+        className="w-8 h-8 rounded"
+      />`;
+    const funde = findeKleineTippziele(quelle, 'a.tsx');
+
+    expect(funde).toHaveLength(1);
+    expect(funde[0].px).toBe(32);
+  });
+
+  it('[REGRESSION] sollte auch den Boden hinter einer Pfeilfunktion noch sehen', () => {
+    // Die Gegenrichtung: Waere nur die Hoehe sichtbar und der Boden nicht,
+    // meldete der Waechter jede behobene Stelle erneut — und Fehlalarme
+    // schalten Waechter ab, statt sie durchzusetzen.
+    const quelle = `
+      <button
+        onClick={() => tue()}
+        className="w-8 h-8 fokussiert:min-h-11 fokussiert:min-w-11"
+      />`;
+
+    expect(findeKleineTippziele(quelle, 'a.tsx')).toEqual([]);
+  });
+
+  it('sollte ein `>` in einem Vergleich innerhalb des Attributs ueberstehen', () => {
+    const quelle = `
+      <button
+        disabled={anzahl > 3}
+        className="h-8"
+      />`;
+
+    expect(findeKleineTippziele(quelle, 'a.tsx')).toHaveLength(1);
+  });
+
+  it('sollte ein `>` in einer Zeichenkette ueberstehen', () => {
+    const quelle = `
+      <button
+        aria-label="mehr > weniger"
+        className="h-8"
+      />`;
+
+    expect(findeKleineTippziele(quelle, 'a.tsx')).toHaveLength(1);
+  });
+
+  it('sollte ein selbstschliessendes Tag ohne Attribute nicht verschlucken', () => {
+    // Gegenprobe, dass die neue Suche nicht ueber das Tag hinauslaeuft und
+    // Klassen des NAECHSTEN Elements mitliest.
+    const quelle = `
+      <button className="h-8" />
+      <button className="min-h-[44px]" />`;
+
+    expect(findeKleineTippziele(quelle, 'a.tsx')).toHaveLength(1);
+  });
+});
