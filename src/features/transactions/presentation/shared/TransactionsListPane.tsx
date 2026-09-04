@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { TransactionDayList } from '@/components/dashboard/TransactionDayList';
 import { TransactionStats } from '@/components/dashboard/TransactionStats';
 import { TransactionFilters } from '@/components/dashboard/TransactionFilters';
@@ -88,7 +89,65 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
               className="h-11 w-full rounded-full border border-input bg-background/50 pl-10 pr-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Auf dem Telefon: EIN Knopf statt fuenf Auswahlfelder.
+              Auf dem Geraet nachgesehen belegte die Filterleiste hier rund
+              450 Pixel — man scrollte an einer Wand aus Auswahlfeldern
+              vorbei, bevor die erste Buchung sichtbar wurde. Das Dashboard
+              loest denselben Fall laengst so (Knopf + Dialog); diese Flaeche
+              tat es als einzige nicht.
+
+              Bottom Sheet statt Dialog: AGENTS.md §4 nennt Bottom Sheets als
+              das mobile Muster, und die Auswahl liegt damit dort, wo der
+              Daumen ist. Die Zahl im Knopf sagt, wie viele Filter greifen —
+              sonst ist ein eingeklappter Filter ein unsichtbarer Filter, und
+              der Nutzer sucht den Grund fuer eine kurze Liste an der falschen
+              Stelle. */}
+          <div className="flex flex-wrap items-center gap-2 lg:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline" className="min-h-[44px] gap-2">
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                  {t('transactions.filter')}
+                  {filters.activeCount > 0 && (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                      {filters.activeCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                // max-h an die *sichtbare* Hoehe (dvh) und scrollbar: Bei
+                // gewaehltem Zeitraum „Benutzerdefiniert" kommen Regler und
+                // Granularitaet dazu, und auf einem kleinen Geraet passt das
+                // sonst nicht mehr aufs Blatt.
+                className="max-h-[85dvh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+                aria-describedby={undefined}
+              >
+                <SheetHeader className="text-left">
+                  <SheetTitle>{t('transactions.filter')}</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 flex flex-col gap-3">
+                  <TransactionFilters filters={filterViewModel} showSearch={false} stacked />
+                </div>
+              </SheetContent>
+            </Sheet>
+            {filters.activeCount > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-[44px] gap-1"
+                onClick={filters.reset}
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('transactions.reset')}
+              </Button>
+            )}
+          </div>
+
+          {/* Ab lg die vertraute Werkzeugleiste: Auf einem breiten Bildschirm
+              ist gleichzeitige Sichtbarkeit der Vorteil, nicht das Problem. */}
+          <div className="hidden flex-wrap items-center gap-2 lg:flex">
             <TransactionFilters filters={filterViewModel} showSearch={false} />
             {filters.activeCount > 0 && (
               <Button

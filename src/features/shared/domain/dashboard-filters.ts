@@ -23,6 +23,24 @@ export const DASHBOARD_RANGE_OPTIONS = [
 ] as const;
 
 export type DashboardRange = (typeof DASHBOARD_RANGE_OPTIONS)[number];
+
+/**
+ * Der Token für den benutzerdefinierten Zeitraum — als **Konstante**, damit
+ * ihn niemand mehr gegen einen ANZEIGETEXT vergleicht.
+ *
+ * Genau das stand in `TransactionFilters.tsx`:
+ * `values.range === t('transactionFilters.customRange')`. Der Zustand hält
+ * den Token `'Benutzerdefiniert'`, die Übersetzung liefert „Custom" bzw.
+ * „Произвольный" — der Vergleich war also **nur auf Deutsch** wahr, und auf
+ * Englisch und Russisch erschienen Tageszahl-Regler und Granularität nach
+ * der Auswahl NIE. Kein Fehler, kein leerer Zustand, nichts wurde rot: die
+ * Bedingung war schlicht immer falsch.
+ *
+ * Dieselbe Falle nennt AGENTS.md §6 („Matching über den Anzeigenamen statt
+ * der ID"). Entitäten werden über ihre stabile ID adressiert; ein
+ * Anzeigetext ist keine ID.
+ */
+export const CUSTOM_RANGE: DashboardRange = 'Benutzerdefiniert';
 // Kanonische Definition lebt in der Domain-Schicht (overview-types.ts) —
 // hier nur Re-Export, damit bestehende Importeure unverändert funktionieren.
 export type { DashboardGranularity };
