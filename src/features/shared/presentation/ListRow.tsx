@@ -65,7 +65,17 @@ export default function ListRow({
       {icon !== undefined && (
         <span
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg"
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg",
+            // Die Kachel bleibt, WO SIE ETWAS TRAEGT. Mit `iconColor` ist sie
+            // der Traeger der Kategoriefarbe — ohne sie waere die Farbe weg.
+            // Ohne `iconColor` ist sie eine getoente Flaeche um ein Symbol,
+            // also Dekoration; auf einem Telefon erzeugt genau das die
+            // Schachtelung, die ADR Regel 9 verbietet. Der 40er-Kasten bleibt
+            // in beiden Faellen stehen, damit die Zeilen buendig bleiben —
+            // verschwinden soll die sichtbare Kachel, nicht die Ausrichtung.
+            iconColor ? "" : "bg-muted fokussiert:bg-transparent",
+          )}
           style={iconColor ? { backgroundColor: `${iconColor}22` } : undefined}
         >
           {icon}
