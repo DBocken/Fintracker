@@ -31,6 +31,11 @@ byte­gleich, was die Diagnose bestätigt.
 Ohne diese Gegenprobe wäre ein Phantombefund „Liquidität rendert nicht" in die
 Planung eingegangen.
 
+**Die neun Prüfungen liefen gegen die Aufnahmen VOR dieser Behebung.** Ein
+zweiter Fehlbefund ist daraus entstanden und unten unter B1 ausdrücklich
+zurückgezogen. Alle übrigen Befunde sind am Quelltext belegt und davon
+unberührt; die Messwerte ebenfalls, denn die Höhen blieben unverändert.
+
 ## Die Messung
 
 25 Routen, Sichtfeld 360×800, Dichte auf allen Routen korrekt `fokussiert`,
@@ -65,14 +70,27 @@ und `/billing`.
 Diese wiegen schwerer als jeder Layoutbefund, weil sie falsche Auskunft geben
 oder Funktion entziehen.
 
-**B1 — Die Geldfluss-Visualisierung rendert auf dem Telefon gar nicht.**
-`SankeyChart` übergibt `ResponsiveContainer` eine Prozenthöhe. Zwischen dem
-einzigen pixelgenauen Anker und dem Container liegen drei Ebenen ohne eigene
-Höhe, sodass die Auflösung 0 ergibt. Der Nutzer sieht mehrere hundert Pixel
-leere Fläche mit einem Höhenregler darunter, ohne jeden Hinweis. Die Ursache
-ist sauber isoliert: Zeitverlauf und Wochenmuster benutzen **dieselbe** Hülle,
-geben aber eine feste Pixelhöhe — und genau sie rendern. Das ist keine
-Anpassung, sondern die Amputation, die §4 verbietet.
+**B1 — ZURÜCKGEZOGEN. Die Geldfluss-Visualisierung rendert.**
+Die Prüfung meldete sie als „mehrere hundert Pixel leere Fläche" und leitete
+eine Ursache her, die im Quelltext plausibel aussah: eine Prozenthöhe über einer
+Kette ohne eigene Höhe. Die Nachprüfung gegen die **neu aufgenommene** Fläche
+zeigt das Diagramm vollständig, mit Knoten und Flüssen.
+
+Der Grund für den Fehlbefund ist derselbe, der `/liquidity` leer erscheinen
+ließ: Der Sankey sitzt in einem Element mit Anfangstransparenz null, und die
+eingefrorene Zeit ließ die Einblendung nie anlaufen. Die neun Prüfungen liefen
+gegen die Aufnahmen **vor** dieser Behebung — deshalb ist die Herleitung aus
+dem Quelltext hier nicht Beleg, sondern nachträgliche Begründung eines
+Messfehlers.
+
+Der Rest des Befunds bleibt gültig und ist eine Proportionsfrage, keine
+Funktionsfrage: 500 px Höhe bei waagerecht gescrollter Breite für einen Fluss,
+der von links nach rechts läuft.
+
+**Lehre, die über diesen Fall hinausgeht:** Ein Befund „hier ist nichts" aus
+einer Aufnahme braucht eine Gegenprobe, bevor er Arbeit auslöst. Zweimal in
+dieser Prüfung war „nichts zu sehen" ein Fehler des Messinstruments und nicht
+der Fläche.
 
 **B2 — Das Kontenverzeichnis zeigt keinen einzigen Kontostand.** Die Kontozeile
 trägt Symbol, bis zu fünf Abzeichen, Typ, Datenqualität und Währung — keinen
@@ -271,8 +289,8 @@ unterhalb der benannten Skala — die gewonnene Breite gehört in einen Sprung a
 2. **Einstellungen ist kein Kandidat für „höchster Ertrag ohne Aufwand" mehr.**
    Die Fläche bleibt in Welle 1, aber als Verzeichnis plus schrittweise
    Migration der Unterbereiche, nicht als ein Zug.
-3. **B1 wird vorgezogen.** Eine Funktion, die auf dem Telefon leer bleibt, ist
-   nicht Teil der Darstellungsarbeit, sondern ein Fehler.
+3. **B1 ist zurückgezogen** — kein Fehler, nur eine falsche Proportion. Sie
+   fällt mit den übrigen Seitenverhältnissen in S3.
 4. **W1 und W2 gehören in S7.** Ein Wächter, der das Hauptbedienelement einer
    Fläche nicht kennt, misst dort nichts.
 5. **Die vier Tabellen auf `/trading` bleiben unverändert** und gehen als
