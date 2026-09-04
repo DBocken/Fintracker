@@ -11,8 +11,9 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useNavigate } from 'react-router-dom';
 import { renderWithProviders } from '@/test-utils/render';
 import type { CoachViewModel } from '../../../application/coach-overview-view-model';
 import CoachFokussiert from '../CoachFokussiert';
@@ -170,6 +171,40 @@ describe('Coach — fokussierte Dichte', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByTestId('ladder')).toBeInTheDocument();
     expect(within(dialog).getByText('Verträge prüfen')).toBeInTheDocument();
+  });
+
+  it('[REGRESSION] [MOBILE] sollte den Detailschritt in den Verlauf legen, damit die Zurücktaste ihn schliesst', async () => {
+    // Der Befund: Der Detailschritt öffnete mit `replace: true`. Ohne
+    // Verlaufseintrag springt die Zurücktaste auf die vorige Route — auf
+    // einem Telefon der häufigste Handgriff überhaupt, und er führte aus der
+    // Fläche heraus statt aus dem Sheet.
+    //
+    // Geprüft wird über den Router, nicht über `window.history`: Die
+    // Testumgebung fährt einen MemoryRouter, der `window.location` gar nicht
+    // anfasst. Die Zurücktaste des Geräts landet im selben Router-Verlauf.
+    const user = userEvent.setup();
+    let navigate: ReturnType<typeof useNavigate> | null = null;
+    function Sonde() {
+      navigate = useNavigate();
+      return null;
+    }
+
+    renderWithProviders(
+      <>
+        <Sonde />
+        <CoachFokussiert model={modelWith()} />
+      </>,
+      { router: true, query: true },
+    );
+
+    await user.click(screen.getByRole('button', { name: /Mehr zu deiner Lage/ }));
+    await screen.findByRole('dialog');
+
+    act(() => {
+      navigate?.(-1);
+    });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('[MOBILE] sollte den Ruhezustand benennen, wenn nichts ansteht', () => {

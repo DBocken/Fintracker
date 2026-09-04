@@ -16,8 +16,14 @@ import { formatCoachDaysUntil } from "@/i18n/format";
 import { cn } from "@/lib/utils";
 import type { CoachViewModel } from "../../application/coach-overview-view-model";
 
-/** Adressierbarer Detailschritt. Die Route bleibt `/coach` (ADR Regel 5). */
-const DETAIL_PARAM = "lage";
+/**
+ * Adressierbarer Detailschritt. Die Route bleibt `/coach` (ADR Regel 5); der
+ * Parameter heisst app-weit `detail`, sein Wert benennt den Abschnitt
+ * (ADR Regel 9b). Vorher stand hier `lage=offen` — ein eigener Name je
+ * Fläche, und zwölf Entwürfe hatten prompt acht verschiedene.
+ */
+const DETAIL_PARAM = "detail";
+const DETAIL_WERT = "lage";
 
 /**
  * Coach in der **fokussierten** Dichte.
@@ -57,7 +63,7 @@ const DETAIL_PARAM = "lage";
  *
  * **Nichts ist amputiert** (ADR Regel 2 und 5). Statusraster, Landschaft,
  * Teilwerte, Fundament, Meilensteine, Roadmap und die weiteren Empfehlungen
- * liegen einen Schritt tiefer unter `?lage=offen` — adressierbar, unter
+ * liegen einen Schritt tiefer unter `?detail=lage` — adressierbar, unter
  * derselben Route, mit der Zurück-Taste erreichbar.
  */
 export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
@@ -65,12 +71,18 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
   const money = useMoneyFormat();
   const [params, setParams] = useSearchParams();
 
-  const detailOffen = params.get(DETAIL_PARAM) === "offen";
+  const detailOffen = params.get(DETAIL_PARAM) === DETAIL_WERT;
   const setDetail = (offen: boolean) => {
     const next = new URLSearchParams(params);
-    if (offen) next.set(DETAIL_PARAM, "offen");
+    if (offen) next.set(DETAIL_PARAM, DETAIL_WERT);
     else next.delete(DETAIL_PARAM);
-    setParams(next, { replace: true });
+    // Öffnen legt einen Verlaufseintrag an, Schliessen ersetzt ihn
+    // (ADR Regel 9b). Vorher stand hier `replace: true` in BEIDEN Richtungen,
+    // und der Kommentar behauptete, die Zurücktaste schliesse den
+    // Detailschritt — sie tat es nicht: Ohne Verlaufseintrag springt sie auf
+    // die vorige Route. Auf einem Telefon ist das der häufigste Handgriff
+    // überhaupt, und er führte aus der Fläche heraus statt aus dem Sheet.
+    setParams(next, { replace: !offen });
   };
 
   const { coach, health, milestones, milestonesLoading, accountsBalance, disposable, disposableLoading, focus, followUps, loading } = model;

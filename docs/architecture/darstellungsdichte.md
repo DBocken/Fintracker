@@ -179,6 +179,48 @@ dann nur Rand (zweimal 16 px je Box), erzeugt eine Schachtelung, die es nicht
 gibt, und — das ist der eigentliche Schaden — er verspricht nach Prinzip 8
 eine Aktion, die er nicht einlöst.
 
+### 9a. Was als EINE Aussage zählt — und was keine Box ist
+
+Nachgetragen am 2026-09-04, nachdem zwölf Flächen gleichzeitig gegen Regel 9
+entworfen wurden und dabei dieselben drei Fragen stellten.
+
+**Eine Visualisierung ist selbst die eine Aussage.** Ein Diagramm mit sechs
+Beschriftungen sind nicht sechs Aussagen, sondern eine — die Beschriftungen
+sind ihre Legende. Ohne diesen Satz wäre jedes Recharts-Diagramm der App ein
+Verstoß und Regel 9 auf keiner Fläche mit Grafik anwendbar (Übersicht,
+Liquidität, Einkommen, Trading, Analyse, Finanzstadt). Die Frage ist nicht,
+wie viele Zahlen zu sehen sind, sondern wie viele **Entscheidungen** die
+Fläche verlangt.
+
+**Ein Plättchen AUF einer gerenderten Fläche ist keine Box; der Rahmen UM sie
+schon.** Die Beschriftung im Bild — die Karte der Finanzstadt, das Label über
+einem Gebäude, die Zahl im Sunburst — gehört zur Visualisierung. Der Rahmen,
+den jemand um das Bild legt, ist eine Box und fällt unter Regel 9.
+
+**Keine Fläche bekommt eine Ausnahme von „ein Bildschirm".** Auch nicht die
+Vollbild-Visualisierung: Wenn sie den Bildschirm füllt, erfüllt sie die Regel
+ohnehin; was sie an Bedienung braucht, gehört in den Detailschritt.
+
+### 9b. Drei Konventionen, die alle Flächen teilen
+
+Ohne sie stehen nach dem Zusammenführen acht verschiedene Namen in geteilten
+Adressen. Gemessen: Die zwölf Entwürfe schlugen `?lage=`, `?summen=`,
+`?bereich=`, `?schritt=`, `?frage=`, `?anlass=`, `?stand=` und
+`?verwaltung=` vor — für dieselbe Sache.
+
+| Konvention | Regel |
+|---|---|
+| **Name des Detailschritts** | Ein Parameter für die ganze App: **`?detail=<abschnitt>`**. Der Wert benennt den Abschnitt (`?detail=lage`, `?detail=summen`), damit eine Fläche mehrere Detailschritte haben kann, ohne einen zweiten Parameter zu erfinden |
+| **Zurücktaste** | Öffnen **legt einen Verlaufseintrag an** (`push`), Schließen ersetzt ihn (`replace`). Nur so schließt die Zurücktaste den Detailschritt, statt die Fläche zu verlassen. Ein Register**wechsel** innerhalb einer Fläche ist dagegen keine Station im Verlauf und ersetzt |
+| **Wer „ein Bildschirm" misst** | Playwright, in beiden Dichten: Scrollhöhe der Fläche gegen die Viewport-Höhe. **Nicht** jsdom — dort hat nichts eine Höhe, ein Unit-Test kann die Regel weder halten noch brechen |
+
+**Die Zurücktasten-Regel ist am Bestand gelernt.** Die erste fokussierte
+Fläche (`CoachFokussiert`) öffnete ihren Detailschritt mit `replace: true` und
+behauptete im Kommentar, die Zurücktaste schließe ihn. Sie tat es nicht: Ohne
+Verlaufseintrag springt die Zurücktaste auf die vorige Route. Auf einem
+Telefon ist das der häufigste Handgriff überhaupt — und er führte aus der App
+heraus statt aus dem Sheet.
+
 ### 10. Eine Karte ist eine Aktion, keine Schachtel
 
 Prinzip 8 (`docs/design-principles.md`, Wächter `check:card-rule`) gilt
