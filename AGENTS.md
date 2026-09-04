@@ -688,7 +688,11 @@ fachlichen Invarianten: `docs/coding-guide.md`, `docs/domain-invariants.md`.
 
 ## 9. Design-Grundregeln
 
-- **Karten sind Aktionen:** Fläche mit Karten-Chrome (Rahmen + Hintergrund +
+- **Karten sind Aktionen** — und zwar in der **kompakten** Dichte; die
+  fokussierte kennt keine Karten (`docs/architecture/darstellungsdichte.md`
+  Regel 9 „keine Boxen", Regel 10). In **beiden** Dichten gilt: eine Liste
+  bekommt keine Karte um sich, ein wiederholter Eintrag keine Karte je Stück.
+  Im Übrigen unverändert: Fläche mit Karten-Chrome (Rahmen + Hintergrund +
   Schatten) muss als Ganzes klickbar sein (navigieren, Popup/Sheet/Dialog
   öffnen, auf-/zuklappen). Kein toter Karten-Rahmen um nur einen
   verschachtelten Button. Bausteine: klickbar → `@/features/shared/
