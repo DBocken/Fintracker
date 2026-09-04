@@ -1230,6 +1230,7 @@ export const de = {
       applyingLabel: 'Anwenden...',
       affectedTransactionsTitle: 'Betroffene Transaktionen',
       moreItemsLabel: '... und {count} weitere',
+      planLine: 'Übernehmen ordnet {hinzu} Buchungen dieser Kategorie zu und entzieht sie {entzug} anderen. Insgesamt ändert der Lauf {gesamt} Buchungen über alle Kategorien.',
       noTransactionsMessage: 'Keine Transaktionen würden durch diese Kategorie-Regeln verändert.',
       undoButton: 'Letzte Aktion rückgängig',
     },

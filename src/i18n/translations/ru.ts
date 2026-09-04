@@ -1229,6 +1229,7 @@ export const ru = {
       applyingLabel: 'Применение...',
       affectedTransactionsTitle: 'Затронутые транзакции',
       moreItemsLabel: '... и ещё {count}',
+      planLine: 'Применение отнесёт к этой категории {hinzu} операций и снимет её с {entzug}. Всего запуск изменит {gesamt} операций по всем категориям.',
       noTransactionsMessage: 'Эти правила категорий не изменят ни одной транзакции.',
       undoButton: 'Отменить последнее действие',
     },

@@ -9,7 +9,14 @@ import type { Transaction, HierarchicalCategory } from '../../types';
 
 interface CategoryPreviewProps {
   category: HierarchicalCategory | null;
+  /** Zeilen zum Zeigen — GEKAPPT. Die Zahlen darunter sind es nicht. */
   affectedTransactions: Transaction[];
+  /** Buchungen, die diese Kategorie bekommen. Vollstaendig gezaehlt. */
+  anzahlHinzu: number;
+  /** Buchungen, die diese Kategorie VERLIEREN. Der Lauf entzieht auch. */
+  anzahlEntzug: number;
+  /** Buchungen, die der Lauf insgesamt aendert — ueber ALLE Kategorien. */
+  anzahlGesamt: number;
   onPreview: () => void;
   onApply: () => void;
   onUndo: () => void;
@@ -19,6 +26,9 @@ interface CategoryPreviewProps {
 export function CategoryPreview({
   category,
   affectedTransactions,
+  anzahlHinzu,
+  anzahlEntzug,
+  anzahlGesamt,
   onPreview,
   onApply,
   onUndo,
@@ -102,11 +112,25 @@ export function CategoryPreview({
                     </div>
                   </ScrollArea>
 
-                  {affectedTransactions.length > 10 && (
+                  {anzahlHinzu > affectedTransactions.slice(0, 10).length && (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {t('settings.categoryPreview.moreItemsLabel').replace('{count}', String(affectedTransactions.length - 10))}
+                      {t('settings.categoryPreview.moreItemsLabel').replace(
+                        '{count}',
+                        String(anzahlHinzu - affectedTransactions.slice(0, 10).length),
+                      )}
                     </p>
                   )}
+
+                  {/* Was der Knopf daneben WIRKLICH tut. Die Liste zeigt nur,
+                      was in diese Kategorie wandert; der Lauf entzieht auch
+                      Zuordnungen und laeuft ueber alle Kategorien. Beides stand
+                      bis hierher nirgends. */}
+                  <p className="mt-3 border-t border-border/60 pt-3 text-sm text-muted-foreground">
+                    {t('settings.categoryPreview.planLine')
+                      .replace('{hinzu}', String(anzahlHinzu))
+                      .replace('{entzug}', String(anzahlEntzug))
+                      .replace('{gesamt}', String(anzahlGesamt))}
+                  </p>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">

@@ -139,6 +139,9 @@ export function EnhancedSettings() {
             <CategoryPreview
               category={settings.preview.category}
               affectedTransactions={settings.preview.transactions}
+              anzahlHinzu={settings.preview.anzahlHinzu}
+              anzahlEntzug={settings.preview.anzahlEntzug}
+              anzahlGesamt={settings.preview.anzahlGesamt}
               onPreview={() => void settings.loadPreview()}
               onApply={settings.recategorize}
               onUndo={settings.undoRecategorization}

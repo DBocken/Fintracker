@@ -1229,6 +1229,7 @@ export const en = {
       applyingLabel: 'Applying...',
       affectedTransactionsTitle: 'Affected transactions',
       moreItemsLabel: '... and {count} more',
+      planLine: 'Applying assigns {hinzu} transactions to this category and removes it from {entzug}. In total the run changes {gesamt} transactions across all categories.',
       noTransactionsMessage: 'No transactions would be changed by these category rules.',
       undoButton: 'Undo last action',
     },

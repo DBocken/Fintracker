@@ -326,8 +326,13 @@ async function updateInKategorien(categories: Category[], category: Category): P
   // acht Stellen in category-migrations.ts und category-template.ts). Wer eine
   // ausgelieferte Kategorie aendert, soll seine Aenderung behalten — also wird
   // die Marke hier gesetzt und nicht bloss mitgeschleppt.
-  const angezeigterName = existing.name_key ? t(existing.name_key, existing.name) : existing.name;
-  const umbenannt = category.name !== angezeigterName;
+  // Den ANGEZEIGTEN Namen ueber `localizeCategories` aufloesen statt ueber ein
+  // zweites Aufloesen ueber eine Schluessel-VARIABLE: So ein Schluessel laesst sich von
+  // der Aufrufstellen-Pruefung nicht mehr gegen den Sprachbaum halten, und
+  // `call-site-keys.test.ts` haelt ihre Zahl als Ratsche fest. Es gibt bereits
+  // genau eine Stelle, die das tut — eine zweite waere derselbe Dienst zweimal.
+  const [angezeigt] = localizeCategories([existing]);
+  const umbenannt = category.name !== angezeigt.name;
 
   const updated: Category = {
     ...existing,
