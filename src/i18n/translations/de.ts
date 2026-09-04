@@ -550,6 +550,12 @@ export const de = {
     checkBackup: 'Backup prüfen',
   },
   specialCategories: {
+    fokussiert: {
+      largest: 'Teuerster Anlass',
+      listTitle: 'Alle Anlässe',
+      suggestionsCount: '{count} Vorschläge',
+      detailTitle: 'Anlass im Detail',
+    },
     service: {
       nameRequired: 'Anlass braucht einen Namen',
       cycle: 'Ein Anlass kann sich nicht selbst oder einem seiner Unter-Anlässe untergeordnet werden',
@@ -584,6 +590,7 @@ export const de = {
     unassign: 'Entfernen',
   },
   common: {
+    next: 'Weiter',
     errorWithMessage: 'Fehler: {message}',
     restCategory: 'Weitere / ohne Unterkategorie',
     categoriesLabel: 'Kategorien',
@@ -612,6 +619,7 @@ export const de = {
     deleteError: 'Fehler beim Löschen: ',
   },
   shell: {
+    toolsGroup: 'Werkzeuge',
     appName: 'Ausgabentracker',
     copilot: 'Finanz-Copilot',
     search: 'Suchen',
@@ -676,6 +684,10 @@ export const de = {
     resetButton: 'Zurücksetzen',
   },
   tutorials: {
+    fokussiert: {
+      progressLine: '{done} von {total} Kapiteln',
+      nextChapter: 'Weiter mit {titel}',
+    },
     title: 'Tutorials',
     description: 'Alle Führungen durch Fintracker — Bereich für Bereich. Angesehene Kapitel bekommen einen Haken; noch einmal ansehen kannst du jedes davon.',
     progressLabel: 'Angesehene Kapitel',
@@ -741,6 +753,14 @@ export const de = {
     },
   },
   city: {
+    fokussiert: {
+      detailTitle: 'Alles zur Stadt',
+      more: 'Mehr',
+      pathHeading: 'Wo du gerade bist',
+      monthHeading: 'Monat wählen',
+      overviewHeading: 'Einnahmen und Ausgaben',
+      detailsHeading: 'Was in dieser Ebene steckt',
+    },
     title: 'Finanzstadt',
     tabOverview: 'Übersicht',
     tabIncome: 'Einnahmen',
@@ -828,6 +848,14 @@ export const de = {
     },
   },
   premium: {
+    fokussiert: {
+      expensesLabel: 'Ausgaben',
+      biggestItem: 'Größter Posten',
+      shareOfSpending: '{percent} deiner Ausgaben',
+      detailTitle: 'Alle Auswertungen',
+      more: 'Mehr Auswertungen',
+      backToMain: 'Zurück zu den Hauptkategorien',
+    },
     addWidget: 'Widget hinzufügen',
     heatmap: {
       title: 'Aktivitätskalender',
@@ -1148,6 +1176,13 @@ export const de = {
     updateError: 'Fehler beim Aktualisieren: {error}',
   },
   settings: {
+    fokussiert: {
+      dataStateLabel: 'Deine Daten auf diesem Gerät',
+      securityAction: 'Verschlüsselung einrichten und verwalten',
+      categoryCount: '{count} Kategorien',
+      retentionMonths: 'Aufbewahrung {months} Monate',
+      groupDisplay: 'Aussehen & Sprache',
+    },
       questionLearning: {
         title: 'Gelernte Fragen',
         description: 'Die Nachfragen-Seite hat {anzahl} bestätigte Zuordnungen gespeichert (verschlüsselt, nur auf diesem Gerät). Sie helfen, deine Formulierungen künftig direkt zu verstehen.',
@@ -1346,6 +1381,16 @@ export const de = {
     },
   },
   dashboard: {
+    fokussiert: {
+      spentLabel: 'Ausgegeben',
+      biggestLabel: 'Größter Posten',
+      biggestShare: '{share} % deiner Ausgaben',
+      noExpenses: 'In diesem Zeitraum keine Ausgaben',
+      transactionsAction: 'Buchungen dazu ansehen',
+      more: 'Alles ansehen',
+      detailTitle: 'Übersicht im Detail',
+      periodSection: 'Zeitraum und Filter',
+    },
     allTransactions: 'Alle sichtbaren Transaktionen auswählen',
     search: 'Suche...',
     selectAll: 'Alle auswählen',
@@ -1437,6 +1482,15 @@ export const de = {
     summaryFlat: '{title}: weitgehend gleichbleibend um {last}. Höchstwert {max} bei {maxLabel}, Tiefstwert {min} bei {minLabel}, {count} Werte.',
   },
   liquidityReport: {
+    fokussiert: {
+      lowestOn: 'am {date}',
+      bufferHolds: 'Puffer {amount} hält über {months} Monate',
+      bufferBreaks: 'Puffer {amount} bricht am {date}',
+      scenarioActive: 'Szenario aktiv',
+      scenarioClear: 'verwerfen',
+      moreLink: 'Annahmen & Analyse',
+      detailTitle: 'Annahmen & Analyse',
+    },
     forecastError: 'Forecast konnte nicht berechnet werden',
     unknownError: 'Unbekannter Fehler.',
     riskStatus: 'Risiko',
@@ -1545,6 +1599,14 @@ export const de = {
     unknownUser: 'Unbekannter Nutzer',
   },
   transactions: {
+    fokussiert: {
+      balanceLabel: 'Kontostand · alle Konten',
+      balanceScoped: 'Saldo · {account}',
+      selectionLabel: 'Saldo der Auswahl',
+      selectionCount: '{count} von {total} Buchungen',
+      more: 'Einnahmen und Ausgaben',
+      detailTitle: 'Der gewählte Ausschnitt',
+    },
     title: 'Buchungen',
     description: 'Alle Transaktionen – tippe eine Zeile an, um sie zu bearbeiten.',
     search: 'Buchungen durchsuchen…',
@@ -1561,6 +1623,14 @@ export const de = {
     dayHeadingYesterday: 'Gestern',
   },
   debts: {
+    fokussiert: {
+      debtFreeInMonths: 'Schuldenfrei in {months} Monaten',
+      monthlyRate: '{amount} pro Monat',
+      planLink: 'Plan ansehen',
+      listTitle: 'Deine Schulden',
+      addLink: 'Schuld erfassen',
+      planDetailTitle: 'Schuldenabbau im Detail',
+    },
     title: 'Schulden & Forderungen',
     description: 'Behalte Verbindlichkeiten und verliehenes Geld im Blick und plane deinen Schuldenabbau.',
     tabDebts: 'Schulden',
@@ -1768,6 +1838,12 @@ export const de = {
     },
   },
   milestones: {
+    fokussiert: {
+      progressCount: '{achieved} von {total} erreicht',
+      goalProgress: '{amount} von {target}',
+      allLink: 'Alle Meilensteine',
+      detailTitle: 'Dein Fortschrittspfad',
+    },
     title: 'Meilensteine',
     description: 'Dein Fortschritt auf dem Weg zu finanzieller Sicherheit – Schritt für Schritt.',
     achieved: 'Erreichte Meilensteine',
@@ -1797,11 +1873,18 @@ export const de = {
     },
   },
   netWorth: {
+    manualAssets: 'Sachwerte',
+    manualAssetsDesc: 'Manuell gepflegte Werte wie Auto oder Immobilie — jeweils mit dem Datum der letzten Schätzung.',
+    noManualAssets: 'Keine Sachwerte hinterlegt.',
+    fokussiert: {
+      compositionTitle: 'Woraus es besteht',
+      scaleLink: 'Größenordnung',
+    },
     volumeShare: '{label}: {value} — {percent} % des Vermögens',
     title: 'Nettovermögen',
     description: 'Konten und Investitionen abzüglich deiner Schulden – dein wahres Vermögen.',
     netWorth: 'Nettovermögen',
-    composition: 'Liquidität + Investitionen + Forderungen − Schulden',
+    composition: 'Liquidität + Investitionen + Sachwerte + Forderungen − Schulden',
     liquidity: 'Liquidität',
     liquidityDesc: 'Summe der Salden aller Konten.',
     liquidityDetailedDescription: 'Wenn ein Konto mit der Bank verbunden ist, wird der zuletzt abgerufene Bank-Saldo verwendet – auch ohne synchronisierte Transaktionen. Ohne Bankanbindung wird der Saldo aus den lokal erfassten Transaktionen berechnet.',
@@ -2085,6 +2168,13 @@ export const de = {
     },
   },
   privacy: {
+    fokussiert: {
+      headline: 'Deine Finanzdaten liegen auf diesem Gerät.',
+      encryptionLocked: 'Verschlüsselt, gesperrt',
+      neverLeavesLine: '{items} bleiben hier.',
+      detailTitle: 'Was genau wohin geht',
+      detailAction: 'Alle Einzelheiten',
+    },
     title: 'Wie wir mit deinen Daten umgehen',
     intro:
       'Kurz gesagt: Deine Finanzdaten bleiben auf deinem Gerät. Wir haben keine Cloud-Datenbank mit deinen Transaktionen — und wollen auch keine.',
@@ -2227,6 +2317,15 @@ export const de = {
     },
   },
   trading: {
+    fokussiert: {
+      detailTitle: 'Depot im Detail',
+      more: 'Alles zum Depot',
+      investedHint: '{amount} investiert',
+      unconvertedHint: '{count} Positionen in Fremdwährung sind nicht enthalten',
+      sortLabel: 'Sortieren nach',
+      etoroSections: 'eToro-Konto',
+      settingsSection: 'Kurse & Import',
+    },
     etoro: {
       tabs: {
         overview: 'Übersicht',
@@ -2627,6 +2726,11 @@ export const de = {
     selectLocaleAriaLabel: '{label} wählen',
   },
   dataExport: {
+    fokussiert: {
+      stepRange: 'Welcher Zeitraum?',
+      stepFormat: 'Welches Format?',
+      stepConfirm: 'Export starten',
+    },
     exportSuccess: 'Erfolgreich {count} Transaktionen exportiert',
     exportError: 'Export fehlgeschlagen: {error}',
     genericExportFailed: 'Export fehlgeschlagen',
@@ -2708,6 +2812,17 @@ export const de = {
       loadError: 'Deine Ein- und Auszahlungen konnte ich nicht laden.',
     },
   accounts: {
+    fokussiert: {
+      title: 'Konten',
+      totalLabel: 'Auf allen Konten',
+      listLabel: 'Deine Konten ({count})',
+      consentExpiredOne: '1 Bankverbindung neu freigeben',
+      consentExpiredMany: '{count} Bankverbindungen neu freigeben',
+      manage: 'Konten verwalten',
+      manageTitle: 'Konten verwalten',
+      accountDetailTitle: 'Konto',
+      noAnchorHint: 'Noch kein echter Kontostand hinterlegt',
+    },
     formDialog: {
       titleEdit: 'Konto bearbeiten',
       titleNew: 'Neues Konto erstellen',
@@ -2965,6 +3080,13 @@ export const de = {
     defaultTaxCategoryNone: 'Keine Vorauswahl',
   },
   euer: {
+    fokussiert: {
+      detailTitle: 'Deine EÜR im Detail',
+      reserveGap: 'Noch zurückzulegen',
+      reserveDone: 'Rücklage steht',
+      unassigned: '{count} Ausgaben ohne EÜR-Blatt',
+      allAssigned: 'Alles zugeordnet',
+    },
     export: {
       colSection: 'Bereich',
       colLine: 'Zeile',
@@ -3021,6 +3143,12 @@ export const de = {
     },
   },
   tax: {
+    fokussiert: {
+      detailTitle: 'Alles zur Steuer',
+      more: 'Rubriken, Arbeitsweg und Export',
+      openSuggestions: '{count} Buchungen zum Prüfen',
+      allMarked: 'Alles markiert',
+    },
     page: {
       title: 'Steuer',
       subtitle: 'Was kannst du absetzen?',
@@ -3255,6 +3383,16 @@ export const de = {
     unmarkedAsTax: 'Steuer-Markierung entfernt',
   },
   contracts: {
+    fokussiert: {
+      title: 'Abos & Verträge',
+      monthlyLabel: 'Feste Kosten je Monat',
+      fromActive: 'aus {count} aktiven Verträgen',
+      listLabel: 'Aktive Verträge ({count})',
+      candidatesOne: '1 mögliche Vertrag erkannt',
+      candidatesMany: '{count} mögliche Verträge erkannt',
+      more: 'Alles zu Verträgen',
+      detailTitle: 'Verträge im Detail',
+    },
     monthly: 'Monatlich',
     weekly: 'Wöchentlich',
     quarterly: 'Vierteljährlich',
@@ -3425,6 +3563,14 @@ export const de = {
     networkError: 'Verbindungsfehler.',
   },
   csv: {
+    fokussiert: {
+      stepFile: 'Datei wählen',
+      stepAccount: 'Auf welches Konto?',
+      stepRequiredColumns: 'Welche Spalte ist was?',
+      stepOptionalColumns: 'Optionale Spalten',
+      stepReview: '{count} Buchungen prüfen',
+      progress: 'Schritt {step} von {total}',
+    },
     title: 'CSV hochladen',
     description: 'Importiere Transaktionen aus deiner Bank-CSV',
     targetAccount: 'Zielkonto',
@@ -3636,6 +3782,20 @@ export const de = {
     finishButton: 'Zurück zum Ausgabentracker',
   },
   budgets: {
+    fokussiert: {
+      freeThisMonth: 'Diesen Monat noch frei',
+      overThisMonth: 'Diesen Monat überzogen',
+      perDay: '{amount} pro Tag',
+      perDayHint: 'für die restlichen {days} Tage',
+      overCount: '{over} von {total} Budgets überzogen',
+      rowRemaining: '{amount} übrig',
+      rowOver: '{amount} drüber',
+      moreLink: 'Vorschläge & Details',
+      detailTitle: 'Budgets im Detail',
+      addShort: 'Budget',
+      suggestionAdd: '{amount}/Mo. übernehmen',
+      nonMonthlyHint: '{count} Budgets mit anderem Zeitraum',
+    },
     saved: 'Budget gespeichert',
     saveFailed: 'Speichern fehlgeschlagen',
     deleted: 'Budget gelöscht',
@@ -3975,6 +4135,12 @@ export const de = {
     expensesLabel: 'Ausgaben',
   },
   income: {
+    fokussiert: {
+      window: 'letzte {months} Monate',
+      concentration: '{name} trägt {percent} — {verdict}',
+      detailLink: 'Aufteilung und Verlauf',
+      detailTitle: 'Einnahmen im Detail',
+    },
     monthColumn: 'Monat',
     totalColumn: 'Summe',
     sourceColumn: 'Quelle',
@@ -4408,6 +4574,15 @@ export const de = {
     of: 'von',
   },
   financeQuestions: {
+    fokussiert: {
+      prompt: 'Was willst du über dein Geld wissen?',
+      examplesLabel: 'Zum Beispiel',
+      understoodLine: 'Verstanden als: {label}',
+      detailTitle: 'Wie ich das gerechnet habe',
+      detailAction: 'Rechenweg und Korrektur',
+      settingsTitle: 'Fragen verstehen',
+      settingsAction: 'Einstellungen zum Verstehen',
+    },
       showForecast: 'Vorschau öffnen',
       showCoach: 'Coach öffnen',
       showContract: 'Diesen Vertrag ansehen',
@@ -4912,6 +5087,10 @@ export const de = {
     lightModeLabel: 'Zu dunkel wechseln',
   },
   billing: {
+    fokussiert: {
+      statusLabel: 'Dein Zugang',
+      none: 'Kein Abo',
+    },
     title: 'Premium',
     subtitle: 'Alle Funktionen freischalten — monatlich kündbar.',
     loading: 'Abo-Status wird geprüft …',

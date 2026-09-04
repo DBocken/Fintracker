@@ -167,7 +167,7 @@ export const everydayDe: TranslationOverlay = {
     title: 'Besitz minus Schulden',
     netWorth: 'Besitz minus Schulden',
     liquidity: 'Verfügbares Geld',
-    composition: 'Verfügbares Geld + Investitionen + offene Forderungen − Schulden',
+    composition: 'Verfügbares Geld + Investitionen + Sachwerte + offene Forderungen − Schulden',
     // Schliesst eine Inkonsistenz aus Welle 1: die Kachel sagte bereits
     // „Verfügbares Geld", ihr eigener Erklärtext weiter „Liquidität"/„Saldo".
     liquidityDetailedDescription: 'Wenn ein Konto mit der Bank verbunden ist, wird der zuletzt abgerufene Kontostand der Bank verwendet – auch ohne synchronisierte Transaktionen. Ohne Bankanbindung wird der Kontostand aus den lokal erfassten Transaktionen berechnet.',
