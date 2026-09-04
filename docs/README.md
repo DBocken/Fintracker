@@ -158,6 +158,20 @@ die beiden ADRs und das Anbieter-Register bleiben als geltende Dokumente.
 | [`betrieb-2026-08/status.md`](betrieb-2026-08/status.md) | **Protokoll.** Paketstand und Wiedereinstieg |
 | `betrieb-2026-08/belege/` | **Protokoll.** Nachweise der [OPS]-Pakete (entsteht mit dem ersten Beleg) |
 
+## Protokoll: Mobiler Umbau 2026-09
+
+Der **geltende** Teil steht in
+[`architecture/darstellungsdichte.md`](architecture/darstellungsdichte.md)
+(Regel 1–10). Die beiden Dateien hier sind Momentaufnahme: Sie halten fest,
+was am 2026-09-04 an zwölf Flächen **gemessen** wurde und in welcher
+Reihenfolge daraus gebaut wird. Ihre Zahlen altern absichtlich — sobald eine
+Fläche umgebaut ist, stimmt ihr Eintrag nicht mehr, und das ist richtig so.
+
+| Datei | Rolle |
+|---|---|
+| [`mobil-2026-09/flaechen.md`](mobil-2026-09/flaechen.md) | **Protokoll.** Zwölf Flächen-Entwürfe gegen Regel 9, je mit Ist-Zustand (Slice, Kartenrahmen, Abfragen in der Darstellung), den höchstens drei Aussagen samt Datenquelle, dem Detailschritt, den benötigten Texten (134 Schlüssel) und den gemeinsamen Dateien |
+| [`mobil-2026-09/reihenfolge.md`](mobil-2026-09/reihenfolge.md) | **Protokoll.** Was gefahrlos gleichzeitig gebaut werden darf, was in einer Hand bleiben muss (Sprachbäume, Ratschen, geteilte Bausteine, Gerätelauf) und die Reihenfolge der Sperren S1–S8 davor |
+
 ## Protokoll: Issue-Sichtung
 
 | Datei | Rolle |
