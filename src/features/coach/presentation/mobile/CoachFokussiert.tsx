@@ -89,11 +89,10 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
 
   return (
     <div className="flex flex-col gap-6 py-2">
-      {/* Der Seitenname steht im Inhalt, nicht in der App-Leiste: Dort blieb
-          neben Menü, Suche, Schild, Glocke und Konto die Breite von zwei
-          Zeichen — auf dem Gerät stand da „Today for …". Hier hat er Platz. */}
-      <h1 className="text-sm font-medium text-muted-foreground">{t("coach.title")}</h1>
-
+      {/* Kein eigener Seitenname mehr. Er stand hier UND abgeschnitten in der
+          App-Leiste — die Bildprüfung hat beides nebeneinander belegt („H…"
+          oben, „Heute für dich" hier). Seit der Dichteweiche rendert die Shell
+          ihn einmal im Inhalt, oberhalb dieser Fläche. */}
       {/* ── Aussage 1: der Kontostand ─────────────────────────────────
           Zuerst, und als grösste Zahl der Fläche. Das ist es, wonach beim
           Öffnen als Erstes gesucht wird — jede Einordnung darunter setzt
