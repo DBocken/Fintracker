@@ -25,6 +25,21 @@ export function DataExport() {
   const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | '30d' | '90d' | '1y'>('all');
 
+  /**
+   * Beschriftung des gewaehlten Zeitraums — EINE Quelle fuer Schaltflaeche und
+   * PDF. Vorher stand die Zuordnung als Ternaer-Kette allein an den
+   * Schaltflaechen; der Bericht kannte sie nicht, und genau deshalb konnte er
+   * seine Summen ohne Zeitraum ausweisen.
+   */
+  const zeitraumBeschriftung = (range: 'all' | '30d' | '90d' | '1y') =>
+    range === 'all'
+      ? t('dataExport.allData')
+      : range === '30d'
+        ? t('dataExport.days30')
+        : range === '90d'
+          ? t('dataExport.days90')
+          : t('dataExport.year1');
+
   // WP-9.6: Ohne den Fehlerfall exportiert die Seite stillschweigend eine
   // LEERE Datei — und die sieht aus wie ein vollstaendiger Export. Bei einer
   // Sicherung ist das die teuerste Verwechslung, die die App anbieten kann.
@@ -121,9 +136,19 @@ export function DataExport() {
 
     doc.setFontSize(10);
     doc.text(t('dataExport.pdfExportedAt').replace('{date}', date), 14, 28);
-    doc.text(t('dataExport.pdfTotalIncome').replace('{amount}', totalIncome.toFixed(2)), 14, 42);
-    doc.text(t('dataExport.pdfTotalExpenses').replace('{amount}', totalExpenses.toFixed(2)), 14, 48);
-    doc.text(t('dataExport.pdfBalance').replace('{amount}', balance.toFixed(2)), 14, 54);
+    // Eine Summe ohne Zeitraum ist eine stille Behauptung (AGENTS.md,
+    // "Rechnen, schliessen, pruefen"). Der Bericht nannte bis hierher nur das
+    // EXPORTdatum — wer die Datei spaeter oeffnet oder weitergibt, sah drei
+    // Betraege ohne erkennbaren Geltungszeitraum. Bei steuerlich verwertbaren
+    // Zahlen ist das der teuerste Fall, weil er wie ein Gesamtbestand aussieht.
+    doc.text(
+      t('dataExport.pdfPeriod').replace('{range}', zeitraumBeschriftung(selectedDateRange)),
+      14,
+      34,
+    );
+    doc.text(t('dataExport.pdfTotalIncome').replace('{amount}', totalIncome.toFixed(2)), 14, 48);
+    doc.text(t('dataExport.pdfTotalExpenses').replace('{amount}', totalExpenses.toFixed(2)), 14, 54);
+    doc.text(t('dataExport.pdfBalance').replace('{amount}', balance.toFixed(2)), 14, 60);
 
     const tableData = transactions
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -138,7 +163,9 @@ export function DataExport() {
     autoTable(doc, {
       head: [[t('dataExport.pdfTableHeader.0'), t('dataExport.pdfTableHeader.1'), t('dataExport.pdfTableHeader.2'), t('dataExport.pdfTableHeader.3'), t('dataExport.pdfTableHeader.4')]],
       body: tableData,
-      startY: 64,
+      // Die Zeitraum-Zeile hat die Summen um 6 Punkte nach unten geschoben;
+      // ohne dieses Nachziehen ruecken Tabelle und Saldo aneinander.
+      startY: 70,
       styles: {
         fontSize: 8,
         cellPadding: 2,
@@ -204,9 +231,7 @@ export function DataExport() {
                   onClick={() => setSelectedDateRange(range)}
                   className="w-full"
                 >
-                  {range === 'all' ? t('dataExport.allData') :
-                   range === '30d' ? t('dataExport.days30') :
-                   range === '90d' ? t('dataExport.days90') : t('dataExport.year1')}
+                  {zeitraumBeschriftung(range)}
                 </Button>
               ))}
             </div>

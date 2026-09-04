@@ -2626,6 +2626,7 @@ export const ru = {
     genericExportFailed: 'Не удалось выполнить экспорт',
     pdfExportTitle: 'Экспорт из Expense Tracker',
     pdfExportedAt: 'Экспортировано: {date}',
+    pdfPeriod: 'Период: {range}',
     pdfTotalIncome: 'Общий доход: €{amount}',
     pdfTotalExpenses: 'Общие расходы: €{amount}',
     pdfBalance: 'Баланс: €{amount}',

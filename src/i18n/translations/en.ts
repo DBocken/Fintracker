@@ -2626,6 +2626,7 @@ export const en = {
     genericExportFailed: 'Export failed',
     pdfExportTitle: 'Expense Tracker Export',
     pdfExportedAt: 'Exported on: {date}',
+    pdfPeriod: 'Period: {range}',
     pdfTotalIncome: 'Total income: €{amount}',
     pdfTotalExpenses: 'Total expenses: €{amount}',
     pdfBalance: 'Balance: €{amount}',

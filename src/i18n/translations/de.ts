@@ -2632,6 +2632,7 @@ export const de = {
     genericExportFailed: 'Export fehlgeschlagen',
     pdfExportTitle: 'Ausgabentracker Export',
     pdfExportedAt: 'Exportiert am: {date}',
+    pdfPeriod: 'Zeitraum: {range}',
     pdfTotalIncome: 'Gesamteinnahmen: €{amount}',
     pdfTotalExpenses: 'Gesamtausgaben: €{amount}',
     pdfBalance: 'Saldo: €{amount}',
