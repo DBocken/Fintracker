@@ -7,6 +7,7 @@ import { updateTransaction } from '@/services/transaction-service';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { upsertContractDecision } from '@/services/contract-decision-service';
 import { useI18n } from '@/i18n/useI18n';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 /**
  * Gemeinsame Logik für das Speichern aus dem Transaktions-Detail-Sheet:
@@ -22,7 +23,7 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
     mutationFn: (snapshots) => updateTransaction(snapshots).then(() => undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
-      qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      qc.invalidateQueries({ queryKey: financeKeys.transactionContracts });
       toast.success(t('transactionDetailEditing.undoSuccess'));
     },
     onError: (error) => toast.error(t('transactionDetailEditing.undoFailed').replace('{error}', error.message)),
@@ -62,7 +63,7 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
     },
     onSuccess: ({ count, snapshot }) => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
-      qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      qc.invalidateQueries({ queryKey: financeKeys.transactionContracts });
       qc.invalidateQueries({ queryKey: ['contract-decisions'] });
       const msg = count > 1
         ? t('transactionDetailEditing.multipleUpdated').replace('{count}', String(count))

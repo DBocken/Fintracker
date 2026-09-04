@@ -8,11 +8,14 @@
  * Ein umbenannter Key bricht davon nichts sichtbar; die andere Fläche zeigt
  * danach nur still veraltete Zahlen.
  */
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
+
 export const SETTINGS_QUERY_KEYS = {
   userSettings: ['userSettings'] as const,
   hierarchicalCategories: ['hierarchicalCategories'] as const,
   categorySuggestion: ['category-suggestion'] as const,
   transactions: ['transactions'] as const,
-  budgetOverview: ['budget-overview'] as const,
+  /** Geteilt — die Definition liegt in `features/shared/data`. */
+  budgetOverview: financeKeys.budgetOverview,
   merchantRules: ['merchant-rules'] as const,
 } as const;

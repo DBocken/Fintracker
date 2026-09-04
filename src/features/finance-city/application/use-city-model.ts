@@ -91,7 +91,7 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
     isError: milestonesError,
     refetch: refetchMilestones,
   } = useQuery({
-    queryKey: ['milestones', locale],
+    queryKey: financeKeys.milestones(locale),
     queryFn: evaluateMilestones,
     enabled: tab === 'goals',
   });

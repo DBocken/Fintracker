@@ -1,4 +1,5 @@
 import type { TutorialChapterId } from '@/lib/tutorial-sequence';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 /**
  * Query-Keys der Coach-Fläche — **byte-identisch** zu den Literalen, die bis
@@ -18,7 +19,8 @@ export const coachKeys = {
     tutorialChapter: TutorialChapterId | null,
   ) => ['coach-overview', locale, includeTaxReserve, tutorialChapter] as const,
   financialHealth: (locale: string) => ['financial-health', locale] as const,
-  milestones: (locale: string) => ['milestones', locale] as const,
+  /** Geteilt — die Definition liegt in `features/shared/data`. */
+  milestones: financeKeys.milestones,
   /**
    * Ohne `locale`: Die Frage „gibt es überhaupt Finanzdaten?" hat in jeder
    * Sprache dieselbe Antwort. Eigener Key statt des Buchungs-Caches, damit die

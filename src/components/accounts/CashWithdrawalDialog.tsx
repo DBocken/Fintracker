@@ -18,6 +18,7 @@ import { getAccounts } from "@/services/account-service";
 import { recordCashWithdrawal } from "@/services/cash-service";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import type { Account } from "@/types";
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 interface CashWithdrawalDialogProps {
   open: boolean;
@@ -70,7 +71,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+      queryClient.invalidateQueries({ queryKey: financeKeys.netWorth });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
       showSuccess(t('accounts.cashWithdrawal.withdrawSuccess'));

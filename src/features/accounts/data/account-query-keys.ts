@@ -8,6 +8,8 @@
  * `tsc` sieht — er wuerde still zwei Caches nebeneinander fuehren.
  */
 
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
+
 export const accountQueryKeys = {
   /** Kontenbestand. Von mehreren Flaechen geteilt. */
   accounts: ['accounts'] as const,
@@ -22,11 +24,13 @@ export const accountQueryKeys = {
   /** Praefix zum Invalidieren ALLER Freigabe-Abfragen. */
   consentStatusesRoot: ['account-consent-statuses'] as const,
   transactions: ['transactions'] as const,
-  transactionContracts: ['transactions', 'contracts'] as const,
+  /** Geteilt — die Definition liegt in `features/shared/data`. */
+  transactionContracts: financeKeys.transactionContracts,
   /** Vollabzug fuer die Uebertrags-Erkennung. */
   transactionsForTransfers: ['transactions', 'all-for-transfers'] as const,
   liveBalances: ['live-balances'] as const,
-  netWorth: ['net-worth'] as const,
+  /** Geteilt — die Definition liegt in `features/shared/data`. */
+  netWorth: financeKeys.netWorth,
 };
 
 /** Signatur der Kontenliste fuer den Freigabe-Cache. */

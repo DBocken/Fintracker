@@ -7,11 +7,12 @@ import { cn } from "@/lib/utils";
 import { evaluateMilestones } from "@/services/milestones-service";
 import { useI18n } from "@/i18n/useI18n";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 export default function MilestonesPage() {
   const { t, locale } = useI18n();
   const { data: milestones, isLoading, isError, refetch } = useQuery({
-    queryKey: ["milestones", locale],
+    queryKey: financeKeys.milestones(locale),
     queryFn: evaluateMilestones,
   });
 
