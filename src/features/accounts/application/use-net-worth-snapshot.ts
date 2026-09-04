@@ -16,10 +16,11 @@ import { useQuery } from '@tanstack/react-query';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { schreibeSchnappschuss } from '@/services/net-worth-history-service';
 import { monatsSchluessel } from '@/lib/net-worth-history-types';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 export function useNetWorthSnapshot(jetzt: Date = new Date()): void {
   // Derselbe Schlüssel wie überall sonst — kein zweiter Ladevorgang (§4).
-  const { data, isError } = useQuery({ queryKey: ['net-worth'], queryFn: getNetWorthBreakdown });
+  const { data, isError } = useQuery({ queryKey: financeKeys.netWorth, queryFn: getNetWorthBreakdown });
   const geschrieben = useRef<string | null>(null);
   const monat = monatsSchluessel(jetzt);
 
