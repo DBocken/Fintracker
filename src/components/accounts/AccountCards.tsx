@@ -80,7 +80,7 @@ export function AccountCards({ accounts, balances, totalBalance, isLoading = fal
                       <span className="truncate text-sm font-medium">{account.name}</span>
                       {hasBankConnection && (
                         <span
-                          className="shrink-0 rounded-full bg-positive/15 px-2 py-0.5 text-[10px] font-medium text-positive"
+                          className="shrink-0 rounded-full bg-positive/15 px-2 py-0.5 text-[11px] font-medium text-positive"
                           title={t('accounts.cards.connectedTitle')}
                         >
                           {t('accounts.cards.connected')}

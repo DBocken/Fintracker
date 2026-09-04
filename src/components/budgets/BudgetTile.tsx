@@ -43,7 +43,7 @@ export default function BudgetTile({ status, onClick }: BudgetTileProps) {
         <span
           aria-hidden
           className={cn(
-            "absolute right-1 top-1 rounded-full px-1 text-[9px] font-semibold leading-tight tabular-nums",
+            "absolute right-1 top-1 rounded-full px-1 text-[11px] font-semibold leading-tight tabular-nums",
             carryIn! >= 0
               ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
               : "bg-red-500/15 text-red-600 dark:text-red-400",

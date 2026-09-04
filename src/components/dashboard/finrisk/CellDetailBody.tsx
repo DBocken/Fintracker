@@ -121,7 +121,7 @@ function CompositionRow({
           {showBadge && (
             <span
               className={cn(
-                'rounded px-1 text-[10px] font-medium',
+                'rounded px-1 text-[11px] font-medium',
                 adverse
                   ? 'bg-red-500/15 text-red-600 dark:text-red-400'
                   : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
@@ -164,7 +164,7 @@ function CompositionRow({
         )}
       </div>
       {range && (
-        <div className="flex items-baseline justify-between gap-2 text-[10px] tabular-nums text-muted-foreground">
+        <div className="flex items-baseline justify-between gap-2 text-[11px] tabular-nums text-muted-foreground">
           <span>
             {t('finrisk.cellDetailComposition.rangeLabel')} {fmtSigned(range.min, money.mask)} … {fmtSigned(range.max, money.mask)}
           </span>

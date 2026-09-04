@@ -62,7 +62,7 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
             <span className="text-xl font-bold tabular-nums sm:text-2xl">
               {gentleModeEnabled ? '••' : Math.round(animatedScore)}
             </span>
-            <span className="text-[10px] text-muted-foreground">/ 100</span>
+            <span className="text-[11px] text-muted-foreground">/ 100</span>
           </div>
         </div>
 

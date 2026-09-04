@@ -244,7 +244,7 @@ export function SpendingSunburstChart({
         >
           {!isRoot && <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />}
           <span className="px-1 text-[11px] font-semibold leading-tight tabular-nums">{centerValueLabel}</span>
-          <span className="max-w-full truncate px-1 text-[9px] leading-tight text-muted-foreground">
+          <span className="max-w-full truncate px-1 text-[11px] leading-tight text-muted-foreground">
             {isRoot ? t('spending.total') : focus.name}
           </span>
         </button>

@@ -442,7 +442,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                             textAnchor="start"
                             dominantBaseline="middle"
                             fill="hsl(var(--muted-foreground))"
-                            fontSize={10}
+                            fontSize={11}
                           >
                             {amountLabel}
                           </text>
@@ -454,7 +454,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                             textAnchor="start"
                             dominantBaseline="middle"
                             fill={netColor}
-                            fontSize={10}
+                            fontSize={11}
                             fontWeight="bold"
                           >
                             {netLabel}
@@ -482,7 +482,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize={10}
+                            fontSize={11}
                           >
                             {amountLabel}
                           </text>

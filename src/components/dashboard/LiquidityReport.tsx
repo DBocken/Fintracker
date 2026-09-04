@@ -501,7 +501,7 @@ export default function LiquidityReport() {
                         <span className="flex min-w-0 items-center gap-2">
                           <span className="truncate text-sm">{d.name}</span>
                           {d.occurrences && d.occurrences > 1 && (
-                            <Badge variant="outline" className="shrink-0 text-[10px]">
+                            <Badge variant="outline" className="shrink-0 text-[11px]">
                               {d.occurrences}×
                             </Badge>
                           )}

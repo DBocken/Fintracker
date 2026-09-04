@@ -132,7 +132,7 @@ export default function DashboardMobileStory({ className, model }: Props) {
               aria-selected={active}
               onClick={() => setView(v.key)}
               className={cn(
-                "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-[10px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 active ? "border-primary bg-primary/10 text-primary" : "border-transparent text-muted-foreground"
               )}
             >

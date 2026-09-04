@@ -44,6 +44,27 @@ Farb-/Icon-Token (mit Monogramm-Fallback). Keine Insel-Lösungen pro Screen.
 `prefers-reduced-motion` wird überall respektiert – **auch bei Lottie** (pausieren/durch statisches
 Poster ersetzen). Aussagekräftige `aria-label`, Tap-Ziele groß genug, Kontrast ausreichend.
 
+„Groß genug" und „ausreichend" waren bis dahin **Absichtserklärungen**: Für den Kontrast gab es mit
+`color-contrast.test.ts` seit Langem eine Zahl (4.5:1), für die beiden anderen Maße keine – und
+genau dort stand der Bestand daneben. Nachgemessen waren es **24 Stellen mit Text unter 11 px**
+(bis hinunter zu 8 px in der Finanzlandschaft) und **217 Bedienelemente unter 44 px**
+Trefferbereich. Beides ist jetzt beziffert:
+
+| Maß | Grenze | Woher | Wächter |
+|---|---|---|---|
+| Kontrast | 4.5:1, in **beiden** Themen und **jedem** Skin | WCAG AA | `src/lib/__tests__/color-contrast.test.ts` |
+| Schriftgröße | **11 px** für jeden gerenderten Text | die benannte Tailwind-Skala beginnt ohnehin bei `text-xs` = 12 px | `pnpm check:type-scale` (ohne Ausnahmeliste) |
+| Trefferbereich | **44 px** | Apple HIG; Material nennt 48 dp. Die App benutzte `min-h-[44px]` bereits an 15 Stellen – nur unerzwungen | `pnpm check:touch-targets` (Ratsche, zwei Spalten) |
+
+Zwei Regeln dazu, die der Bestand gelehrt hat:
+
+- **Reicht der Platz für 11 px nicht, ist weniger Text die Antwort, nicht kleinerer.** Eine
+  Beschriftung, die niemand lesen kann, belegt den Platz trotzdem – sie kostet also Fläche und
+  liefert nichts dafür.
+- **Der Trefferbereich darf größer sein als das Bild.** Ein 16-px-Icon in einer 44-px-Fläche ist
+  richtig (`min-h-[44px] min-w-[44px]` neben der optischen Größe); ein 32-px-Knopf ist es nicht,
+  auch wenn er auf dem Desktop gut aussieht. Der Umbau betrifft die Fläche, nicht das Icon.
+
 ### 8. Karten sind Aktionen, nicht Dekoration
 Aus dem Usability-Test: Nutzer erwarten, dass alles, was wie eine **Karte** aussieht (Rahmen +
 Hintergrund + Schatten/Elevation), als Ganzes **anklickbar** ist – und entweder **navigiert**, ein
