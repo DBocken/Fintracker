@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MIN_TIPPZIEL_PX, findeKleineTippziele } from '../touch-target-core.mjs';
+import { MIN_TIPPZIEL_PX, findeKleineTippziele, varianteHoehenAus } from '../touch-target-core.mjs';
 
 /**
  * Ratsche für zu kleine Tippziele (AGENTS.md §4).
@@ -93,5 +93,67 @@ describe('findeKleineTippziele', () => {
 
   it('sollte die Grenze exportieren', () => {
     expect(MIN_TIPPZIEL_PX).toBe(44);
+  });
+
+  it('sollte die uebergebenen Variantenhoehen benutzen statt einer eigenen Kopie', () => {
+    const quelle = `<Button size="sm">Speichern</Button>`;
+    // Mit den alten Hoehen ist `sm` 36 px und damit ein Fund ...
+    expect(findeKleineTippziele(quelle, 'src/components/Karte.tsx', { sm: 36 })).toHaveLength(1);
+    // ... mit einem 44-px-Boden in button.tsx ist derselbe Aufruf sauber.
+    expect(findeKleineTippziele(quelle, 'src/components/Karte.tsx', { sm: 44 })).toEqual([]);
+  });
+});
+
+/**
+ * Die Variantenhoehen kommen aus `ui/button.tsx` selbst.
+ *
+ * Vorher hielt der Waechter eine KOPIE (`{ default: 40, sm: 36, ... }`),
+ * waehrend `touch-target-budget.json` daneben versprach, die 186 Fundstellen
+ * seien „EINE Entscheidung ueber die Hoehen der Varianten in ui/button.tsx —
+ * danach erreicht die Zahl 0". Einloesen liess sich das nicht: Wer die
+ * Entscheidung traf, aenderte `button.tsx`; der Waechter las weiter seine
+ * Kopie und zaehlte unveraendert 186. Eine Ratsche, die ihre eigene Behebung
+ * nicht bemerken kann, misst nichts — sie haelt nur fest.
+ */
+describe('varianteHoehenAus', () => {
+  const BUTTON_QUELLE = `
+    const buttonVariants = cva("inline-flex items-center", {
+      variants: {
+        variant: { default: "bg-primary", ghost: "hover:bg-accent" },
+        size: {
+          default: "h-10 px-4 py-2 pointer-coarse:min-h-11",
+          sm: "h-9 rounded-md px-3 pointer-coarse:min-h-11",
+          lg: "h-11 rounded-md px-8",
+          icon: "h-10 w-10 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        },
+      },
+    })`;
+
+  it('sollte den Boden unter dem Finger messen, nicht die optische Hoehe', () => {
+    // `h-9` sind 36 px mit der Maus — unter dem Daumen greift `min-h-11`.
+    // Genau diese Zahl ist die Frage dieses Waechters.
+    expect(varianteHoehenAus(BUTTON_QUELLE)).toEqual({
+      default: 44,
+      sm: 44,
+      lg: 44,
+      icon: 44,
+    });
+  });
+
+  it('sollte ohne Boden die optische Hoehe melden', () => {
+    const ohneBoden = `
+      variants: {
+        size: {
+          default: "h-10 px-4 py-2",
+          sm: "h-9 rounded-md px-3",
+        },
+      }`;
+    expect(varianteHoehenAus(ohneBoden)).toEqual({ default: 40, sm: 36 });
+  });
+
+  it('sollte null liefern, wenn kein size-Block da ist — nicht still 0 messen', () => {
+    // Der Aufrufer faellt dann auf die hinterlegten Ersatzwerte zurueck.
+    // Stillschweigend 0 zu messen hiesse: Ratsche aus, ohne dass es auffaellt.
+    expect(varianteHoehenAus('const x = 1;')).toBeNull();
   });
 });

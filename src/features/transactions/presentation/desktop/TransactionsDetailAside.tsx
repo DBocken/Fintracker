@@ -37,7 +37,7 @@ export function TransactionsDetailAside({ model, detailsTransaction, onCloseDeta
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 aria-label={t('dashboard.closeDetailsAriaLabel')}
                 onClick={onCloseDetails}
               >

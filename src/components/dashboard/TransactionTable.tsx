@@ -198,7 +198,7 @@ export function TransactionTable({
                       variant="ghost"
                       size="sm"
                       disabled={!rowId}
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                       aria-label={t("dashboard.actions")}
                     >
                       <MoreVertical className="h-4 w-4" aria-hidden="true" />

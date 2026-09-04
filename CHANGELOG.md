@@ -36,6 +36,13 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **217 Bedienelemente waren mit dem Daumen nicht sicher zu treffen.** Die
+  Ratsche hielt sie seit ihrer Einführung fest, gesenkt hat sie nie jemand:
+  186 hingen an einer einzigen Entscheidung über die Höhen der
+  Button-Varianten, 31 an je einer Klasse. Beide Zahlen stehen jetzt auf
+  **0**. Unter einem groben Zeigegerät — also am Telefon — ist jede
+  Trefferfläche mindestens 44 px; mit der Maus bleibt alles wie es war, denn
+  das Mass kommt von der Fingerkuppe und nicht vom Bildschirm.
 - **Der Kopf der App lief auf Android unter die Uhr.** `targetSdkVersion = 36`
   bedeutet seit Android 15 erzwungenes Edge-to-Edge: Die App zeichnet unter
   Statusleiste und Kamera-Ausschnitt, und ein `sticky top-0` beginnt damit am
@@ -64,6 +71,14 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
   unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
   `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **Die Tippziel-Ratsche konnte ihre eigene Behebung nicht bemerken.**
+  `touch-target-core.mjs` hielt eine **Kopie** der Variantenhöhen
+  (`{ default: 40, sm: 36, … }`), während das Budget daneben versprach, die
+  186 Fundstellen seien „EINE Entscheidung über die Höhen der Varianten in
+  `ui/button.tsx` — danach erreicht die Zahl 0". Wer die Entscheidung traf,
+  änderte `button.tsx`; der Wächter las weiter seine Kopie und zählte
+  unverändert 186. Er leitet die Höhen jetzt aus der Datei selbst ab; die
+  Kopie ist nur noch Notnagel, falls sie unlesbar ist.
 - **Der Coach ist eine Feature-Slice.** `CoachPage.tsx` trug vier eigene
   Abfragen und sechs Service-Importe; solange eine Fläche ihre eigene
   Datenschicht **ist**, lässt sich keine zweite Präsentation danebenstellen.

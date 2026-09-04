@@ -103,7 +103,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
             type="button"
             disabled
             title={t("analysisModePanel.premiumFeature")}
-            className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70"
+            className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70 pointer-coarse:min-h-11"
           >
             <Lock className="h-3 w-3" />
             {t("analysisModePanel.compareMonths")}

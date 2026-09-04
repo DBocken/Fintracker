@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { MIN_TIPPZIEL_PX, findeKleineTippziele } from './touch-target-core.mjs';
+import { MIN_TIPPZIEL_PX, findeKleineTippziele, varianteHoehenAus } from './touch-target-core.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BUDGET_PATH = path.join(REPO_ROOT, 'touch-target-budget.json');
@@ -29,11 +29,38 @@ function verfolgteDateien() {
 
 console.log(`\n👆 Tippziel-Ratsche laeuft (Mindestmass ${MIN_TIPPZIEL_PX}px)...\n`);
 
+// Die Trefferhoehen der Button-Varianten kommen aus `ui/button.tsx` selbst.
+//
+// Bis zur Mobil-Ueberarbeitung stand hier eine Kopie im Waechter, und die
+// machte sein eigenes Versprechen unhaltbar: `touch-target-budget.json` sagt,
+// die 186 Fundstellen seien „EINE Entscheidung ueber die Hoehen der Varianten
+// in ui/button.tsx — danach erreicht die Zahl 0". Wer die Entscheidung traf,
+// aenderte button.tsx; der Waechter las weiter seine eigene Kopie und zaehlte
+// unveraendert 186. Eine Ratsche, die ihre Behebung nicht bemerken kann, misst
+// nichts — sie haelt nur fest.
+//
+// Faellt die Datei weg oder ist ihr `size`-Block nicht lesbar, greift der
+// Notnagel im Kern: lieber nach den alten Zahlen messen als still 0.
+const BUTTON_PATH = path.join(REPO_ROOT, 'src/components/ui/button.tsx');
+const variantenPx = fs.existsSync(BUTTON_PATH)
+  ? varianteHoehenAus(fs.readFileSync(BUTTON_PATH, 'utf8'))
+  : null;
+if (variantenPx) {
+  const zeile = Object.entries(variantenPx).map(([k, v]) => `${k}=${v}px`).join(' · ');
+  console.log(`   Trefferhoehen aus ui/button.tsx: ${zeile}\n`);
+} else {
+  console.log('   ui/button.tsx nicht lesbar — messe nach den hinterlegten Ersatzwerten\n');
+}
+
 const proDatei = new Map();
 let klassen = 0;
 let varianten = 0;
 for (const rel of verfolgteDateien()) {
-  const funde = findeKleineTippziele(fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8'), rel);
+  const funde = findeKleineTippziele(
+    fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8'),
+    rel,
+    variantenPx ?? undefined,
+  );
   if (funde.length === 0) continue;
   proDatei.set(rel, funde);
   klassen += funde.filter((f) => f.herkunft === 'klasse').length;

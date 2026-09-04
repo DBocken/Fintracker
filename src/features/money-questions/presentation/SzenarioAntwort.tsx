@@ -199,7 +199,7 @@ function DeltaChip({
           type="button"
           variant="outline"
           size="sm"
-          className="h-6 px-2 text-xs"
+          className="h-6 px-2 text-xs pointer-coarse:min-h-11"
           disabled={betrag === null || betrag <= 0}
           onClick={() => betrag !== null && onBeziffern(betrag)}
         >

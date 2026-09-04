@@ -167,7 +167,7 @@ export function SimulationControls({
           <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">{t("liquidityReport.trialsLabel")}</span>
             <Select value={String(trials)} onValueChange={(v) => onTrials(Number(v))}>
-              <SelectTrigger className="h-9 w-24" aria-label={t("liquidityReport.trialsLabel")}>
+              <SelectTrigger className="h-9 w-24 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label={t("liquidityReport.trialsLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -241,7 +241,7 @@ export function ActiveChangesPanel({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-5 w-5 rounded-full"
+                    className="h-5 w-5 rounded-full pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                     aria-label={t("liquidityReport.removeAssumption").replace("{label}", c.label)}
                     onClick={() => onClear(c)}
                   >

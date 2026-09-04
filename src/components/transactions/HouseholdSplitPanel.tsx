@@ -134,7 +134,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
       <label className="block">
         <span className="mb-1 block text-xs text-muted-foreground">{t("household.householdLabel")}</span>
         <Select value={householdId} onValueChange={setHouseholdId}>
-          <SelectTrigger className="h-9" aria-label={t("household.householdLabel")}>
+          <SelectTrigger className="h-9 pointer-coarse:min-h-11" aria-label={t("household.householdLabel")}>
             <SelectValue placeholder={t("household.selectPlaceholder")} />
           </SelectTrigger>
           <SelectContent>

@@ -370,7 +370,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
                 variant="ghost"
                 size="sm"
                 onClick={handleRetry}
-                className="h-6 text-xs"
+                className="h-6 text-xs pointer-coarse:min-h-11"
               >
                 <RefreshCw className="h-3 w-3 mr-1" />
                 {t('goCardlessConnect.retryButton')}

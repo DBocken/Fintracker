@@ -181,7 +181,7 @@ export function AccountList({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className="h-9 w-9 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 onClick={() => onEdit(account)}
                 aria-label={t('accounts.manager.editButton')}
                 title={t('accounts.manager.editButton')}
