@@ -78,7 +78,6 @@
     "src/services/gocardless-sync-service.ts": 1,
     "src/components/GoCardlessConnect.tsx": 1,
     "src/components/dashboard/BudgetOptimizerPanel.tsx": 3,
-    "src/components/dashboard/TransactionDetailsPanel.tsx": 3,
     "src/components/dashboard/finrisk/CellDetailBody.tsx": 1,
     "src/components/premium-dashboard/SankeyChart.tsx": 2,
     "src/components/premium/LockedPreview.tsx": 1,

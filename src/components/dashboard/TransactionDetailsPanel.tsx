@@ -322,7 +322,7 @@ export function TransactionDetailsPanel({
             <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Vorschlag: {categorySuggestion.categoryLabel}</p>
+                <p className="text-sm font-medium">{t('transactionDetails.suggestionLabel')}: {categorySuggestion.categoryLabel}</p>
                 <p className="text-xs text-muted-foreground">
                   {getConfidenceLevelLabel()[categorySuggestion.confidenceLevel]}
                   {categorySuggestion.reasons[0] ? ` · ${categorySuggestion.reasons[0]}` : ''}
@@ -331,7 +331,7 @@ export function TransactionDetailsPanel({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" size="sm" disabled={isLoading} onClick={() => acceptSuggestion(false)}>
-                <Check className="mr-1 h-4 w-4" aria-hidden="true" /> Übernehmen
+                <Check className="mr-1 h-4 w-4" aria-hidden="true" /> {t('transactionDetails.suggestionAccept')}
               </Button>
               <Button type="button" size="sm" variant="outline" disabled={isLoading} onClick={() => acceptSuggestion(true)}>
                 {t('transactionDetails.alwaysForMerchant').replace(
@@ -340,7 +340,7 @@ export function TransactionDetailsPanel({
                 )}
               </Button>
               <Button type="button" size="sm" variant="ghost" disabled={isLoading} onClick={() => setSuggestionDismissed(true)}>
-                <X className="mr-1 h-4 w-4" aria-hidden="true" /> Ablehnen
+                <X className="mr-1 h-4 w-4" aria-hidden="true" /> {t('transactionDetails.suggestionReject')}
               </Button>
             </div>
           </div>
@@ -376,12 +376,27 @@ export function TransactionDetailsPanel({
                 <Users className="h-4 w-4" aria-hidden="true" />
                 {t('transactionDetails.applyToSimilar')}
               </Label>
+              {/* Beide Sätze standen hier auf Deutsch im Quelltext und
+                  standen damit auch in der englischen und russischen
+                  Oberfläche — auf dem Gerät gesehen unter der englischen
+                  Beschriftung „Apply to similar transactions". Sie waren als
+                  bekannter Rückstand in `i18n-allowlist.json` geführt.
+
+                  Nebenbei war die deutsche Fassung grammatisch falsch: Die
+                  Verbform stand fest auf „werden", nur das Substantiv wurde
+                  gebeugt — bei genau einem Treffer las sich das als „1
+                  passende Buchung WERDEN mitgeändert". Ein Zahlwort und ein
+                  angehängtes „en" sind eben noch kein Plural; deshalb zwei
+                  vollständige Sätze statt eines zusammengesetzten. */}
               <p className="text-xs text-muted-foreground">
-                {similarCount} passende Buchung{similarCount === 1 ? '' : 'en'} werden mitgeändert.
-                {similar.probable.length > 0 && ` (${similar.probable.length} wahrscheinliche ausgenommen)`}
+                {similarCount === 1
+                  ? t('transactionDetails.similarCountOne')
+                  : t('transactionDetails.similarCountMany').replace('{count}', String(similarCount))}
+                {similar.probable.length > 0 &&
+                  ` ${t('transactionDetails.probableExcluded').replace('{count}', String(similar.probable.length))}`}
               </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Warum gruppiert? {fingerprintReasonLabel(similar.reason)}.
+                {t('transactionDetails.whyGrouped')} {fingerprintReasonLabel(similar.reason)}.
               </p>
             </div>
           </div>
