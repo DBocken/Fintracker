@@ -155,7 +155,7 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
                 data-tour-id="filter-reset"
                 variant="ghost"
                 size="sm"
-                className="h-9 gap-1 pointer-coarse:min-h-11"
+                className="h-9 gap-1 fokussiert:min-h-11"
                 onClick={filters.reset}
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />

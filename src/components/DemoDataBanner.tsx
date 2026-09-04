@@ -66,7 +66,7 @@ export default function DemoDataBanner() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 shrink-0 px-2 text-xs pointer-coarse:min-h-11"
+          className="h-7 shrink-0 px-2 text-xs fokussiert:min-h-11"
           onClick={handleRemove}
           disabled={removing}
         >

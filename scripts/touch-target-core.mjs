@@ -105,7 +105,7 @@ function hoeheAus(attrs) {
  * `src/components/ui/button.tsx`.
  *
  * Gemessen wird die Höhe **unter dem Finger**, nicht die optische: Ein
- * `pointer-coarse:min-h-11` neben `h-9` heisst 36 px mit der Maus und 44 px
+ * `fokussiert:min-h-11` neben `h-9` heisst 36 px in der kompakten Dichte und 44 px
  * mit dem Daumen — und der Daumen ist die Frage dieses Wächters. Deshalb
  * zählt jeder `min-h-`-Boden, mit oder ohne Variantenpräfix, und das Maximum
  * aus Grundhöhe und Boden gewinnt.

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import BankCallbackPage from "./pages/BankCallbackPage";
 import Login from "./pages/Login";
 import UnlockPage from "./pages/Unlock";
+import { useDensityRootAttribute } from "@/hooks/useDensityRootAttribute";
 import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
@@ -51,6 +52,12 @@ function LockedRedirect() {
 const RouteFallback = <div className="min-h-screen bg-background" />;
 
 function App() {
+  // Die Dichte steht damit als `data-density` am Wurzelelement — CSS-Regeln
+  // (Tippziel-Mindestgrösse, Verzicht auf Karten-Chrome) folgen derselben
+  // EINEN Entscheidung wie die Wahl der Präsentation. Hier und nicht im
+  // AppShell, weil Login und Unlock ausserhalb der Shell rendern.
+  useDensityRootAttribute();
+
   const { status } = useAuth();
   const { enabled, unlocked } = useLocalEncryption();
   const [anonymousStarted, setAnonymousStarted] = useState(() => hasStartedAnonymousMode());

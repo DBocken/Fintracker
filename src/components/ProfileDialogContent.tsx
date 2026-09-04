@@ -163,7 +163,7 @@ export function ProfileDialogContent() {
             value={String(gentleLevel)}
             onValueChange={(value) => setGentleLevel(Number(value) as GentleLevel)}
           >
-            <SelectTrigger className="h-8 w-48 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label={t("profile.gentleModeLabel")}>
+            <SelectTrigger className="h-8 w-48 fokussiert:min-h-11 fokussiert:min-w-11" aria-label={t("profile.gentleModeLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

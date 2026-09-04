@@ -121,10 +121,10 @@ describe('varianteHoehenAus', () => {
       variants: {
         variant: { default: "bg-primary", ghost: "hover:bg-accent" },
         size: {
-          default: "h-10 px-4 py-2 pointer-coarse:min-h-11",
-          sm: "h-9 rounded-md px-3 pointer-coarse:min-h-11",
+          default: "h-10 px-4 py-2 fokussiert:min-h-11",
+          sm: "h-9 rounded-md px-3 fokussiert:min-h-11",
           lg: "h-11 rounded-md px-8",
-          icon: "h-10 w-10 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+          icon: "h-10 w-10 fokussiert:min-h-11 fokussiert:min-w-11",
         },
       },
     })`;

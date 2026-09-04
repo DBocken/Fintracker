@@ -27,23 +27,31 @@ const buttonVariants = cva(
       // `size="sm"` oder `size="icon"` an einer Aufrufstelle — sie einzeln
       // anzufassen hiesse, 186-mal dieselbe Entscheidung zu wiederholen.
       //
-      // `pointer-coarse:` und nicht pauschal: Das Mass kommt von der
-      // Fingerkuppe, nicht vom Bildschirm. Mit einer Maus ist ein 36-px-Knopf
-      // präzise treffbar, und die Dichte einer Werkzeugleiste ist auf dem
-      // Desktop ein Vorteil — `@media (pointer: coarse)` fragt genau das ab
-      // (primäres Zeigegerät ist grob). Ein Breakpoint (`sm:`) wäre die
-      // falsche Frage: Er misst Breite, nicht Eingabeart, und ein schmales
-      // Fenster auf dem Desktop wird nicht mit dem Daumen bedient.
+      // `fokussiert:` und nicht pauschal: In der kompakten Dichte ist ein
+      // 36-px-Knopf mit der Maus präzise treffbar, und die Dichte einer
+      // Werkzeugleiste ist dort ein Vorteil. Die Variante hängt am
+      // `data-density`-Attribut (`src/index.css`), also an derselben EINEN
+      // Entscheidung, die auch über die Präsentation entscheidet.
+      //
+      // Der erste Entwurf benutzte die Tailwind-Variante für grobe
+      // Zeigegeräte — verworfen, und zwar nicht aus Geschmack (ihr Name steht
+      // hier bewusst nicht ausgeschrieben: Tailwind liest auch Kommentare und
+      // erzeugte sonst eine Regel, die niemand benutzt).
+      // `docs/architecture/darstellungsdichte.md` lehnt
+      // ein zweites Kriterium ausdrücklich ab, weil zwei Kriterien sich in
+      // Randfällen widersprechen (Telefon mit Maus, Laptop mit Touchscreen)
+      // und dann niemand mehr nachvollziehbar entscheidet. Ein Breakpoint
+      // (`sm:`) wäre ebenfalls falsch: Er misst Breite, nicht Dichte.
       //
       // `min-h-11` = 44 px setzt einen BODEN, die optische Höhe (`h-9`/`h-10`)
       // bleibt als Ausgangswert stehen — dieselbe Bauform wie die Regel
       // „der Trefferbereich darf grösser sein als das Bild" (§9). Bei `icon`
       // gehört die Breite dazu, sonst bleibt das Ziel ein schmaler Streifen.
       size: {
-        default: "h-10 px-4 py-2 pointer-coarse:min-h-11",
-        sm: "h-9 rounded-md px-3 pointer-coarse:min-h-11",
+        default: "h-10 px-4 py-2 fokussiert:min-h-11",
+        sm: "h-9 rounded-md px-3 fokussiert:min-h-11",
         lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        icon: "h-10 w-10 fokussiert:min-h-11 fokussiert:min-w-11",
       },
     },
     defaultVariants: {

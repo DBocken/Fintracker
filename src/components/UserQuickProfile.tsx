@@ -51,7 +51,7 @@ export default function UserQuickProfile() {
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white transition-opacity hover:opacity-90 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white transition-opacity hover:opacity-90 fokussiert:min-h-11 fokussiert:min-w-11"
           aria-label={t('userProfile.openProfile')}
           title={displayName}
         >

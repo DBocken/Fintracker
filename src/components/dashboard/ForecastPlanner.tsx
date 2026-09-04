@@ -249,7 +249,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                              className="h-8 w-8 fokussiert:min-h-11 fokussiert:min-w-11"
                               aria-label={t('forecast.removeTransfer')}
                               onClick={() =>
                                 onChange({
@@ -319,7 +319,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                              className="h-8 w-8 fokussiert:min-h-11 fokussiert:min-w-11"
                               aria-label={t('forecast.removeItem')}
                               onClick={() =>
                                 onChange({
@@ -387,7 +387,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                              className="h-8 w-8 fokussiert:min-h-11 fokussiert:min-w-11"
                               aria-label={t('forecast.removeReserve')}
                               onClick={() =>
                                 onChange({

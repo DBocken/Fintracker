@@ -431,7 +431,7 @@ export default function BudgetFormDialog({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                  className="h-8 w-8 shrink-0 fokussiert:min-h-11 fokussiert:min-w-11"
                   aria-label={t('budgets.formDialog.ruleRemoveAriaLabel').replace('{index}', String(i + 1))}
                   onClick={() => setRules((rs) => rs.filter((_, j) => j !== i))}
                 >
