@@ -171,6 +171,7 @@ Fläche umgebaut ist, stimmt ihr Eintrag nicht mehr, und das ist richtig so.
 |---|---|
 | [`mobil-2026-09/flaechen.md`](mobil-2026-09/flaechen.md) | **Protokoll.** Zwölf Flächen-Entwürfe gegen Regel 9, je mit Ist-Zustand (Slice, Kartenrahmen, Abfragen in der Darstellung), den höchstens drei Aussagen samt Datenquelle, dem Detailschritt, den benötigten Texten (134 Schlüssel) und den gemeinsamen Dateien |
 | [`mobil-2026-09/reihenfolge.md`](mobil-2026-09/reihenfolge.md) | **Protokoll.** Was gefahrlos gleichzeitig gebaut werden darf, was in einer Hand bleiben muss (Sprachbäume, Ratschen, geteilte Bausteine, Gerätelauf) und die Reihenfolge der Sperren S1–S8 davor |
+| [`mobil-2026-09/bildpruefung.md`](mobil-2026-09/bildpruefung.md) | **Protokoll.** Jede der 25 Routen bei 360 px aufgenommen und vermessen (Bildschirmlängen, waagerechter Überlauf, Dichte), bewertet gegen Regel 9 und eine Philosophie der kognitiven Entlastung. Enthält die Befunde jenseits der Darstellung, die blinden Flecken der Wächter und die Korrekturen an früheren Annahmen aus `flaechen.md` |
 
 ## Protokoll: Issue-Sichtung
 
