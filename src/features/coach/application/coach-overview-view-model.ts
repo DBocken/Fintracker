@@ -1,6 +1,7 @@
 import type { CoachOverview, CoachRecommendation } from '@/types';
 import type { FinancialHealth } from '@/services/financial-health-service';
 import type { MilestoneStatus } from '@/lib/milestone-types';
+import type { DisposableUntilPayday } from '@/lib/disposable-budget';
 
 /**
  * UI-neutrales ViewModel der Coach-Fläche. Enthält keine Darstellungs-
@@ -38,6 +39,18 @@ export type CoachViewModel = {
   milestones: MilestoneStatus[] | undefined;
   /** Eigenes Flag: Meilensteine laden unabhängig von der Coach-Auswertung. */
   milestonesLoading: boolean;
+
+  /**
+   * „Wie viel bleibt bis zum nächsten Gehalt?" — die eine Zahl, für die es
+   * eine Coach-Fläche heute gibt.
+   *
+   * `null` heißt **nicht bestimmbar**, nicht „null Euro": Ohne erkannten
+   * regelmäßigen Geldeingang gibt es kein „bis zum Gehalt", und eine 0 an
+   * dieser Stelle wäre eine falsche Auskunft statt einer fehlenden.
+   */
+  disposable: DisposableUntilPayday | null;
+  /** Eigenes Flag: Die Prognosedaten laden unabhängig von der Coach-Auswertung. */
+  disposableLoading: boolean;
 
   /**
    * Der eine priorisierte nächste Schritt — `undefined`, wenn gerade nichts

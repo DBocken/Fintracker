@@ -23,6 +23,8 @@
  * finden, müsste raten; eine Regel mit Fehlalarmen wird abgeschaltet.
  */
 
+import { stripComments } from './layers-core.mjs';
+
 const BREAKPOINTS = ['sm', 'md', 'lg', 'xl', '2xl'];
 
 /**
@@ -48,12 +50,24 @@ const HIDE_ABOVE = new RegExp(String.raw`\b(${BREAKPOINTS.join('|')}):hidden\b`,
  *   Ordnung.
  */
 export function unpairedBreakpoints(content) {
+  // Kommentare zaehlen nicht. Der Waechter las bis hierher den ROHEN
+  // Quelltext, und damit war ein erklaerender Satz ein Befund: Die
+  // Coach-Fläche wurde gemeldet, weil ihr Kopfkommentar `hidden lg:block`
+  // ZITIERTE — die Klasse, die dort gerade ABGESCHAFFT worden war. Ein
+  // Waechter, den man durch Dokumentieren ausloest, erzieht zum Schweigen.
+  //
+  // `check:i18n`, `check:query-errors`, `check:external-endpoints` und
+  // `check:touch-targets` blenden Kommentare laengst aus; hier fehlte es.
+  // Derselbe Baustein wie bei `check:layers` und `check:slice-presentation`,
+  // statt eines vierten eigenen Ausdrucks.
+  const sichtbar = stripComments(content);
+
   const shown = new Set();
-  for (const match of content.matchAll(HIDE_BELOW)) shown.add(match[1]);
+  for (const match of sichtbar.matchAll(HIDE_BELOW)) shown.add(match[1]);
   if (shown.size === 0) return [];
 
   const hidden = new Set();
-  for (const match of content.matchAll(HIDE_ABOVE)) hidden.add(match[1]);
+  for (const match of sichtbar.matchAll(HIDE_ABOVE)) hidden.add(match[1]);
 
   return BREAKPOINTS.filter((bp) => shown.has(bp) && !hidden.has(bp));
 }

@@ -1,4 +1,8 @@
 import { useCallback, useMemo } from 'react';
+import { format } from 'date-fns';
+import { useForecast } from '@/hooks/useForecast';
+import { getNextIncomeCharge } from '@/lib/upcoming-charges';
+import { computeDisposableUntilPayday } from '@/lib/disposable-budget';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import { getCoachOverview } from '@/services/coach-service';
@@ -95,6 +99,35 @@ export function useCoachOverview(): CoachViewModel {
     void refetchHasData();
   }, [refetchCoach, refetchHealth, refetchMilestones, refetchHasData]);
 
+  // „Wie viel bleibt bis zum nächsten Gehalt?" — die eine Zahl, die eine
+  // Coach-Fläche heute wirklich beantworten soll. Sie lag bisher IN der
+  // Darstellung (`DisposableTankCard` holte sich `useForecast` selbst); damit
+  // konnte keine zweite Präsentation sie zeigen, ohne die Beschaffung ein
+  // zweites Mal zu schreiben — genau der Befund von ADR Regel 1.
+  //
+  // `useForecast` teilt sich seinen Cache mit der Karte, es entsteht also
+  // keine zweite Abfrage; die Rechnung selbst ist rein
+  // (`computeDisposableUntilPayday`).
+  const { input: forecastInput, isLoading: forecastLoading } = useForecast();
+
+  const disposable = useMemo(() => {
+    if (!forecastInput) return null;
+    const flows = forecastInput.recurringFlows ?? [];
+    const fromISO = format(new Date(), 'yyyy-MM-dd');
+    // Sichtfenster gut zwei Monate, falls gerade erst gezahlt wurde.
+    const nextIncome = getNextIncomeCharge(flows, { fromISO, horizonDays: 62 });
+    // Ohne erkannten regelmäßigen Eingang gibt es kein „bis zum Gehalt".
+    // `null` heißt hier ausdrücklich „nicht bestimmbar", nicht „null Euro".
+    if (!nextIncome) return null;
+    return computeDisposableUntilPayday({
+      accounts: forecastInput.accounts,
+      recurringFlows: flows,
+      fromISO,
+      paydayISO: nextIncome.dateISO,
+      daysUntilPayday: nextIncome.daysUntil,
+    });
+  }, [forecastInput]);
+
   const recommendations = coach?.recommendations ?? NO_RECOMMENDATIONS;
   const focus = recommendations[0];
   const followUps = useMemo(() => recommendations.slice(1), [recommendations]);
@@ -110,6 +143,8 @@ export function useCoachOverview(): CoachViewModel {
     health,
     milestones,
     milestonesLoading,
+    disposable,
+    disposableLoading: forecastLoading,
     focus,
     followUps,
     hasDebt: (coach?.debtSummary.totalDebt ?? 0) > 0,
