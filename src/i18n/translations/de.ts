@@ -1920,7 +1920,6 @@ export const de = {
     mobileViewMoney: 'Geld',
     mobileViewGoals: 'Ziele',
     mobileViewMore: 'Mehr',
-    mobileScoreLabel: 'Score',
   },
   debtService: {
     typeCreditCard: 'Kreditkarte',

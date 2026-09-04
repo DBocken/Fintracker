@@ -1919,7 +1919,6 @@ export const en = {
     mobileViewMoney: 'Money',
     mobileViewGoals: 'Goals',
     mobileViewMore: 'More',
-    mobileScoreLabel: 'Score',
   },
   debtService: {
     typeCreditCard: 'Credit card',

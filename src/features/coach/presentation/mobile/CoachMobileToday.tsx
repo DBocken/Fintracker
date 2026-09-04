@@ -14,7 +14,6 @@ import InteractiveCard from "@/features/shared/presentation/InteractiveCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveSwipeTarget } from "@/features/shared/domain/swipe-navigation";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useI18n } from "@/i18n/useI18n";
@@ -127,27 +126,22 @@ export default function CoachMobileToday({ model }: { model: CoachViewModel }) {
     if (nextIdx !== index) setView(VIEWS[nextIdx].key);
   };
 
-  // Prinzip 2: Der Score wird aufgebaut, nicht gesetzt. `useAnimatedNumber`
-  // beantwortet `prefers-reduced-motion` gleich mit (dann springt der Wert).
-  const animatedScore = useAnimatedNumber(health?.score ?? 0);
-
   return (
     <div className="space-y-4">
-      {/* Kopf: reines Ablesen, kein Karten-Chrome (Prinzip 8 — ohne Follow-up
-          keine Karte). Bewusst knapp, damit die Hauptaussage darunter im
-          ersten Bildschirm bleibt. */}
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold">{t("coach.title")}</h1>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{t("coach.description")}</p>
-        </div>
-        {health ? (
-          <div className="shrink-0 text-right">
-            <div className="text-2xl font-semibold tabular-nums leading-none">{animatedScore}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{t("coach.mobileScoreLabel")}</div>
-          </div>
-        ) : null}
-      </div>
+      {/* KEIN eigener Seitenkopf. Auf dem Gerät nachgesehen stand der Titel
+          zweimal übereinander — einmal in der App-Leiste, einmal hier — und
+          die Beschreibung darunter brach mitten im Satz ab. Zusammen rund 90
+          Pixel des ersten Bildschirms für eine Information, die eine Zeile
+          höher vollständig steht.
+
+          Auch der Score ist bewusst weg, obwohl er als hochzählende Zahl
+          hübsch war: Prinzip 3 verlangt EINE Hauptaussage je Ansicht, und die
+          ist hier der nächste Schritt. Eine zweite Zahl daneben ist eine
+          zweite Aussage — zumal das Statusraster direkt darunter ohnehin vier
+          Zahlen zeigt und der Score im Register „Status" mit Teilwerten und
+          Erklärung steht, also dort, wo man ihn deuten kann.
+
+          Damit beginnt die Fläche mit dem, worum es geht. */}
 
       {/* Hauptaussage: der eine nächste Schritt. Alles andere ist Kontext. */}
       {loading ? (

@@ -127,18 +127,45 @@ export default function AppShell() {
                     besteht. */}
                 <OfflineIndicator />
 
+                {/* Sekundäre Werkzeuge — auf dem Telefon NICHT im Kopf.
+                    Gemessen auf 360 dp: Menü, Titel, Suche, Datenschutz,
+                    Führungen, Sprache, Glocke und Anmelde-Knopf drängten sich
+                    in eine 56-px-Zeile, und übrig blieb für den Seitentitel
+                    die Breite von zwei Zeichen — auf dem Gerät stand dort
+                    buchstäblich „T..". Ein Titel, den niemand lesen kann,
+                    belegt den Platz trotzdem (Prinzip 7).
+
+                    Nichts ist entfernt: Die drei stehen mobil im
+                    Navigations-Sheet (`MobileNav`), also genau eine
+                    Antippung entfernt — AGENTS.md §4 nennt „dichte
+                    Werkzeugleiste → Menü" als die vorgesehene Anpassung, und
+                    §4 erlaubt eingeklappt, nicht entfernt. Im Kopf bleiben
+                    die drei, die auf einem Telefon wirklich dorthin gehören:
+                    Suche (schnellster Weg überallhin), Glocke (trägt ein
+                    Abzeichen) und das Konto.
+
+                    Der Partner steht in `platform-parity-allowlist.json`. */}
+                {/* Der Datenschutz-Schild bleibt AUCH mobil im Kopf. Er ist
+                    kein Werkzeug, sondern das Vertrauenssignal dieser App:
+                    Fintracker verspricht, dass Finanzdaten auf dem Gerät
+                    bleiben, und dieser Schild sagt, ob die Verschlüsselung
+                    gerade greift. Ein Versprechen, das man erst in einem Menü
+                    nachschlagen muss, wirkt nicht. Er ist zudem das
+                    schmalste der Bedienelemente — nach dem Auslagern der
+                    beiden anderen blieb auf 360 dp reichlich Platz für den
+                    Titel (auf dem Gerät nachgesehen). */}
                 <PrivacyIndicator />
 
-                {/* Dauerhafter Einstieg in die Führungen: „Diese Seite
-                    erklären" und der Weg zur Gesamtübersicht. Der
-                    Einladungsstreifen allein reichte nicht — er erscheint nur,
-                    solange ein Kapitel offen ist, und ist nach einem Klick auf
-                    „Nicht jetzt" für die Sitzung weg. */}
-                <TutorialLauncher />
+                <div className="hidden items-center gap-1 sm:flex sm:gap-2">
+                  {/* Dauerhafter Einstieg in die Führungen: „Diese Seite
+                      erklären" und der Weg zur Gesamtübersicht. Der
+                      Einladungsstreifen allein reichte nicht — er erscheint
+                      nur, solange ein Kapitel offen ist, und ist nach einem
+                      Klick auf „Nicht jetzt" für die Sitzung weg. */}
+                  <TutorialLauncher />
 
-                {/* Sprachwahl als kompaktes Popup — bleibt auch auf Mobil im
-                    Header erreichbar, ohne ihn zu überlaufen. */}
-                <LanguageSwitcher />
+                  <LanguageSwitcher />
+                </div>
 
                 {/* Theme erst ab sm sichtbar (auch in den Einstellungen unter
                     Darstellung erreichbar), um den Mobil-Header ruhig zu halten. */}

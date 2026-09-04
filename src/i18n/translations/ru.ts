@@ -1919,7 +1919,6 @@ export const ru = {
     mobileViewMoney: 'Деньги',
     mobileViewGoals: 'Цели',
     mobileViewMore: 'Ещё',
-    mobileScoreLabel: 'Балл',
   },
   debtService: {
     typeCreditCard: 'Кредитная карта',

@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import TutorialLauncher from "@/features/tutorials/presentation/TutorialLauncher";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
@@ -55,7 +58,28 @@ export default function MobileNav() {
             die untersten Ziele nicht hinter der ein-/ausblendenden Browser-Leiste
             verschwinden. pb-…safe-area hält den letzten Eintrag über dem
             Home-Indicator / der Gesten-Leiste frei. */}
-        <ScrollArea className="h-[calc(100dvh-56px)]">
+        {/* Werkzeugzeile: Führungen, Sprache, Darstellung.
+            Auf dem Telefon passen sie nicht in den Seitenkopf — gemessen auf
+            360 dp blieb dem Seitentitel dort die Breite von zwei Zeichen.
+            Sie sind deshalb hier, eine Antippung entfernt, statt zu fehlen:
+            AGENTS.md §4 nennt „dichte Werkzeugleiste → Menü" als die
+            vorgesehene Anpassung und erlaubt eingeklappt, nicht entfernt.
+
+            Bewusst OHNE Breakpoint-Klasse: Dieses Sheet ist ohnehin nur
+            mobil erreichbar (Auslöser `md:hidden`, zweiter Weg ist der
+            „Mehr"-Tab der Bodennavigation, ebenfalls `md:hidden`). Eine
+            `sm:hidden`-Klasse wäre hier eine Aussage über eine Breite, die
+            diese Fläche nie sieht. */}
+        <div className="flex items-center gap-1 border-b border-sidebar-border px-3 py-2">
+          <TutorialLauncher />
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
+
+        {/* 112px = Kopfzeile (56) + Werkzeugzeile (56). Wird die Werkzeugzeile
+            höher, gehört diese Zahl mitgezogen — sonst reicht der Scrollbereich
+            unter den Rand und die letzten Ziele sind nicht erreichbar. */}
+        <ScrollArea className="h-[calc(100dvh-112px)]">
           <div className="px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {navGroups.map((group) => (
               <div key={group.id} className="py-2">
