@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import SectionHeader from '@/features/shared/presentation/SectionHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -245,11 +245,19 @@ export function Dashboard() {
       {/* Desktop: bisheriges Raster + Cashflow */}
       <DashboardDesktopView className="hidden lg:block" model={model} />
 
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle>{t("dashboard.recentTransactions")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Abschnitt statt Karte.
+          Hier stand `<Card className="card-premium">` um die Liste der letzten
+          Buchungen — eine TOTE Karte: Angeklickt werden die Zeilen darin, nicht
+          sie. Genau das verbietet Prinzip 8 („niemals nur ein verschachtelter
+          Button in einer ansonsten toten Karte"), und `check:card-rule` sah es
+          nicht, weil er je Datei fragt, ob IRGENDEIN Interaktions-Signal
+          vorkommt — eine Karte voller anklickbarer Zeilen erfuellt das immer.
+          Seit der Karten-Ratsche wird der Fall gezaehlt.
+          Ein Abschnitt ist eine Ueberschrift plus Liste; `TransactionListMobile`
+          macht es innen laengst richtig (`divide-y`, kein Rahmen je Zeile). */}
+      <section className="space-y-4">
+        <SectionHeader title={t("dashboard.recentTransactions")} />
+        <div className="space-y-4">
           <TransactionTable
             transactions={model.transactions.preview}
             categories={model.categories}
@@ -326,8 +334,8 @@ export function Dashboard() {
             </div>
           )}
 
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <DeleteConfirmationDialog
         isOpen={deleteDialogOpen}
