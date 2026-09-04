@@ -65,6 +65,7 @@ function modelWith(overrides: Partial<CoachViewModel> = {}): CoachViewModel {
     health: undefined,
     milestones: undefined,
     milestonesLoading: false,
+    accountsBalance: 2806.66,
     disposable: DISPOSABLE,
     disposableLoading: false,
     focus: FOCUS,
@@ -100,11 +101,33 @@ describe('Coach — fokussierte Dichte', () => {
     expect(verdaechtig.map((el) => el.className)).toEqual([]);
   });
 
-  it('[MOBILE] sollte den nächsten Schritt als erste Aussage zeigen', () => {
+  it('[MOBILE] sollte den Kontostand als erste und grösste Zahl zeigen', () => {
+    // Die Reihenfolge ist die Aussage: Danach wird beim Öffnen zuerst
+    // gesucht, und alles darunter setzt diese Zahl voraus.
+    const { container } = renderFokussiert();
+
+    const saldo = screen.getByText(/2\.806,66/);
+    expect(saldo).toBeInTheDocument();
+
+    // Grösser gesetzt als der freie Betrag darunter — sonst ist „zuerst" nur
+    // eine Position, keine Rangfolge.
+    expect(saldo.className).toContain('text-5xl');
+    expect(screen.getByText(/1\.240/).className).toContain('text-3xl');
+
+    // Der ganze Block führt zu den Buchungen.
+    const zuBuchungen = container.querySelector('a[href="/transactions"]');
+    expect(zuBuchungen).not.toBeNull();
+    expect(zuBuchungen?.textContent).toContain('2.806,66');
+  });
+
+  it('[MOBILE] sollte den nächsten Schritt in wenigen Zeilen zeigen', () => {
     renderFokussiert();
 
     expect(screen.getByRole('heading', { name: 'Schulden zuerst tilgen', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Schulden ansehen/ })).toHaveAttribute('href', '/debts');
+    // Die Begruendung gehoert NICHT auf die Flaeche — sie ist die vierte
+    // Aussage, die Regel 9 verhindert.
+    expect(screen.queryByText(/Zinsen kosten mehr/)).toBeNull();
   });
 
   it('[MOBILE] sollte den freien Betrag als Zahl zeigen, mit Tagen und Fixkosten', () => {

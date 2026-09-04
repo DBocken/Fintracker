@@ -30,15 +30,22 @@ const DETAIL_PARAM = "lage";
  * aufgeräumter Desktop, kein fokussierter Bildschirm — genau der Fehler, den
  * AGENTS.md §4 den häufigsten nennt.
  *
- * **Die drei Aussagen und warum genau diese:**
+ * **Die drei Aussagen, in dieser Reihenfolge:**
  *
- * 1. **Der nächste Schritt.** Wofür es diese Fläche gibt — der `coach-service`
- *    sortiert die Empfehlungen, die erste ist die Aussage.
- * 2. **Was bis zum Gehalt frei ist.** Die einzige Zahl, die eine Entscheidung
- *    von heute trägt. Ein Kontostand beantwortet nicht, was davon schon
- *    vergeben ist.
- * 3. **Die Finanzgesundheit.** Der Einstieg in alles Übrige — und der Ort, an
- *    dem der Detailschritt hängt.
+ * 1. **Der Kontostand.** Die grösste Zahl der Fläche und die erste. Danach
+ *    wird beim Öffnen als Erstes gesucht, und jede Einordnung darunter setzt
+ *    sie voraus. Der ganze Block führt zu den Buchungen — wer den Saldo
+ *    antippt, will wissen, woraus er entstanden ist.
+ * 2. **Was davon bis zum Gehalt frei ist.** Sie ordnet den Saldo ein: Ein
+ *    Kontostand beantwortet nicht, was davon schon vergeben ist. Bewusst
+ *    kleiner gesetzt — die zweite Zahl, nicht die erste.
+ * 3. **Der Coach, in wenigen Zeilen.** Nur der EINE nächste Schritt und der
+ *    Sprung dorthin, nicht die Begründung und nicht die Rangfolge.
+ *
+ * Der Finanz-Score stand hier zwischenzeitlich als dritte Aussage und ist in
+ * den Detailschritt gewandert: Er ist eine Einordnung über Monate, keine
+ * Entscheidung von heute — und er stand vor den beiden Zahlen, nach denen
+ * wirklich gesucht wird.
  *
  * Nicht mitgezählt sind App-Leiste, Bodennavigation und der Detail-Verweis:
  * Sie sind Rahmen, nicht Inhalt.
@@ -66,60 +73,54 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
     setParams(next, { replace: true });
   };
 
-  const { coach, health, milestones, milestonesLoading, disposable, disposableLoading, focus, followUps, loading } = model;
+  const { coach, health, milestones, milestonesLoading, accountsBalance, disposable, disposableLoading, focus, followUps, loading } = model;
 
   return (
     <div className="flex flex-col gap-6 py-2">
       {/* Der Seitenname steht im Inhalt, nicht in der App-Leiste: Dort blieb
           neben Menü, Suche, Schild, Glocke und Konto die Breite von zwei
           Zeichen — auf dem Gerät stand da „Today for …". Hier hat er Platz. */}
-      <h1 className="text-2xl font-semibold tracking-tight">{t("coach.title")}</h1>
+      <h1 className="text-sm font-medium text-muted-foreground">{t("coach.title")}</h1>
 
-      {/* ── Aussage 1: der nächste Schritt ────────────────────────────── */}
+      {/* ── Aussage 1: der Kontostand ─────────────────────────────────
+          Zuerst, und als grösste Zahl der Fläche. Das ist es, wonach beim
+          Öffnen als Erstes gesucht wird — jede Einordnung darunter setzt
+          diese Zahl voraus. Der ganze Block führt zu den Buchungen: Wer den
+          Saldo antippt, will wissen, woraus er entstanden ist. */}
       <section>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t("coach.focusedNextStep")}
-        </p>
-        {loading ? (
-          <Skeleton variant="shimmer" className="mt-2 h-24 w-full rounded-lg" />
-        ) : focus ? (
-          <>
-            <h2 className="mt-2 text-xl font-semibold leading-snug">{focus.title}</h2>
-            <p className="mt-1 text-sm leading-snug text-muted-foreground">{focus.message}</p>
-            {focus.ctaTo && (
-              <Link
-                to={focus.ctaTo}
-                className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary"
-              >
-                {focus.ctaLabel ?? t("coach.viewAll")}
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            )}
-          </>
-        ) : (
-          <>
-            <h2 className="mt-2 text-xl font-semibold leading-snug text-positive">{t("coach.allGood")}</h2>
-            <p className="mt-1 text-sm leading-snug text-muted-foreground">{t("coach.noRecommendations")}</p>
-          </>
-        )}
+        <Link to="/transactions" className="-mx-1 block min-h-11 px-1">
+          <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t("coach.balanceLabel")}
+          </span>
+          {accountsBalance === null ? (
+            <Skeleton variant="shimmer" className="mt-1 h-14 w-56 rounded-lg" />
+          ) : (
+            <span className="mt-0.5 block text-5xl font-semibold tabular-nums tracking-tight">
+              {money.format(accountsBalance)}
+            </span>
+          )}
+          <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+            {t("coach.balanceAction")}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </Link>
       </section>
 
-      {/* Bleibt unsichtbar, wenn nichts offen ist — deshalb keine vierte
-          Aussage, sondern eine Aufgabe, die wirklich ansteht. */}
-      <CategorySuggestionsInbox />
-
-      {/* ── Aussage 2: was bis zum Gehalt frei ist ─────────────────────── */}
-      <section className="border-t border-border/60 pt-6">
+      {/* ── Aussage 2: was davon bis zum Gehalt frei ist ────────────────
+          Direkt unter dem Saldo, weil sie ihn einordnet: Ein Kontostand
+          beantwortet nicht, was davon schon vergeben ist. Bewusst kleiner
+          gesetzt — sie ist die zweite Zahl, nicht die erste. */}
+      <section className="border-t border-border/60 pt-5">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {t("coach.availableUntilPayday")}
         </p>
         {disposableLoading ? (
-          <Skeleton variant="shimmer" className="mt-2 h-12 w-40 rounded-lg" />
+          <Skeleton variant="shimmer" className="mt-2 h-9 w-40 rounded-lg" />
         ) : disposable ? (
           <>
             <p
               className={cn(
-                "mt-1 text-4xl font-semibold tabular-nums",
+                "mt-0.5 text-3xl font-semibold tabular-nums",
                 disposable.health === "over" ? "text-warning" : "text-foreground",
               )}
             >
@@ -132,31 +133,60 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
           </>
         ) : (
           // `null` heisst „nicht bestimmbar", nicht „null Euro" — deshalb ein
-          // Satz statt einer 0, die eine falsche Auskunft wäre.
+          // Satz statt einer 0, die eine falsche Auskunft waere.
           <p className="mt-1 text-sm text-muted-foreground">{t("coach.noRecurringIncomeDetected")}</p>
         )}
       </section>
 
-      {/* ── Aussage 3: die Finanzgesundheit, und der Weg ins Detail ────── */}
-      <section className="border-t border-border/60 pt-6">
+      {/* Bleibt unsichtbar, wenn nichts offen ist. */}
+      <CategorySuggestionsInbox />
+
+      {/* ── Aussage 3: der Coach, in wenigen Zeilen ─────────────────────
+          Hier steht bewusst nur der EINE nächste Schritt und der Sprung
+          dorthin — nicht die Begruendung, nicht die Rangfolge. Wer mehr will,
+          geht einen Schritt tiefer. */}
+      <section className="border-t border-border/60 pt-5">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t("health.financialHealthScore")}
+          {t("coach.focusedNextStep")}
         </p>
-        {health ? (
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {t("coach.scoreOutOf").replace("{score}", String(health.score))}
-          </p>
+        {loading ? (
+          <Skeleton variant="shimmer" className="mt-2 h-16 w-full rounded-lg" />
+        ) : focus ? (
+          <>
+            <h2 className="mt-1 text-xl font-semibold leading-snug">{focus.title}</h2>
+            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
+              {focus.ctaTo && (
+                <Link
+                  to={focus.ctaTo}
+                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary"
+                >
+                  {focus.ctaLabel ?? t("coach.viewAll")}
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setDetail(true)}
+                className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground"
+              >
+                {t("coach.focusedMore")}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          </>
         ) : (
-          <Skeleton variant="shimmer" className="mt-2 h-8 w-32 rounded-lg" />
+          <>
+            <h2 className="mt-1 text-xl font-semibold leading-snug text-positive">{t("coach.allGood")}</h2>
+            <button
+              type="button"
+              onClick={() => setDetail(true)}
+              className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground"
+            >
+              {t("coach.focusedMore")}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </>
         )}
-        <button
-          type="button"
-          onClick={() => setDetail(true)}
-          className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary"
-        >
-          {t("coach.focusedMore")}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </button>
       </section>
 
       {/* Detailschritt: alles Übrige, einen Schritt tiefer und adressierbar.

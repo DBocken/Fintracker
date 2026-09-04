@@ -1916,6 +1916,8 @@ export const en = {
     beforePayday: 'Before next payday',
     detailsInDashboard: 'Details in dashboard',
     focusedNextStep: 'Your next step',
+    balanceLabel: 'Account balance',
+    balanceAction: 'View transactions',
     focusedMore: 'More about your situation',
     focusedDetailTitle: 'Your financial situation',
     scoreOutOf: '{score} out of 100',
@@ -4321,6 +4323,9 @@ export const en = {
   },
   demoData: {
     removeSuccess: 'Demo data removed',
+    bannerShort: 'Demo data active',
+    removeShort: 'Remove',
+    importShort: 'Import',
     banner: 'You\'re viewing demo data.',
     description: 'Everything here works with your real data too —',
     csvImportLink: 'Import CSV',

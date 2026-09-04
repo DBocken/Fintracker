@@ -1917,6 +1917,8 @@ export const de = {
     beforePayday: 'Vor dem nächsten Gehalt',
     detailsInDashboard: 'Details im Dashboard',
     focusedNextStep: 'Dein nächster Schritt',
+    balanceLabel: 'Kontostand',
+    balanceAction: 'Buchungen ansehen',
     focusedMore: 'Mehr zu deiner Lage',
     focusedDetailTitle: 'Deine Finanzlage',
     scoreOutOf: '{score} von 100',
@@ -4333,6 +4335,9 @@ export const de = {
   },
   demoData: {
     removeSuccess: 'Beispieldaten entfernt',
+    bannerShort: 'Demo-Daten aktiv',
+    removeShort: 'Entfernen',
+    importShort: 'Importieren',
     banner: 'Du siehst Beispieldaten.',
     description: 'Alles hier geht auch mit deinen echten Daten —',
     csvImportLink: 'CSV importieren',

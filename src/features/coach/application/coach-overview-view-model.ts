@@ -41,6 +41,12 @@ export type CoachViewModel = {
   milestonesLoading: boolean;
 
   /**
+   * Summe der Kontostände — die Zahl, die ein Nutzer beim Öffnen zuerst
+   * sucht. `null` heißt „noch nicht geladen", nicht „null Euro".
+   */
+  accountsBalance: number | null;
+
+  /**
    * „Wie viel bleibt bis zum nächsten Gehalt?" — die eine Zahl, für die es
    * eine Coach-Fläche heute gibt.
    *

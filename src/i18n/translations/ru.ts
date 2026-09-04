@@ -1916,6 +1916,8 @@ export const ru = {
     beforePayday: 'До следующей зарплаты',
     detailsInDashboard: 'Подробности в панели',
     focusedNextStep: 'Ваш следующий шаг',
+    balanceLabel: 'Баланс счетов',
+    balanceAction: 'Показать операции',
     focusedMore: 'Подробнее о вашей ситуации',
     focusedDetailTitle: 'Ваша финансовая ситуация',
     scoreOutOf: '{score} из 100',
@@ -4320,6 +4322,9 @@ export const ru = {
     indexedDbUnavailable: 'Локальное хранилище недоступно, поэтому запись НЕ сохранена. Обычно это происходит в приватном режиме или когда браузер блокирует данные сайтов.',
   },
   demoData: {
+    bannerShort: 'Демоданные активны',
+    removeShort: 'Убрать',
+    importShort: 'Импорт',
     removeSuccess: 'Демо-данные удалены',
     banner: 'Вы просматриваете демо-данные.',
     description: 'Всё здесь работает и с вашими реальными данными —',

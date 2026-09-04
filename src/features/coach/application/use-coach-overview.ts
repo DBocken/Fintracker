@@ -3,6 +3,10 @@ import { format } from 'date-fns';
 import { useForecast } from '@/hooks/useForecast';
 import { getNextIncomeCharge } from '@/lib/upcoming-charges';
 import { computeDisposableUntilPayday } from '@/lib/disposable-budget';
+import { computeEffectiveBalances, computeTotalEffectiveBalance } from '@/features/shared/domain/balance-calculations';
+import { getAllTransactions } from '@/services/transaction-service';
+import { getAccounts } from '@/services/account-service';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import { getCoachOverview } from '@/services/coach-service';
@@ -90,14 +94,47 @@ export function useCoachOverview(): CoachViewModel {
     },
   });
 
-  const hasError = coachError || healthError || milestonesError || hasDataError;
+  // Der Kontostand — die Zahl, die ein Nutzer beim Öffnen zuerst sucht.
+  //
+  // ÜBER DIESELBE RECHNUNG wie Dashboard und Buchungsseite
+  // (`computeEffectiveBalances` aus `features/shared/domain`), nicht über eine
+  // eigene. Der erste Entwurf nahm `computeOperatingCash` aus der Prognose,
+  // weil die Konten dort schon vorlagen — und zeigte prompt 3.162,69 €, wo
+  // die Buchungsseite 2.806,66 € auswies. Zwei Wege zu derselben Zahl sind
+  // zwei Wege, auf denen sie auseinanderlaufen kann (ADR Regel 1); auf einer
+  // Fläche, die mit dem Saldo eröffnet, ist das kein Schönheitsfehler.
+  //
+  // Beide Abfragen teilen ihren Cache mit Dashboard und Buchungsseite
+  // (`financeKeys`), es entsteht also keine zusätzliche Last.
+  const {
+    data: accounts,
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({ queryKey: financeKeys.accounts, queryFn: getAccounts });
+
+  const {
+    data: allTransactions,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({ queryKey: financeKeys.transactionsAll, queryFn: getAllTransactions });
+
+  // `null` heißt „noch nicht geladen", nicht „null Euro".
+  const accountsBalance = useMemo(() => {
+    if (!accounts || !allTransactions) return null;
+    return computeTotalEffectiveBalance(accounts, computeEffectiveBalances(accounts, allTransactions));
+  }, [accounts, allTransactions]);
+
+  const hasError =
+    coachError || healthError || milestonesError || hasDataError || accountsError || transactionsError;
 
   const retry = useCallback(() => {
     void refetchCoach();
     void refetchHealth();
     void refetchMilestones();
     void refetchHasData();
-  }, [refetchCoach, refetchHealth, refetchMilestones, refetchHasData]);
+    void refetchAccounts();
+    void refetchTransactions();
+  }, [refetchCoach, refetchHealth, refetchMilestones, refetchHasData, refetchAccounts, refetchTransactions]);
 
   // „Wie viel bleibt bis zum nächsten Gehalt?" — die eine Zahl, die eine
   // Coach-Fläche heute wirklich beantworten soll. Sie lag bisher IN der
@@ -128,6 +165,7 @@ export function useCoachOverview(): CoachViewModel {
     });
   }, [forecastInput]);
 
+
   const recommendations = coach?.recommendations ?? NO_RECOMMENDATIONS;
   const focus = recommendations[0];
   const followUps = useMemo(() => recommendations.slice(1), [recommendations]);
@@ -143,6 +181,7 @@ export function useCoachOverview(): CoachViewModel {
     health,
     milestones,
     milestonesLoading,
+    accountsBalance,
     disposable,
     disposableLoading: forecastLoading,
     focus,
