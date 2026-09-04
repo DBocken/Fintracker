@@ -14,7 +14,7 @@ vi.mock("@/components/providers/GentleModeProvider", () => ({
   useGentleMode: () => ({ enabled: false, toggle: () => {} }),
 }));
 
-import UpcomingChargesList from "@/components/coach/UpcomingChargesList";
+import UpcomingChargesList from "@/features/coach/presentation/shared/UpcomingChargesList";
 
 function flow(p: Partial<RecurringFlow> & { id: string; amount: number; anchorDate: string }): RecurringFlow {
   return { name: p.name ?? p.id, cadence: p.cadence ?? "monthly", accountId: "giro", ...p };

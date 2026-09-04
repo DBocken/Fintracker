@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
-import BudgetTank from "./BudgetTank";
+import BudgetTank from "@/features/shared/presentation/BudgetTank";
 import SweepCard from "./SweepCard";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 

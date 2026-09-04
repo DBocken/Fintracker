@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { useForecast } from "@/hooks/useForecast";
 import { getNextIncomeCharge } from "@/lib/upcoming-charges";
 import { computeDisposableUntilPayday } from "@/lib/disposable-budget";
-import BudgetTank from "@/components/budgets/BudgetTank";
+import BudgetTank from "@/features/shared/presentation/BudgetTank";
 import InteractiveCard from "@/features/shared/presentation/InteractiveCard";
 import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { InfoGroup } from "@/features/shared/presentation/InfoGroup";

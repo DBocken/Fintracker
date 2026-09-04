@@ -22,8 +22,29 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **Die Einstiegsfläche hat eine eigene Telefon-Ansicht.** `/` leitet auf
+  `/coach` um — und ausgerechnet dieser Bildschirm war bisher auf dem Telefon
+  derselbe Stapel wie auf dem Desktop, nur schmaler: zehn Abschnitte
+  untereinander, zehn Bildschirmlängen Scrollen, keine Rangfolge. Mobil steht
+  jetzt **eine** Hauptaussage oben — der priorisierte nächste Schritt — und
+  alles Übrige liegt in vier Registern (Status · Geld · Ziele · Mehr), die
+  sich antippen und wischen lassen. Nichts ist weggefallen: Jeder
+  Desktop-Abschnitt hat seinen Ort, die aktive Ansicht steht in der URL
+  (`?view=`) und ist damit verlinkbar.
+
 ### Behoben
 
+- **Der Kopf der App lief auf Android unter die Uhr.** `targetSdkVersion = 36`
+  bedeutet seit Android 15 erzwungenes Edge-to-Edge: Die App zeichnet unter
+  Statusleiste und Kamera-Ausschnitt, und ein `sticky top-0` beginnt damit am
+  Bildschirmrand statt am sichtbaren Rand. Die Einrückung war an drei Stellen
+  gesetzt — und alle drei nur **unten**. Oben und seitlich stand nichts. Kopf
+  und Inhalt halten jetzt auch oben und (fürs Querformat) seitlich Abstand.
+  Dass nie etwas rot wurde, hat einen einfachen Grund: `env(safe-area-inset-*)`
+  ist im Testbrowser und auf dem Desktop 0, die fehlende Klasse also folgenlos
+  — geprüft wird deshalb die Anweisung, nicht ihre gerechnete Wirkung.
 - **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
   gerade den Stellen, an denen etwas abgelesen werden soll: die Beschriftungen
   der Bodennavigation, die Abzeichen an Kategorien und Verträgen, das
@@ -43,6 +64,21 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
   unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
   `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **Der Coach ist eine Feature-Slice.** `CoachPage.tsx` trug vier eigene
+  Abfragen und sechs Service-Importe; solange eine Fläche ihre eigene
+  Datenschicht **ist**, lässt sich keine zweite Präsentation danebenstellen.
+  Beides liegt jetzt in `features/coach/application/use-coach-overview.ts`,
+  die Seite ist ein dünner Routen-Einstieg. `check:view-data` fällt von
+  **220 auf 204**, `check:slice-presentation` von **12 auf 11**.
+- **Ein Context-Provider zählt nicht mehr als Alt-Oberfläche.** Dieselbe
+  Lehre wie bei `components/ui/` (WP 6.2), ein Verzeichnis weiter: Der Umzug
+  von `HealthScoreCard` und `FinancialLandscape` in Slices löste zwei echte
+  Feature-UI-Importe auf — und wäre trotzdem **teurer** geworden, weil beide
+  den Sanften Modus über `useGentleMode` lesen und dafür gezählt wurden. Ein
+  Provider hängt einmal im `AppShell` und zwingt niemanden, die alte
+  Oberfläche mitzuschleppen; `check:layers` und `check:view-data` nehmen ihn
+  seit WP 2.3 aus. `check:slice-presentation` benutzt dafür jetzt **dasselbe**
+  `istInfrastruktur()`-Prädikat statt eines dritten eigenen Kriteriums.
 - **§4 benennt jetzt vier Dimensionen der Anpassung** statt nur
   Feature-Parität: Layout, Tippziele, Navigationsmuster (jeder Hover-Zustand
   braucht ein Touch-Äquivalent) und Inhaltsrang — unter der Regel „anpassen,

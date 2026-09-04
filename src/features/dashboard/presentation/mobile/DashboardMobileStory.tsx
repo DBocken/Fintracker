@@ -8,10 +8,11 @@ import { AdvancedBalanceChart } from "@/components/AdvancedBalanceChart";
 import { SpendingBreakdownCard, ExpensesOverTimeCard } from "../shared/TransactionCharts";
 import { AccountCards } from "@/components/accounts/AccountCards";
 import { SankeyChart } from "@/components/premium-dashboard/SankeyChart";
-import FinancialLandscape from "@/components/health-score/FinancialLandscape";
+import FinancialLandscape from "@/features/shared/presentation/FinancialLandscape";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
+import { resolveSwipeTarget as resolveSwipeTargetShared } from "@/features/shared/domain/swipe-navigation";
 import type { FinanceOverviewViewModel } from "../../application/finance-overview-view-model";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 
@@ -32,15 +33,18 @@ const VIEWS: { key: StoryView; labelKey: string; icon: React.ComponentType<{ cla
 const isStoryView = (value: string | null): value is StoryView =>
   VIEWS.some((view) => view.key === value);
 
+/**
+ * Wisch-Ziel dieser Story. Die Regeln selbst liegen seit der Coach-Slice in
+ * `features/shared/domain/swipe-navigation` (zweite Fläche mit derselben
+ * Geste); hier bleibt nur die Vorbelegung mit der eigenen Ansichtszahl.
+ */
 export function resolveSwipeTarget(
   index: number,
   deltaX: number,
   deltaY: number,
   viewCount = VIEWS.length,
 ): number {
-  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return index;
-  const direction = deltaX < 0 ? 1 : -1;
-  return Math.min(viewCount - 1, Math.max(0, index + direction));
+  return resolveSwipeTargetShared(index, deltaX, deltaY, viewCount);
 }
 
 /** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */

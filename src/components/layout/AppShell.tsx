@@ -76,7 +76,21 @@ export default function AppShell() {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+          {/* Safe-Area oben und seitlich: `targetSdkVersion = 36` bedeutet
+              erzwungenes Edge-to-Edge (seit Android 15 / SDK 35) — die App
+              zeichnet UNTER Statusleiste und Kamera-Ausschnitt, und ein
+              `sticky top-0` beginnt damit nicht am sichtbaren Rand, sondern
+              am Bildschirmrand. Der Kopf lief also unter der Uhr. Unten war
+              das längst bedacht (`main`, `BottomNav`, `MobileNav`), oben und
+              seitlich an keiner Stelle.
+
+              Die Einrückung sitzt am `header` und NICHT an der Zeile darin:
+              So addiert sie sich zu den vorhandenen `px`-Klassen, statt mit
+              deren Breakpoint-Varianten zu konkurrieren. Ohne Ausschnitt ist
+              `env()` gleich 0 — auf dem Desktop ändert sich dadurch nichts.
+              Seitlich zählt der Querformat-Ausschnitt: Die App ist nicht auf
+              Hochformat festgelegt (kein `screenOrientation` im Manifest). */}
+          <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]">
             <div className="flex h-14 items-center gap-1 px-3 sm:gap-2 sm:px-4 lg:px-6">
               <MobileNav />
 
@@ -141,7 +155,7 @@ export default function AppShell() {
           {/* overflow-x-hidden: kein horizontales Seiten-Scrollen auf Mobil; breite
               Inhalte (KPI-Strip, Tabellen, Sankey) scrollen in eigenen overflow-x-auto-
               Containern weiter. min-w-0 erlaubt dem Flex-Kind das Schrumpfen. */}
-          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] md:pb-0">
             <div className="w-full min-w-0 px-4 py-6 sm:px-6 lg:px-8 2xl:px-10">
               {/* `key={location.pathname}` setzt die Fehlergrenze bei jedem
                   Routenwechsel zurueck — sonst bliebe die Fallback-UI eines
