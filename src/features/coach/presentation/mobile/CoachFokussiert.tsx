@@ -1,7 +1,6 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import CoachStatusGrid from "../shared/CoachStatusGrid";
 import FoundationLadder from "../shared/FoundationLadder";
 import UpcomingChargesList from "../shared/UpcomingChargesList";
@@ -10,6 +9,8 @@ import HealthScoreCard from "../shared/HealthScoreCard";
 import CoachFeedCard from "../shared/CoachFeedCard";
 import FinancialLandscape from "@/features/shared/presentation/FinancialLandscape";
 import MilestonesStrip from "@/features/shared/presentation/MilestonesStrip";
+import DetailSchritt from "@/features/shared/presentation/DetailSchritt";
+import { useDetailParam } from "@/features/shared/presentation/useDetailParam";
 import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useI18n } from "@/i18n/useI18n";
 import { formatCoachDaysUntil } from "@/i18n/format";
@@ -22,7 +23,7 @@ import type { CoachViewModel } from "../../application/coach-overview-view-model
  * (ADR Regel 9b). Vorher stand hier `lage=offen` — ein eigener Name je
  * Fläche, und zwölf Entwürfe hatten prompt acht verschiedene.
  */
-const DETAIL_PARAM = "detail";
+/** Benennt den Abschnitt, nicht die Flaeche: `?detail=lage`. */
 const DETAIL_WERT = "lage";
 
 /**
@@ -69,21 +70,10 @@ const DETAIL_WERT = "lage";
 export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
   const { t } = useI18n();
   const money = useMoneyFormat();
-  const [params, setParams] = useSearchParams();
-
-  const detailOffen = params.get(DETAIL_PARAM) === DETAIL_WERT;
-  const setDetail = (offen: boolean) => {
-    const next = new URLSearchParams(params);
-    if (offen) next.set(DETAIL_PARAM, DETAIL_WERT);
-    else next.delete(DETAIL_PARAM);
-    // Öffnen legt einen Verlaufseintrag an, Schliessen ersetzt ihn
-    // (ADR Regel 9b). Vorher stand hier `replace: true` in BEIDEN Richtungen,
-    // und der Kommentar behauptete, die Zurücktaste schliesse den
-    // Detailschritt — sie tat es nicht: Ohne Verlaufseintrag springt sie auf
-    // die vorige Route. Auf einem Telefon ist das der häufigste Handgriff
-    // überhaupt, und er führte aus der Fläche heraus statt aus dem Sheet.
-    setParams(next, { replace: !offen });
-  };
+  // Die Regeln des Detailschritts — Verlaufseintrag beim Oeffnen, fremde
+  // Adressparameter unberuehrt — stehen im gemeinsamen Baustein. Diese Flaeche
+  // hatte sie als Erste, elf weitere haetten sie abgeschrieben.
+  const { oeffnen } = useDetailParam(DETAIL_WERT);
 
   const { coach, health, milestones, milestonesLoading, accountsBalance, disposable, disposableLoading, focus, followUps, loading } = model;
 
@@ -187,7 +177,7 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
               )}
               <button
                 type="button"
-                onClick={() => setDetail(true)}
+                onClick={oeffnen}
                 className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground"
               >
                 {t("coach.focusedMore")}
@@ -200,7 +190,7 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
             <h2 className="mt-1 text-xl font-semibold leading-snug text-positive">{t("coach.allGood")}</h2>
             <button
               type="button"
-              onClick={() => setDetail(true)}
+              onClick={oeffnen}
               className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground"
             >
               {t("coach.focusedMore")}
@@ -213,17 +203,7 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
       {/* Detailschritt: alles Übrige, einen Schritt tiefer und adressierbar.
           Hier DARF gescrollt werden — Regel 9 richtet sich an die Fläche, die
           man beim Öffnen sieht, nicht an einen bewusst geöffneten Detail. */}
-      <Sheet open={detailOffen} onOpenChange={setDetail}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[90dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-          aria-describedby={undefined}
-        >
-          <SheetHeader className="text-left">
-            <SheetTitle>{t("coach.focusedDetailTitle")}</SheetTitle>
-          </SheetHeader>
-
-          <div className="mt-4 flex flex-col gap-6">
+      <DetailSchritt wert={DETAIL_WERT} titel={t("coach.focusedDetailTitle")}>
             {health ? <CoachStatusGrid health={health} /> : null}
 
             <div className="mx-auto w-full max-w-xs">
@@ -245,9 +225,7 @@ export default function CoachFokussiert({ model }: { model: CoachViewModel }) {
             {followUps.map((card, i) => (
               <CoachFeedCard key={card.id} card={card} index={i} />
             ))}
-          </div>
-        </SheetContent>
-      </Sheet>
+      </DetailSchritt>
     </div>
   );
 }

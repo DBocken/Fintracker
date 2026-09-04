@@ -320,6 +320,51 @@ function rangeFromPeriodToken(token: string): DashboardRange | null {
   return null;
 }
 
+/**
+ * Die Adressparameter, die der Filterzustand BESITZT.
+ *
+ * Gebraucht wird die Liste, um beim Spiegeln genau diese zu erneuern und alles
+ * andere stehen zu lassen. Ohne sie bliebe ein abgewählter Filter als alter
+ * Wert in der Adresse hängen.
+ */
+export const DASHBOARD_FILTER_PARAMS = [
+  'cat',
+  'acc',
+  'contract',
+  'essential',
+  'klasse',
+  'q',
+  'merchant',
+  'range',
+  'days',
+] as const;
+
+/**
+ * Spiegelt den Filterzustand in eine BESTEHENDE Adresse, ohne fremde Parameter
+ * zu verlieren.
+ *
+ * Der Befund dahinter ist gemessen: `TransactionsPage` schrieb das Ergebnis von
+ * `encodeDashboardFilters` direkt als neue Abfragezeichenkette. Die Funktion
+ * baut aber ein FRISCHES `URLSearchParams` — jeder fremde Parameter war damit
+ * weg, und zwar nicht erst beim nächsten Tastendruck im Suchfeld, sondern schon
+ * beim ersten Rendern. Ein Detailschritt `?detail=…` (ADR Regel 9b) konnte auf
+ * dieser Fläche deshalb gar nicht existieren.
+ *
+ * Für einen VERWEIS auf eine andere Fläche ist `encodeDashboardFilters` weiter
+ * richtig — dort gibt es keine bestehende Adresse, die man erhalten müsste.
+ */
+export function mergeDashboardFilters(
+  bestehend: URLSearchParams,
+  filters: DashboardFilterState,
+): URLSearchParams {
+  const naechste = new URLSearchParams(bestehend);
+  for (const schluessel of DASHBOARD_FILTER_PARAMS) naechste.delete(schluessel);
+  for (const [schluessel, wert] of encodeDashboardFilters(filters)) {
+    naechste.set(schluessel, wert);
+  }
+  return naechste;
+}
+
 export function encodeDashboardFilters(filters: DashboardFilterState): URLSearchParams {
   const params = new URLSearchParams();
   // `cat` trägt die Menge als Komma-Liste. Abwärtskompatibel: Ein einzelner
