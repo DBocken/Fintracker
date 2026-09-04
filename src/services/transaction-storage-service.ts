@@ -8,6 +8,9 @@ import { transactionSchema } from '@/lib/schemas/transaction.schema';
 import { recordSkipped } from './data-integrity-report';
 import { idbGet, idbRemove } from './idb-kv';
 import { quarterKeyForDate, type QuarterKey } from '@/lib/transaction-quarter';
+import { buildCsvContentKey } from '@/lib/transaction-identity';
+import { withKeyLock } from '@/lib/key-mutex';
+import { TRANSACTION_STORE_LOCK_KEY } from './local-storage-keys';
 import {
   clearAllTransactionChunks,
   readAllTransactionChunks,
@@ -39,6 +42,13 @@ export interface StorageResult<T> {
   data?: T;
   error?: string;
   cached?: boolean;
+  /**
+   * Wie viele eingehende Zeilen als inhaltliche Dublette übersprungen wurden
+   * (Audit 2026-09, F3a). Ein Import, der weniger anlegt als die Datei
+   * enthält, muss das sagen können — sonst ist die Idempotenz von einem
+   * Datenverlust nicht zu unterscheiden.
+   */
+  skippedAsDuplicate?: number;
 }
 
 // Constants
@@ -160,7 +170,17 @@ class TransactionStorageService {
   /**
    * Get all transactions
    */
-  async getTransactions(limit: number = 1000, offset: number = 0): Promise<StorageResult<Transaction[]>> {
+  /**
+   * Liest Buchungen, datum-absteigend.
+   *
+   * `limit === undefined` heisst **alle** — nicht „nimm den Standardwert"
+   * (Audit 2026-09, F2). Vorher stand hier `limit = 1000`, und jede
+   * Aufrufstelle musste eine Zahl raten; keine prüfte, ob sie gegriffen hat.
+   * Ein Ausschnitt sieht aber aus wie ein Bestand: Der Klassifikator trainiert
+   * dann auf 1.000 Buchungen, die Vertragserkennung sieht keine
+   * Jahresverträge, und eine Steuersumme ist schlicht falsch.
+   */
+  async getTransactions(limit?: number, offset: number = 0): Promise<StorageResult<Transaction[]>> {
     try {
       const localResult = await this.getLocalTransactions();
       // [REGRESSION] WP 4.1c: `getLocalTransactions()` wirft nie (siehe dort),
@@ -182,7 +202,8 @@ class TransactionStorageService {
       // reihenfolge ab und verliert die jüngsten Buchungen – wodurch laufende
       // Verträge (Gehalt, Energie) fälschlich als beendet/nicht erkannt gelten.
       const sorted = [...rows].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      return { success: true, data: sorted.slice(offset, offset + limit) };
+      const beschnitten = limit === undefined ? sorted.slice(offset) : sorted.slice(offset, offset + limit);
+      return { success: true, data: beschnitten };
     } catch (error) {
       logger.error(`[TransactionStorage] Error getting transactions: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
@@ -409,54 +430,69 @@ class TransactionStorageService {
   }
 
   private async saveLocalTransactions(newTransactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
+    // Die Weiche steht VOR dem Lock, und das ist keine Kosmetik: Nähme diese
+    // Methode erst den Lock und riefe dann die Chunk-Schwester, die denselben
+    // Schlüssel nimmt, wartete sie auf sich selbst — `withKeyLock` ist nicht
+    // reentrant (`lib/key-mutex.ts`). Jeder Schreibvorgang bliebe dauerhaft
+    // hängen, und zwar auf jeder Installation ohne v3-Blob, also im Normalfall.
     if (!(await hasLegacyV3Blob())) return this.saveLocalTransactionsChunked(newTransactions);
 
-    const existing = await this.getLocalTransactions();
-    const merged = [...(existing.data || [])];
-    const knownIds = new Set(merged.map((transaction) => transaction.id).filter(Boolean));
-    for (const transaction of newTransactions) {
-      // Import-IDs sind stabil. Ein identischer Reimport darf weder eine zweite
-      // Buchung erzeugen noch zwischenzeitliche manuelle Änderungen überschreiben.
-      if (transaction.id && knownIds.has(transaction.id)) continue;
-      merged.push(transaction);
-      if (transaction.id) knownIds.add(transaction.id);
-    }
-    await this.setLocalTransactions(merged);
-    return { success: true, data: newTransactions };
+    return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
+      const existing = await this.getLocalTransactions();
+      const merged = [...(existing.data || [])];
+      const knownIds = new Set(merged.map((transaction) => transaction.id).filter(Boolean));
+      for (const transaction of newTransactions) {
+        // Import-IDs sind stabil. Ein identischer Reimport darf weder eine zweite
+        // Buchung erzeugen noch zwischenzeitliche manuelle Änderungen überschreiben.
+        // Die Prüfung steht INNERHALB des Locks — davor wäre sie Zierde, weil
+        // zwei gleichzeitige Aufrufe beide an ihr vorbeikämen (AGENTS.md §2).
+        if (transaction.id && knownIds.has(transaction.id)) continue;
+        merged.push(transaction);
+        if (transaction.id) knownIds.add(transaction.id);
+      }
+      await this.setLocalTransactions(merged);
+      return { success: true, data: newTransactions };
+    });
   }
 
   private async updateLocalTransaction(id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
+    // Weiche vor dem Lock — siehe `saveLocalTransactions`.
     if (!(await hasLegacyV3Blob())) return this.updateLocalTransactionChunked(id, updates);
 
-    const existing = await this.getLocalTransactions();
-    if (!existing.data) {
-      return { success: false, error: t('transactionStorage.noTransactionsFound') };
-    }
+    return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
+      const existing = await this.getLocalTransactions();
+      if (!existing.data) {
+        return { success: false, error: t('transactionStorage.noTransactionsFound') };
+      }
 
-    const updated = existing.data.map(tx =>
-      tx.id === id ? { ...tx, ...updates } : tx
-    );
+      const updated = existing.data.map(tx =>
+        tx.id === id ? { ...tx, ...updates } : tx
+      );
 
-    await this.setLocalTransactions(updated);
+      await this.setLocalTransactions(updated);
 
-    const updatedTx = updated.find(tx => tx.id === id);
-    return updatedTx
-      ? { success: true, data: updatedTx }
-      : { success: false, error: t('transactionStorage.transactionNotFound') };
+      const updatedTx = updated.find(tx => tx.id === id);
+      return updatedTx
+        ? { success: true, data: updatedTx }
+        : { success: false, error: t('transactionStorage.transactionNotFound') };
+    });
   }
 
   private async deleteLocalTransaction(id: string): Promise<StorageResult<void>> {
+    // Weiche vor dem Lock — siehe `saveLocalTransactions`.
     if (!(await hasLegacyV3Blob())) return this.deleteLocalTransactionChunked(id);
 
-    const existing = await this.getLocalTransactions();
-    if (!existing.data) {
-      return { success: false, error: t('transactionStorage.noTransactionsFound') };
-    }
+    return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
+      const existing = await this.getLocalTransactions();
+      if (!existing.data) {
+        return { success: false, error: t('transactionStorage.noTransactionsFound') };
+      }
 
-    const filtered = existing.data.filter(tx => tx.id !== id);
-    await this.setLocalTransactions(filtered);
+      const filtered = existing.data.filter(tx => tx.id !== id);
+      await this.setLocalTransactions(filtered);
 
-    return { success: true };
+      return { success: true };
+    });
   }
 
   // ---- WP 4.1c: Chunk-basierte Gegenstücke (aktiv, sobald v3 migriert ist) ----
@@ -475,12 +511,35 @@ class TransactionStorageService {
   // gesamten Blob entschlüsseln musste.
 
   private async saveLocalTransactionsChunked(newTransactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
+    return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
     const existing = await readAllTransactionChunks();
     const knownIds = new Set(existing.map((transaction) => transaction.id).filter(Boolean));
+    // Inhaltsmenge EINMAL vor der Schleife (AGENTS.md §3): je Zeile neu
+    // aufgebaut wäre das über einen Import von 10.000 Zeilen zehntausendmal
+    // derselbe Aufbau — und zwar innerhalb des Locks.
+    const knownContent = new Set(existing.map(buildCsvContentKey));
+    let skippedByContent = 0;
 
     const byQuarter = new Map<QuarterKey, Transaction[]>();
     for (const transaction of newTransactions) {
       if (transaction.id && knownIds.has(transaction.id)) continue;
+      // Zweite, inhaltliche Dedup für den CSV-Pfad (Audit 2026-09, F3a).
+      // Sie fängt genau das, was der Vorkommenszähler nicht kann: eine
+      // Bestands-Buchung mit ALTER ID-Form, und einen zweiten Export, der
+      // mitten in eine Reihe identischer Zeilen schneidet. Bewusst nur für
+      // `csv-`-IDs: Eine manuell angelegte Buchung DARF inhaltsgleich sein
+      // (zweimal derselbe Bäcker am selben Tag), und für den Bankpfad
+      // entscheidet `buildTxIdentifier` mit anderen Feldern.
+      const istCsvZeile = typeof transaction.id === 'string' && transaction.id.startsWith('csv-');
+      if (istCsvZeile && knownContent.has(buildCsvContentKey(transaction))) {
+        skippedByContent += 1;
+        continue;
+      }
+      // Bewusst NICHT die soeben angenommene Zeile nachtragen: Innerhalb
+      // EINES Stapels hat der Vorkommenszähler die Wiederholungen schon
+      // unterschieden (verschiedene IDs). Wer hier nachtrüge, machte aus zwei
+      // echten Buchungen — zweimal derselbe Bäcker am selben Tag — eine.
+      // Verglichen wird ausschließlich gegen den BESTAND.
       const quarter = quarterKeyForDate(transaction.date);
       const list = byQuarter.get(quarter);
       if (list) list.push(transaction);
@@ -493,10 +552,21 @@ class TransactionStorageService {
       await writeTransactionChunk(quarter, [...current, ...additions]);
     }
 
-    return { success: true, data: newTransactions };
+    // Übersprungene Zeilen werden GEZÄHLT, nicht still verschluckt: Ein
+    // Import, der weniger anlegt als die Datei enthält, muss erklärbar sein.
+    if (skippedByContent > 0) {
+      logger.info(
+        `[TransactionStorage] ${skippedByContent} Zeile(n) als inhaltliche Dublette übersprungen`,
+        { source: 'transaction-storage' },
+      );
+    }
+
+    return { success: true, data: newTransactions, skippedAsDuplicate: skippedByContent };
+    });
   }
 
   private async updateLocalTransactionChunked(id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
+    return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
     const all = await readAllTransactionChunks();
     const existing = all.find((tx) => tx.id === id);
     if (!existing) {
@@ -519,9 +589,11 @@ class TransactionStorageService {
     }
 
     return { success: true, data: updated };
+    });
   }
 
   private async deleteLocalTransactionChunked(id: string): Promise<StorageResult<void>> {
+    return withKeyLock(TRANSACTION_STORE_LOCK_KEY, async () => {
     const all = await readAllTransactionChunks();
     const existing = all.find((tx) => tx.id === id);
     if (!existing) {
@@ -534,11 +606,11 @@ class TransactionStorageService {
     await writeTransactionChunk(quarter, chunk.filter((tx) => tx.id !== id));
 
     return { success: true };
+    });
   }
 
   private async getAllTransactions(): Promise<Transaction[]> {
-
-    const result = await this.getTransactions(10000, 0);
+    const result = await this.getTransactions(undefined, 0);
     return result.data || [];
   }
 }

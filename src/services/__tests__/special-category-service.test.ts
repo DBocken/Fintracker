@@ -13,11 +13,11 @@ import {
   saveSpecialCategory,
 } from '../special-category-service';
 
-// getTransactions steuerbar halten – die übrige Persistenz läuft echt über den
+// getAllTransactions steuerbar halten – die übrige Persistenz läuft echt über den
 // lokalen Finanz-Store (localStorage in jsdom).
 const { txStore } = vi.hoisted(() => ({ txStore: { current: [] as Transaction[] } }));
 vi.mock('../transaction-service', () => ({
-  getTransactions: async () => txStore.current,
+  getAllTransactions: async () => txStore.current,
 }));
 
 function tx(id: string, amount: number): Transaction {

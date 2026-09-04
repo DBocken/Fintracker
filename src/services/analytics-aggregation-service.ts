@@ -1,5 +1,5 @@
 import type { Category, Transaction } from '@/types';
-import { getCategories, getTransactions } from './transaction-service';
+import { getCategories, getAllTransactions } from './transaction-service';
 import { sumMinor, toMajor, toMinor, type Cents } from '@/lib/money';
 
 export type AnalyticsAggregationRecord = {
@@ -52,7 +52,7 @@ function mapCategoryGroup(category?: Category): string {
 }
 
 export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
-  const [transactions, categories] = await Promise.all([getTransactions(10000), getCategories()]);
+  const [transactions, categories] = await Promise.all([getAllTransactions(), getCategories()]);
   const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
   const expenses = transactions.filter((tx) => Number(tx.amount) < 0);
   // AGENTS.md §8: Aggregation in Integer-Cent, nicht in Float-Euro. Vorher

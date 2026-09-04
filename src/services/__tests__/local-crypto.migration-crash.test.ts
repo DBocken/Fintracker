@@ -138,3 +138,29 @@ describe('localEncryption.migrateFinanceKeys: Abbruch mitten in der Umschlüssel
     }
   });
 });
+
+describe('[REGRESSION] Lazy-Migration löscht den Altbestand erst nach Bestätigung (Audit 2026-09, WP7)', () => {
+  it('[REGRESSION] sollte den localStorage-Altbestand erst löschen, wenn IndexedDB ihn nachweislich hält', async () => {
+    // Bis hierher war der localStorage-Eintrag die EINZIGE Kopie. Schlug das
+    // Schreiben nach IndexedDB fehl, löschte die nächste Zeile sie trotzdem —
+    // Daten weg, ohne Fehlermeldung, ohne Lücke, nach der jemand sucht.
+    const schluessel = LOCAL_FINANCE_KEYS.transactions;
+    localStorage.setItem(schluessel, '[{"id":"nur-hier"}]');
+    await clearLocalKvStore();
+
+    const idbModul = await import('../idb-kv');
+    const spy = vi
+      .spyOn(idbModul, 'idbSet')
+      .mockRejectedValueOnce(new Error('IndexedDB nicht schreibbar'));
+
+    await localEncryption.loadAndMaybeDecrypt(schluessel).catch(() => null);
+    // Ohne diese Zusicherung wäre der Test wertlos: Greift der Spy nicht,
+    // schreibt der echte idbSet erfolgreich, die Bestätigung stimmt, und der
+    // Altbestand wird korrekt gelöscht — grün, ohne den Fall je zu erreichen.
+    expect(spy).toHaveBeenCalledWith(schluessel, '[{"id":"nur-hier"}]');
+    spy.mockRestore();
+
+    // Der Altbestand muss noch da sein — er war die einzige Kopie.
+    expect(localStorage.getItem(schluessel)).toBe('[{"id":"nur-hier"}]');
+  });
+});

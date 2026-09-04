@@ -168,11 +168,18 @@ describe('snapshot-sync-service Versionsvergleich (RES-4)', () => {
     expect(await idbGet(LOCAL_FINANCE_KEYS.transactions)).toBe(JSON.stringify([{ id: 'tx-1', amount: -100 }]));
   });
 
-  it('sollte einen fremden Snapshot mit neuerem Zeitstempel ohne Bestätigung importieren, obwohl die Versionsnummer niedriger ist', async () => {
+  it('[INTEGRITY] sollte einen fremden Snapshot auch mit neuerem Zeitstempel bestätigen lassen', async () => {
+    // GEÄNDERTE ERWARTUNG (Audit 2026-09, WP7). Vorher galt: neuerer
+    // Zeitstempel gewinnt, ohne Rückfrage. Der Zeitstempel sagt aber nur, wann
+    // der Snapshot ERZEUGT wurde — nicht, wann auf diesem Gerät zuletzt
+    // gearbeitet wurde; Änderungszeiten werden gar nicht verfolgt. Wer auf dem
+    // Zweitgerät „Export" drückt, erzeugt damit einen frischen Zeitstempel über
+    // einem monatealten Datenstand und überschrieb hier lautlos die Arbeit von
+    // gestern. Ein Datenverlust darf keine Nebenwirkung eines Exports sein;
+    // die Rückfrage kostet einen Klick und ist rückgängig zu machen.
     const deviceId = getOrCreateDeviceId();
     const foreignDeviceId = crypto.randomUUID();
 
-    // Lokaler Stand: alter Zeitstempel, hohe Versionsnummer (viele kleine eigene Exports).
     const baseline = await makeSnapshotWithAmount(-100, {
       snapshot_version: 10,
       device_id: deviceId,
@@ -180,14 +187,21 @@ describe('snapshot-sync-service Versionsvergleich (RES-4)', () => {
     });
     await importEncryptedSnapshot(asFile(baseline));
 
-    // Fremdes Gerät: niedrige Versionsnummer, aber aktueller Zeitstempel.
     const freshForeign = await makeSnapshotWithAmount(-200, {
       snapshot_version: 2,
       device_id: foreignDeviceId,
       created_at: new Date().toISOString(),
     });
 
-    await expect(importEncryptedSnapshot(asFile(freshForeign))).resolves.not.toThrow();
+    await expect(importEncryptedSnapshot(asFile(freshForeign))).rejects.toThrow(SnapshotOlderVersionError);
+    // Der lokale Bestand ist unberührt geblieben.
+    expect(await idbGet(LOCAL_FINANCE_KEYS.transactions)).toBe(JSON.stringify([{ id: 'tx-1', amount: -100 }]));
+
+    // Mit Bestätigung geht es weiterhin durch — die Rückfrage blockiert nicht,
+    // sie fragt.
+    await expect(
+      importEncryptedSnapshot(asFile(freshForeign), { acknowledgeOlder: true }),
+    ).resolves.not.toThrow();
     expect(await idbGet(LOCAL_FINANCE_KEYS.transactions)).toBe(JSON.stringify([{ id: 'tx-1', amount: -200 }]));
   });
 
@@ -214,6 +228,55 @@ describe('snapshot-sync-service Versionsvergleich (RES-4)', () => {
     expect(comparison.isForeignDevice).toBe(false);
     expect(comparison.local).toEqual({ version: 5, createdAt: '2026-08-01T10:00:00.000Z', deviceId });
     expect(comparison.remote).toEqual({ version: 3, createdAt: '2026-07-20T10:00:00.000Z', deviceId });
+  });
+
+  it('[INTEGRITY] sollte einen fremden Snapshot auch dann bestätigen lassen, wenn er jünger als der lokale ist', async () => {
+    // Audit 2026-09, WP7: Vorher entschied ein Zeitvergleich — ein jüngerer
+    // fremder Snapshot ersetzte den lokalen Bestand ohne Rückfrage. Der
+    // Zeitstempel sagt aber nur, wann der Snapshot ERZEUGT wurde, nicht wann
+    // hier zuletzt gearbeitet wurde; Änderungszeiten werden nicht verfolgt.
+    // Ein heute erzeugter Export eines seit Wochen unbenutzten Zweitgeräts
+    // überschrieb damit lautlos die Arbeit von gestern.
+    const fremd = await makeSnapshotWithAmount(-1, {
+      snapshot_version: 9,
+      device_id: 'fremdes-geraet',
+      created_at: '2026-08-30T10:00:00.000Z',
+    });
+
+    const comparison = compareSnapshotForImport(
+      fremd as unknown as Parameters<typeof compareSnapshotForImport>[0],
+      5,
+      {
+        device_id: getOrCreateDeviceId(),
+        snapshot_id: 'x',
+        snapshot_version: 5,
+        schema_version: 1,
+        storage_label: null,
+        storage_path_hint: null,
+        created_at: '2026-08-01T10:00:00.000Z',
+      },
+    );
+
+    expect(comparison.isForeignDevice).toBe(true);
+    expect(comparison.requiresConfirmation).toBe(true);
+  });
+
+  it('sollte einen fremden Snapshot OHNE lokalen Bestand ohne Rückfrage zulassen', async () => {
+    // Die Gegenprobe: Wo nichts liegt, kann nichts überschrieben werden — eine
+    // Rückfrage wäre hier reine Reibung beim Einrichten eines zweiten Geräts.
+    const fremd = await makeSnapshotWithAmount(-1, {
+      snapshot_version: 9,
+      device_id: 'fremdes-geraet',
+    });
+
+    const comparison = compareSnapshotForImport(
+      fremd as unknown as Parameters<typeof compareSnapshotForImport>[0],
+      0,
+      null,
+    );
+
+    expect(comparison.isForeignDevice).toBe(true);
+    expect(comparison.requiresConfirmation).toBe(false);
   });
 
   it('sollte previewSnapshotImport ohne Import Version und Datum beider Stände liefern', async () => {

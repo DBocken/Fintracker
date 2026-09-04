@@ -1,7 +1,7 @@
 import { computeAnchoredBalance, pickBalanceAnchor } from "@/features/shared/domain/balance-calculations";
 import type { Account } from "../types";
 import { getAccounts } from "./account-service";
-import { getTransactions } from "./transaction-service";
+import { getAllTransactions } from "./transaction-service";
 import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
 import { getDebts } from "./debt-service";
 import { totalOutstandingDebt } from "@/lib/debt-totals";
@@ -54,7 +54,7 @@ const computeLocalBalance = computeAnchoredBalance;
 export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
   const [accounts, transactions, debts, receivables, manualAssets] = await Promise.all([
     getAccounts(),
-    getTransactions(10000),
+    getAllTransactions(),
     getDebts(),
     getReceivables(),
     getManualAssets(),

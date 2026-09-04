@@ -11,7 +11,7 @@ import {
   upsertLocalFinanceItem,
   writeLocalFinanceList,
 } from './local-finance-store';
-import { getTransactions } from './transaction-service';
+import { getAllTransactions } from './transaction-service';
 import { getSubtreeIds, wouldCreateCycle } from '@/features/special-categories/domain/hierarchy';
 import {
   validateAssignment,
@@ -139,7 +139,7 @@ export async function assignTransaction(
   const [cats, existingAssignments, transactions] = await Promise.all([
     getSpecialCategories(),
     getSpecialCategoryAssignments(),
-    getTransactions(5000),
+    getAllTransactions(),
   ]);
 
   if (!cats.some((c) => c.id === input.specialCategoryId)) {

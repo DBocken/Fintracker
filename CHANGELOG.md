@@ -70,6 +70,67 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
+  gerade den Stellen, an denen etwas abgelesen werden soll: die Beschriftungen
+  der Bodennavigation, die Abzeichen an Kategorien und Verträgen, das
+  Mitteltext-Label des Sunburst und — bei 8 px — die Beschriftungen der
+  Finanzlandschaft. Alle stehen jetzt mindestens auf der Lesbarkeitsgrenze.
+
+### Intern
+
+- **Zwei neue Wächter für die Maße, die Prinzip 7 bisher nur behauptet hat.**
+  „Tap-Ziele groß genug, Kontrast ausreichend" war für den Kontrast seit Langem
+  eine Zahl (4.5:1) und für die anderen beiden Maße eine Absichtserklärung.
+  `pnpm check:type-scale` verlangt jetzt 11 px für gerenderten Text (ohne
+  Ausnahmeliste, wie `check:a11y-names`), `pnpm check:touch-targets` ist eine
+  Ratsche auf Trefferbereiche unter 44 px. Beide laufen in Pre-Commit und CI.
+- **Die Tippziel-Ratsche führt zwei Spalten.** 186 der 217 Fundstellen sind
+  schlicht die kleinere Button-Variante — sie mit den 31 per Klasse auf bis zu
+  20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
+  unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
+  `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **§4 benennt jetzt vier Dimensionen der Anpassung** statt nur
+  Feature-Parität: Layout, Tippziele, Navigationsmuster (jeder Hover-Zustand
+  braucht ein Touch-Äquivalent) und Inhaltsrang — unter der Regel „anpassen,
+  nicht amputieren".
+
+## 2026.9.1 — 2026-09-02
+
+### Behoben
+
+- **Beim gleichzeitigen Speichern konnte eine Buchung verschwinden.** Lesen,
+  Entschlüsseln, Schreiben lief ohne Sperre — zwei Vorgänge, die sich
+  überschnitten, lasen denselben Stand, und der zweite schrieb eine Fassung
+  ohne die Buchung des ersten. Kein Fehler, keine Lücke, nach der man suchen
+  würde; ab dann stimmte jede Summe nicht mehr. Alle Buchungs-Schreibpfade
+  laufen jetzt nacheinander, der Migrationslauf eingeschlossen.
+
+- **Auswertungen rechneten heimlich nur mit einem Ausschnitt.** Steuerbericht,
+  EÜR, Vertragserkennung, Dubletten-Prüfung und die Kategorie-Lernfunktion
+  luden je nach Fläche die 500 bis 10.000 jüngsten Buchungen — und niemand
+  merkte es, weil ein Ausschnitt aussieht wie ein Bestand. Wer mehr Buchungen
+  hat, bekam falsche Summen und übersehene Jahresverträge. Diese Flächen
+  lesen jetzt den ganzen Bestand.
+
+- **Der Bank-Abgleich legte alte Buchungen bei jedem Sync neu an.** Die
+  Dubletten-Prüfung sah nur die 5.000 jüngsten Buchungen, die Bank liefert
+  aber zwei Jahre. Ab etwa 5.000 Buchungen wuchs der Bestand dadurch mit
+  jedem Abgleich.
+
+- **Zwei überlappende CSV-Exporte verdoppelten die gemeinsamen Buchungen.**
+  Die Kennung enthielt die Zeilennummer, und dieselbe Buchung steht in einem
+  zweiten Export an anderer Stelle. Erkannt wird jetzt der Inhalt, nicht die
+  Position.
+
+- **Ein Snapshot vom Zweitgerät konnte die Arbeit von gestern überschreiben.**
+  Ist er neuer, wurde er bisher ohne Rückfrage übernommen — der Zeitstempel
+  sagt aber nur, wann exportiert wurde, nicht wann zuletzt gearbeitet wurde.
+  Fremde Snapshots werden jetzt immer bestätigt, solange lokal etwas liegt.
+
+- **Ohne verfügbaren lokalen Speicher tat Speichern so, als hätte es
+  geklappt.** Im privaten Modus oder bei blockierten Websitedaten verschwand
+  die Eingabe beim nächsten Start. Jetzt sagt die App es, statt zu schweigen.
+
 - **Das lokale Modell startete nie: „no available backend found."** Das
   Modell lag längst auf dem Gerät (135 MB im Cache), aber seine
   WASM-Laufzeit wollte die Bibliothek per Vorgabe von einem CDN

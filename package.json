@@ -1,7 +1,7 @@
 {
   "name": "modul-ausgabentracker-2",
   "private": true,
-  "version": "2026.9.0",
+  "version": "2026.9.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -35,8 +35,11 @@
     "check:a11y-names": "node scripts/check-a11y-names.mjs",
     "check:state-coverage": "node scripts/check-state-coverage.mjs",
     "check:store-serialization": "node scripts/check-store-serialization.mjs",
+    "check:transaction-limits": "node scripts/check-transaction-limits.mjs",
     "check:money-format": "node scripts/check-money-format.mjs",
     "check:external-endpoints": "node scripts/check-external-endpoints.mjs",
+    "check:type-scale": "node scripts/check-type-scale.mjs",
+    "check:touch-targets": "node scripts/check-touch-targets.mjs",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "prepare": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true"
   },
@@ -144,7 +147,8 @@
       "brace-expansion@>=1 <2": ">=1.1.18 <2",
       "brace-expansion@>=5 <6": ">=5.0.9 <6",
       "sharp@>=0.30 <0.35": ">=0.35.0 <1",
-      "adm-zip@<0.6": ">=0.6.0 <1"
+      "adm-zip@<0.6": ">=0.6.0 <1",
+      "browserslist@>=4 <5": ">=4.28.7 <5"
     }
   }
 }

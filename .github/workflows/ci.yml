@@ -119,6 +119,13 @@ jobs:
       - name: Serialisierung der Schreibpfade
         run: pnpm check:store-serialization
 
+      # getTransactions(limit) sortiert absteigend und schneidet ab. Rund 45
+      # Aufrufstellen waehlten ein Literal, und keine pruefte, ob es griff —
+      # ein Ausschnitt sieht aus wie ein Bestand. Ohne Ausnahmeliste
+      # (Audit 2026-09, F2).
+      - name: Stille Kappungen auf Buchungen
+        run: pnpm check:transaction-limits
+
       # Der Sanfte Modus ist ein Barrierefreiheits-Versprechen: Wer ihn
       # einschaltet, will seine Zahlen nicht sehen. Ein einziger unmaskierter
       # Betrag auf derselben Flaeche hebt es auf (Issue #296).
@@ -133,6 +140,21 @@ jobs:
       # fuer VVT und Datenschutztext und damit schlimmer als keines.
       - name: EU-Regel (externe Endpunkte gegen das Anbieter-Register)
         run: pnpm check:external-endpoints
+
+      # Prinzip 7 nennt Kontrast und Tap-Ziele, aber nie die Schriftgroesse —
+      # deshalb hat nie etwas rot gemacht, was auf einem Telefon mit hoher
+      # Pixeldichte nicht mehr zu lesen ist. Gemessen waren es 24 Stellen unter
+      # 11px, darunter die Beschriftungen der Bodennavigation. Ohne
+      # Ausnahmeliste.
+      - name: Schriftgroessen (lesbarer Bildschirmtext)
+        run: pnpm check:type-scale
+
+      # §4 verlangt Feature-Paritaet, check:platform-parity prueft davon eine
+      # Form (Flaeche fehlt ganz). Der Fall daneben: ein Element ist da und
+      # trotzdem unbedienbar, weil kleiner als eine Fingerkuppe. Ratsche, weil
+      # 217 Stellen kein Commit sind.
+      - name: Tippziele (44px-Ratsche)
+        run: pnpm check:touch-targets
 
       - name: i18n-Check (Diff)
         run: |

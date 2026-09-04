@@ -128,7 +128,7 @@ vi.mock('@/features/finance-city/presentation/CityLabels', async () => {
 // aria-current, Sheet-Prozent, onFrame-Verdrahtung, Stadt→…→Streaming) am
 // Leben, nur über den echten Daten-Pfad statt der Fixture.
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
 }));
 vi.mock('@/services/contract-decision-service', () => ({
@@ -145,7 +145,7 @@ vi.mock('@/services/milestones-service', () => ({
 const { useIsWideDesktopMock } = vi.hoisted(() => ({ useIsWideDesktopMock: vi.fn(() => true) }));
 vi.mock('@/hooks/useIsWideDesktop', () => ({ useIsWideDesktop: useIsWideDesktopMock }));
 
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { evaluateMilestones } from '@/services/milestones-service';
 import type { MilestoneStatus } from '@/lib/milestone-types';
 
@@ -286,7 +286,7 @@ beforeEach(() => {
   // zwischen Tests zurücksetzen, sonst hängt die Sichtbarkeit von der
   // Testreihenfolge ab.
   window.localStorage.clear();
-  vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
+  vi.mocked(getAllTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
   vi.mocked(evaluateMilestones).mockResolvedValue(FIXTURE_MILESTONES);
@@ -748,7 +748,7 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
   });
 
   it('[REGRESSION] [ZUSTAND /city:leer] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {
-    vi.mocked(getTransactions).mockResolvedValue([]);
+    vi.mocked(getAllTransactions).mockResolvedValue([]);
     renderWithProviders(<CityPage />, { query: true, locale });
 
     const emptyText = locale === 'de' ? /Noch keine Ausgabendaten/ : /No spending data yet/;

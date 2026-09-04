@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import { buildLumpyRiskProfile, type LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 
 /**
@@ -16,7 +16,7 @@ export function useLumpyRisk(): {
 } {
   const query = useQuery({
     queryKey: ['transactions', 'lumpy-risk'],
-    queryFn: () => getTransactions(5000),
+    queryFn: () => getAllTransactions(),
     staleTime: 5 * 60 * 1000,
   });
 

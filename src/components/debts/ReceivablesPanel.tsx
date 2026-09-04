@@ -26,7 +26,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { ReceivableFormDialog } from "@/components/debts/ReceivableFormDialog";
 import type { Receivable, Transaction } from "@/types";
 import type { TransactionId } from "@/lib/ids";
-import { getTransactions } from "@/services/transaction-service";
+import { getAllTransactions } from "@/services/transaction-service";
 import {
   getReceivables,
   createReceivable,
@@ -71,7 +71,9 @@ export function ReceivablesPanel() {
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
     queryKey: ["transactions", "receivable-assignment"],
-    queryFn: () => getTransactions(500),
+    // `suggestReceivableRepayments` sucht die passende Rückzahlung im ganzen
+    // Bestand; auf 500 Buchungen beschnitten schlägt sie ältere nie vor.
+    queryFn: getAllTransactions,
     enabled: receivables.length > 0,
   });
 

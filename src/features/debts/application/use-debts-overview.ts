@@ -22,7 +22,7 @@ import type { Debt, Transaction } from "@/types";
 import type { DebtTransactionAssignment } from "@/lib/debt-types";
 import { totalMinimumPayment, totalOutstandingDebt } from "@/lib/debt-totals";
 import { assessDebtCounseling } from "@/lib/debt-counseling";
-import { getTransactions } from "@/services/transaction-service";
+import { getAllTransactions } from "@/services/transaction-service";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import {
   assignTransactionToDebt,
@@ -43,7 +43,6 @@ import {
   summarizeDebtCauses,
 } from "../domain/debt-overview";
 import {
-  DEBT_ASSIGNABLE_TRANSACTION_LIMIT,
   DEBT_DEPENDENT_KEYS,
   debtsKeys,
 } from "../data/debts-query-keys";
@@ -92,7 +91,7 @@ export function useDebtsOverview() {
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
     queryKey: debtsKeys.assignableTransactions,
-    queryFn: () => getTransactions(DEBT_ASSIGNABLE_TRANSACTION_LIMIT),
+    queryFn: () => getAllTransactions(),
     enabled: debts.length > 0,
   });
 

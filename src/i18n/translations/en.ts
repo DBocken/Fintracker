@@ -4390,6 +4390,7 @@ export const en = {
   },
   storage: {
     quotaExceeded: 'Storage is full and could not be written. Export a backup or clean up data before continuing.',
+    indexedDbUnavailable: 'Local storage is unavailable, so your entry was NOT saved. This usually happens in private mode or when the browser blocks site data.',
   },
   demoData: {
     removeSuccess: 'Demo data removed',

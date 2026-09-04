@@ -211,7 +211,7 @@ export default function FinancialLandscape({ health, variant = "hero", className
                   className="mt-0.5 rounded-lg bg-white/90 px-1.5 py-0.5 text-center shadow backdrop-blur-sm"
                   style={{ minWidth: isCompact ? 44 : 52 }}
                 >
-                  <div className="text-[8px] font-medium leading-tight text-gray-500">{meta.label}</div>
+                  <div className="text-[11px] font-medium leading-tight text-gray-500">{meta.label}</div>
                   <div className="text-xs font-bold leading-tight" style={{ color }}>
                     {gentleMode ? "••" : s.score}
                   </div>

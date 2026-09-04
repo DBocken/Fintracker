@@ -6,14 +6,14 @@ import { asTransactionId } from '@/lib/ids';
 import { useCityModel } from '../use-city-model';
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
 }));
 vi.mock('@/services/transaction-allocation-service', () => ({
   getAllocationMap: vi.fn(),
 }));
 
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { getAllocationMap } from '@/services/transaction-allocation-service';
 
 const CAT_LEISURE = 'cat-leisure';
@@ -40,7 +40,7 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
+  vi.mocked(getAllTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getAllocationMap).mockResolvedValue(new Map());
 });
@@ -77,7 +77,7 @@ describe('useCityModel', () => {
     // „empty", weil eine leere Stadt „du hast noch nichts erfasst" heisst —
     // die falscheste Aussage, die dieser Screen nach einem Lesefehler treffen
     // kann.
-    vi.mocked(getTransactions).mockRejectedValue(new Error('Lesefehler'));
+    vi.mocked(getAllTransactions).mockRejectedValue(new Error('Lesefehler'));
 
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
@@ -107,7 +107,7 @@ describe('useCityModel', () => {
       confirmed: true,
       category_id: CAT_LEISURE,
     };
-    vi.mocked(getTransactions).mockResolvedValue([aldi]);
+    vi.mocked(getAllTransactions).mockResolvedValue([aldi]);
 
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
@@ -140,7 +140,7 @@ describe('useCityModel', () => {
       confirmed: true,
       category_id: CAT_FOOD,
     };
-    vi.mocked(getTransactions).mockResolvedValue([aldi]);
+    vi.mocked(getAllTransactions).mockResolvedValue([aldi]);
     vi.mocked(getAllocationMap).mockResolvedValue(
       new Map([['tx-aldi', [
         { id: 'a-food', transaction_id: 'tx-aldi', amount_minor: -3700, category_id: CAT_FOOD, source: 'manual' },
@@ -163,7 +163,7 @@ describe('useCityModel', () => {
   });
 
   it('sollte bei leeren Transaktionen requestState "empty" liefern (kein Demo-Fallback)', async () => {
-    vi.mocked(getTransactions).mockResolvedValue([]);
+    vi.mocked(getAllTransactions).mockResolvedValue([]);
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
@@ -182,7 +182,7 @@ describe('useCityModel', () => {
     // Mutations-Hook invalidiert: `['transactions']`) die Buchung MIT Kategorie
     // -> die Stadt muss beim nächsten Fetch das neue Viertel enthalten.
     const uncategorized: Transaction = { ...FIXTURE_TRANSACTIONS[0], category_id: null };
-    vi.mocked(getTransactions).mockResolvedValue([uncategorized]);
+    vi.mocked(getAllTransactions).mockResolvedValue([uncategorized]);
 
     const { wrapper, queryClient } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
@@ -193,7 +193,7 @@ describe('useCityModel', () => {
     expect(result.current.requestState).toBe('empty');
 
     // Kategorie zugewiesen: die Query liefert jetzt die kategorisierte Buchung.
-    vi.mocked(getTransactions).mockResolvedValue([{ ...uncategorized, category_id: CAT_STREAMING }]);
+    vi.mocked(getAllTransactions).mockResolvedValue([{ ...uncategorized, category_id: CAT_STREAMING }]);
     // Exakt die Invalidierung, die `useTransactionDetailEditing` beim Speichern
     // einer Kategorie auslöst — die Stadt-Query `['transactions', <limit>]`
     // fällt unter dieses Präfix.

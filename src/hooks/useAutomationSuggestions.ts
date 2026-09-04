@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getTransactions,
+  getAllTransactions,
   getCategories,
   updateTransaction,
 } from "@/services/transaction-service";
@@ -36,7 +36,7 @@ export function useAutomationSuggestions() {
     // zuerst gemountete Aufrufer bestimmt den Cache → still falsche Summen.
     // Invalidierungen via Prefix ["transactions"] matchen weiterhin beide.
     queryKey: ["transactions", 1000],
-    queryFn: () => getTransactions(1000),
+    queryFn: () => getAllTransactions(),
   });
   const {
     data: categories = [],

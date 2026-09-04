@@ -24,7 +24,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import type { Transaction, HierarchicalCategory } from '../types';
 import { asTransactionId } from '@/lib/ids';
-import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
+import { getHierarchicalCategories, getAllTransactions, saveTransactions } from '../services/transaction-service';
 import { getMerchantRules } from '../services/merchant-rules-service';
 import { buildAutoCategoryPreview } from '@/lib/review-preview';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
@@ -77,7 +77,9 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     refetch: refetchExistingTx,
   } = useQuery({
     queryKey: ['transactions', 'all-for-duplicate-check'],
-    queryFn: () => getTransactions(10000),
+    // Ganzer Bestand: Eine Dubletten-Prüfung auf einem Ausschnitt findet genau
+    // die Dublette nicht, wegen der sie läuft (Audit 2026-09, F2).
+    queryFn: getAllTransactions,
   });
 
   const getAccountInfo = (accountId: string | null | undefined) => {

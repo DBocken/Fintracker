@@ -1,5 +1,5 @@
 import type { Category, Transaction } from '@/types';
-import { getTransactions, getCategories } from './transaction-service';
+import { getAllTransactions, getCategories } from './transaction-service';
 import { getAccounts } from './account-service';
 import { getDebts } from './debt-service';
 import { getBudgets } from './budget-service';
@@ -100,7 +100,7 @@ export async function collectDataReadiness(
 ): Promise<DataReadiness> {
   const [transactions, categories, accounts, debts, budgets, portfolios, occasions, settings] =
     await Promise.all([
-      getTransactions(2000),
+      getAllTransactions(),
       getCategories(),
       getAccounts(),
       getDebts(),

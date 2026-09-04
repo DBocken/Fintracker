@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SpecialCategory, SpecialCategoryAssignment, Transaction } from '@/types';
-import { getTransactions } from '@/services/transaction-service';
+import { getAllTransactions } from '@/services/transaction-service';
 import {
   assignTransaction,
   deleteSpecialCategory,
@@ -10,7 +10,7 @@ import {
   saveSpecialCategory,
   unassign,
 } from '@/services/special-category-service';
-import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 import { suggestTransactionsForEvent } from '../domain/assignment-suggestions';
 import { specialCategoriesKeys } from '../data/special-categories-query-keys';
 import {
@@ -54,8 +54,8 @@ export function useSpecialCategoriesOverview(): SpecialCategoriesOverviewViewMod
     refetch: refetchTransactions,
   } = useQuery({
     // Geteilter Key mit Dashboard/Buchungen – kein zweiter 5000er-Load.
-    queryKey: financeKeys.transactions(FINANCE_TRANSACTION_LIMIT),
-    queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
+    queryKey: financeKeys.transactionsAll,
+    queryFn: () => getAllTransactions(),
   });
 
   const data = useMemo(

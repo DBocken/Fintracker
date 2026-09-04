@@ -101,7 +101,13 @@ async function readDataRaw(storageKey: string): Promise<string | null> {
     const legacy = localStorage.getItem(storageKey)
     if (legacy != null) {
       await idbSet(storageKey, legacy)
-      localStorage.removeItem(storageKey)
+      // ERST prüfen, DANN löschen (Audit 2026-09, WP7): Schlug das Schreiben
+      // fehl oder kam nur ein Teil an, war der localStorage-Eintrag bis hierher
+      // die EINZIGE Kopie — und diese Zeile die Stelle, an der sie verschwand.
+      // Dieselbe Disziplin wie beim Umlegen des v3-Zeigers in der Migration:
+      // der Altbestand bleibt die Wahrheit, bis der neue nachweislich steht.
+      const bestaetigt = await idbGet(storageKey)
+      if (bestaetigt === legacy) localStorage.removeItem(storageKey)
       return legacy
     }
   }
@@ -488,12 +494,17 @@ export const localEncryption = {
 
     const key = await deriveKeyFromPassword(password, cfg)
     this._key = key
-    saveConfig(cfg)
 
-    // Store a check blob to validate passwords later.
+    // Prüfblob ZUERST, Konfiguration danach (Audit 2026-09, WP7): Die Config
+    // ist der Zeiger, der sagt „dieser Tresor ist aktiv". Steht sie vor dem
+    // Prüfblob und bricht der Lauf dazwischen ab, gilt der Tresor als aktiv,
+    // ohne dass sich ein Passwort je verifizieren ließe — verschlossen ohne
+    // Schlüsselloch. Dieselbe Reihenfolge wie beim v3-Zeiger der Migration.
     const checkPlain = JSON.stringify({ ok: true, created_at: new Date().toISOString() })
     const checkEnc = await encryptString(checkPlain, key, cfg)
     localStorage.setItem(CHECK_KEY, JSON.stringify(checkEnc))
+
+    saveConfig(cfg)
 
     await migrateLocalStorageToIdb()
     await this.migrateFinanceKeys('encrypt')

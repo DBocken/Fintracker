@@ -15,7 +15,7 @@ import type { Transaction } from '@/lib/transaction-types';
 import { showError, showSuccess } from '@/utils/toast';
 import { getAccounts } from '@/services/account-service';
 import {
-  getTransactions,
+  getAllTransactions,
   markTransferPair,
   unmarkTransfer,
 } from '@/services/transaction-service';
@@ -25,7 +25,6 @@ import { accountQueryKeys } from '../data/account-query-keys';
 import { collectLinkedTransferPairs } from '../domain/transfer-pairs';
 
 /** Wieviel Bestand die Uebertrags-Erkennung ansieht. */
-const TRANSFER_SCAN_LIMIT = 10000;
 
 export interface TransferCandidateRow {
   key: string;
@@ -82,7 +81,7 @@ export function useTransferSuggestions(): TransferSuggestionsModel {
     refetch: refetchTransactions,
   } = useQuery({
     queryKey: accountQueryKeys.transactionsForTransfers,
-    queryFn: () => getTransactions(TRANSFER_SCAN_LIMIT),
+    queryFn: () => getAllTransactions(),
   });
 
   const accountLabel = useCallback(

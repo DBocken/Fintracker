@@ -1,52 +1,103 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { Transaction } from '../../types';
-import { asTransactionId } from '../../lib/ids';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
+import { clearLocalKvStore } from '../idb-kv';
+import { localEncryption } from '../local-crypto';
+import { transactionStorage } from '../transaction-storage-service';
+import {
+  getAllTransactions,
+  getTransactionsPage,
+  remapCategoryInLocalTransactions,
+  saveTransactions,
+} from '../transaction-service';
 
-// Sortier-Contract: Die Storage-Schicht liefert datum-absteigend sortiert
-// (transaction-storage-service sortiert VOR dem Limit — sonst verliert ein
-// Limit die jüngsten Buchungen). Die Service-Schicht darf sich darauf
-// verlassen und NICHT erneut sortieren; diese Tests pinnen den Contract,
-// bevor redundante Sorts entfernt werden.
-const storedRows: Transaction[] = [
-  { id: asTransactionId('c'), date: '2026-07-03', amount: -3, payee: 'C', description: '', original_text: '', auto_mapped: false, confirmed: true },
-  { id: asTransactionId('b'), date: '2026-07-02', amount: -2, payee: 'B', description: '', original_text: '', auto_mapped: false, confirmed: true },
-  { id: asTransactionId('b2'), date: '2026-07-02', amount: -20, payee: 'B2', description: '', original_text: '', auto_mapped: false, confirmed: true },
-  { id: asTransactionId('a'), date: '2026-07-01', amount: -1, payee: 'A', description: '', original_text: '', auto_mapped: false, confirmed: true },
-];
+/**
+ * Audit 2026-09, F2: `getTransactions(limit)` sortierte absteigend und schnitt
+ * ab — rund 45 Aufrufer wählten ein Literal (500…10000), und keiner prüfte, ob
+ * es griff. Ab genügend Bestand trainierte der Klassifikator auf einem
+ * Ausschnitt, die Vertragserkennung sah keine Jahresverträge, und Steuer- und
+ * EÜR-Summen waren schlicht falsch — lautlos, weil ein Ausschnitt genauso
+ * aussieht wie ein Bestand.
+ */
 
-vi.mock('../transaction-storage-service', () => ({
-  transactionStorage: {
-    getTransactions: vi.fn(async (limit: number, offset: number) => ({
-      success: true,
-      data: storedRows.slice(offset, offset + limit),
-    })),
-  },
-}));
+function tx(id: string, date: string, overrides: Partial<Transaction> = {}): Transaction {
+  return {
+    id: asTransactionId(id),
+    date,
+    amount: -12.34,
+    payee: 'REWE',
+    description: 'Einkauf',
+    original_text: 'REWE Einkauf',
+    category_id: null,
+    auto_mapped: false,
+    confirmed: true,
+    ...overrides,
+  };
+}
 
-describe('transaction-service Sortier-Contract', () => {
-  describe('Regression Protection', () => {
-    it('[REGRESSION] sollte getTransactions datum-absteigend liefern (Storage-Reihenfolge unverändert)', async () => {
-      const { getTransactions } = await import('../transaction-service');
-      const rows = await getTransactions(1000);
-      expect(rows.map((r) => r.id)).toEqual(['c', 'b', 'b2', 'a']);
-    });
+beforeEach(async () => {
+  localStorage.clear();
+  localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  localEncryption.lock();
+  await clearLocalKvStore();
+  await transactionStorage.clearLocalCache();
+});
 
-    it('[REGRESSION] sollte die stabile Reihenfolge innerhalb eines Tages erhalten', async () => {
-      const { getTransactions } = await import('../transaction-service');
-      const rows = await getTransactions(1000);
-      // b vor b2 (Storage-Reihenfolge) — ein erneuter Sort dürfte das zwar
-      // nicht ändern (stable sort), aber ohne Sort ist es garantiert.
-      expect(rows.findIndex((r) => r.id === 'b')).toBeLessThan(rows.findIndex((r) => r.id === 'b2'));
-    });
+describe('getAllTransactions', () => {
+  it('sollte datum-absteigend und unbeschnitten liefern', async () => {
+    await saveTransactions([
+      tx('alt', '2024-01-01'),
+      tx('neu', '2026-08-01'),
+      tx('mitte', '2025-05-01'),
+    ]);
 
-    it('[REGRESSION] sollte getTransactionsPaginated die Datum-Ordnung über Seiten hinweg erhalten', async () => {
-      const { getTransactionsPaginated } = await import('../transaction-service');
-      const page1 = await getTransactionsPaginated(1, 2);
-      const page2 = await getTransactionsPaginated(2, 2);
-      expect(page1.transactions.map((r) => r.id)).toEqual(['c', 'b']);
-      expect(page2.transactions.map((r) => r.id)).toEqual(['b2', 'a']);
-      expect(page1.total).toBe(4);
-      expect(page2.hasMore).toBe(false);
-    });
+    const alle = await getAllTransactions();
+    expect(alle.map((t) => t.id)).toEqual(['neu', 'mitte', 'alt']);
   });
+});
+
+describe('getTransactionsPage', () => {
+  it('sollte hasMore und total korrekt setzen', async () => {
+    await saveTransactions([
+      tx('a', '2026-03-01'),
+      tx('b', '2026-02-01'),
+      tx('c', '2026-01-01'),
+    ]);
+
+    const erste = await getTransactionsPage(2, 0);
+    expect(erste.transactions.map((t) => t.id)).toEqual(['a', 'b']);
+    expect(erste.total).toBe(3);
+    expect(erste.hasMore).toBe(true);
+
+    const zweite = await getTransactionsPage(2, 2);
+    expect(zweite.transactions.map((t) => t.id)).toEqual(['c']);
+    expect(zweite.hasMore).toBe(false);
+  });
+});
+
+describe('[REGRESSION] Bestand jenseits der alten 10.000er-Kappung', () => {
+  it('[REGRESSION] sollte ohne Limit auch mehr als 10000 Buchungen vollständig liefern', async () => {
+    // Zwei Quartale, damit der Bestand über mehrere Chunks liegt.
+    const viele: Transaction[] = [];
+    for (let i = 0; i < 5001; i += 1) viele.push(tx(`q1-${i}`, '2026-01-15'));
+    for (let i = 0; i < 5000; i += 1) viele.push(tx(`q2-${i}`, '2026-04-15'));
+    await saveTransactions(viele);
+
+    const alle = await getAllTransactions();
+    expect(alle).toHaveLength(10001);
+  }, 60000);
+
+  it('[REGRESSION] sollte auch Buchungen jenseits der 10000 jüngsten umhängen', async () => {
+    const viele: Transaction[] = [];
+    // Die älteste Buchung trägt die alte Kategorie und liegt hinter der Kappung.
+    viele.push(tx('aeltester', '2020-01-01', { category_id: 'alt' }));
+    for (let i = 0; i < 10000; i += 1) viele.push(tx(`neuer-${i}`, '2026-01-15'));
+    await saveTransactions(viele);
+
+    const geaendert = await remapCategoryInLocalTransactions('alt', 'neu');
+
+    expect(geaendert).toBe(1);
+    const alle = await getAllTransactions();
+    expect(alle.find((t) => t.id === 'aeltester')!.category_id).toBe('neu');
+  }, 60000);
 });

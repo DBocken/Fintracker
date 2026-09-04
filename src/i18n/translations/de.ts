@@ -4413,6 +4413,7 @@ export const de = {
   },
   storage: {
     quotaExceeded: 'Der Speicher ist voll und konnte nicht geschrieben werden. Exportiere ein Backup oder räume Daten auf, bevor du weiterarbeitest.',
+    indexedDbUnavailable: 'Der lokale Speicher ist nicht verfügbar, deine Eingabe wurde NICHT gespeichert. Das passiert meist im privaten Modus oder wenn der Browser Websitedaten blockiert.',
   },
   demoData: {
     removeSuccess: 'Beispieldaten entfernt',

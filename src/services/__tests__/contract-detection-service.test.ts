@@ -4,7 +4,7 @@ import type { Transaction } from "../../types";
 // `findSimilarContractTransactions` ist rein, aber das Modul zieht beim Import
 // `transaction-service` (IndexedDB) mit. Der Mock haelt den Import trocken.
 vi.mock("../transaction-service", () => ({
-  getTransactions: vi.fn(() => Promise.resolve([])),
+  getAllTransactions: vi.fn(() => Promise.resolve([])),
   getCategories: vi.fn(() => Promise.resolve([])),
   updateTransaction: vi.fn(() => Promise.resolve()),
 }));

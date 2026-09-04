@@ -25,7 +25,7 @@ vi.mock('@/services/special-category-service', () => ({
   assignTransaction: vi.fn(),
   unassign: vi.fn(),
 }));
-vi.mock('@/services/transaction-service', () => ({ getTransactions: async () => [] }));
+vi.mock('@/services/transaction-service', () => ({ getAllTransactions: async () => [] }));
 
 beforeEach(() => {
   tierRef.current = 'free';

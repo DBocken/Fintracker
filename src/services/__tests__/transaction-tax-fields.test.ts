@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { saveTransactions, updateTransaction, getTransactions } from '../transaction-service';
+import { saveTransactions, updateTransaction, getAllTransactions } from '../transaction-service';
 import { transactionStorage } from '../transaction-storage-service';
 import type { Transaction } from '../../types';
 import { asTransactionId } from '@/lib/ids';
@@ -24,7 +24,7 @@ async function seed(t: Transaction): Promise<string> {
 }
 
 async function reload(id: string): Promise<Transaction> {
-  const all = await getTransactions(1000);
+  const all = await getAllTransactions();
   const found = all.find((x) => x.id === id);
   if (!found) throw new Error('transaction not found after reload');
   return found;

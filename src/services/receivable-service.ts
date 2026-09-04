@@ -5,7 +5,7 @@ import type {
   Transaction,
 } from "../types";
 import { getCurrentUserId } from "./auth-service";
-import { getTransactions } from "./transaction-service";
+import { getAllTransactions } from "./transaction-service";
 import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import {
   deleteLocalFinanceItem,
@@ -98,7 +98,7 @@ export async function assignTransactionToReceivable(params: {
   const receivable = receivables.find((entry) => entry.id === params.receivableId);
   if (!receivable) throw new Error(t("receivableService.receivableNotFound"));
 
-  const transaction = (await getTransactions(10000)).find((entry) => entry.id === params.transactionId);
+  const transaction = (await getAllTransactions()).find((entry) => entry.id === params.transactionId);
   if (!transaction) throw new Error(t("receivableService.transactionNotFound"));
 
   const amount = Number(transaction.amount) || 0;

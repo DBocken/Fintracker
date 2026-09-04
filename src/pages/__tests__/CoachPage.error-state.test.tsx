@@ -21,7 +21,9 @@ import { renderWithProviders } from '@/test-utils/render';
 
 vi.mock('@/services/transaction-service', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  getTransactions: () => Promise.reject(new Error('IndexedDB nicht erreichbar')),
+  // CoachPage fragt seit dem Audit 2026-09 nur noch, OB es Buchungen gibt
+  // (`getTransactionsPage(1, 0).total`) statt eine Buchung zu laden.
+  getTransactionsPage: () => Promise.reject(new Error('IndexedDB nicht erreichbar')),
 }));
 
 import CoachPage from '../CoachPage';

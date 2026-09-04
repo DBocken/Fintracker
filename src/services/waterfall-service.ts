@@ -11,7 +11,7 @@ import { median } from "@/lib/budget-adaptive";
 import { monthKeyOf } from "@/lib/budget-logic";
 import { isBusinessModeEnabled } from "@/lib/life-situations";
 import { currentMonthKey, lastNMonths } from "./budget-service";
-import { getCategories, getTransactions } from "./transaction-service";
+import { getCategories, getAllTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
 import { getCategoryContributions } from "@/lib/analysis-data";
 import { getAccounts } from "./account-service";
@@ -38,7 +38,7 @@ export async function getWaterfallPlan(
 ): Promise<WaterfallPlan> {
   const [categories, transactions, allocationsByTx, settings, accounts] = await Promise.all([
     getCategories(),
-    getTransactions(5000),
+    getAllTransactions(),
     getAllocationMap(),
     getUserSettings(),
     getAccounts(),

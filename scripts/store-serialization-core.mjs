@@ -71,6 +71,28 @@ export const FAMILIEN = [
     schreiben: ['writeIndex'],
     hinweis: 'mutiereIndex((index) => …) benutzen — der Index ist der Schlüssel, den alle Quartale teilen.',
   },
+  {
+    // Die teuerste Familie: Hier geht eine BUCHUNG verloren, nicht eine
+    // Einstellung. Bis zum Audit 2026-09 war nur der Index gesperrt — die
+    // Chunks selbst, in denen die Buchungen liegen, waren es nie.
+    //
+    // `readLegacyV3Transactions` steht bewusst in den Leseverben, obwohl es
+    // aus dem alten Blob liest: Der Migrationslauf schreibt daraus GANZE
+    // Quartale und ist damit der dritte Schreiber dieser Familie. Ohne das
+    // Verb bliebe ausgerechnet der Pfad unsichtbar, der am meisten auf
+    // einmal überschreibt.
+    name: 'Buchungs-Chunks',
+    lesen: ['readTransactionChunk', 'readAllTransactionChunks', 'readLegacyV3Transactions'],
+    schreiben: ['writeTransactionChunk'],
+    hinweis:
+      'Gesamten Ablauf in withKeyLock(TRANSACTION_STORE_LOCK_KEY, …) legen — inkl. Dubletten- und Quartalssuche.',
+  },
+  {
+    name: 'Buchungs-Blob (v3)',
+    lesen: ['getLocalTransactions'],
+    schreiben: ['setLocalTransactions'],
+    hinweis: 'Gesamten Ablauf in withKeyLock(TRANSACTION_STORE_LOCK_KEY, …) legen — derselbe Schlüssel wie die Chunks.',
+  },
 ];
 
 /** Aufrufe, die belegen, dass der Ablauf serialisiert ist. */

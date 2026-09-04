@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createAccount, updateAccount, getAccountById } from '../account-service';
 import { writeLocalFinanceList } from '../local-finance-store';
 import { buildDefaultLocalSettings } from '../local-settings-service';
-import { saveTransactions, updateTransaction, getTransactions } from '../transaction-service';
+import { saveTransactions, updateTransaction, getAllTransactions } from '../transaction-service';
 import { transactionStorage } from '../transaction-storage-service';
 import type { Transaction } from '../../types';
 import { isBusinessModeEnabled } from '@/lib/life-situations';
@@ -64,7 +64,7 @@ describe('Transaction.euer_private an den Persistenz-Grenzen', () => {
 
   it('[REGRESSION] sollte euer_private einen Save-Roundtrip überleben (strikte Grenze baut Objekte neu)', async () => {
     await saveTransactions([tx({ id: 'tx-priv', euer_private: true })]);
-    const all = await getTransactions(10);
+    const all = await getAllTransactions();
     expect(all.find((x) => x.id === 'tx-priv')?.euer_private).toBe(true);
   });
 
@@ -73,7 +73,7 @@ describe('Transaction.euer_private an den Persistenz-Grenzen', () => {
 
     await updateTransaction([{ id: 'tx-toggle', euer_private: true }]);
 
-    const after = (await getTransactions(10)).find((x) => x.id === 'tx-toggle');
+    const after = (await getAllTransactions()).find((x) => x.id === 'tx-toggle');
     expect(after?.euer_private).toBe(true);
     // Wie Steuer-Markierungen: keine Kategorie-Korrektur → Status unberührt.
     expect(after?.auto_mapped).toBe(true);
@@ -85,7 +85,7 @@ describe('Transaction.euer_private an den Persistenz-Grenzen', () => {
 
     await updateTransaction([{ id: 'tx-clear', euer_private: false }]);
 
-    const after = (await getTransactions(10)).find((x) => x.id === 'tx-clear');
+    const after = (await getAllTransactions()).find((x) => x.id === 'tx-clear');
     expect(after?.euer_private).toBe(false);
   });
 });

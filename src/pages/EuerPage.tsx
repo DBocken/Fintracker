@@ -5,7 +5,7 @@ import PageHeader from '@/features/shared/presentation/PageHeader';
 import EmptyState from '@/features/shared/presentation/EmptyState';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useI18n } from '@/i18n/useI18n';
-import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAllTransactions, getCategories } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getUserSettings } from '@/services/user-settings-service';
 import { useBusinessMode } from '@/hooks/useBusinessMode';
@@ -48,7 +48,7 @@ export default function EuerPage() {
     refetch: refetchTx,
   } = useQuery({
     queryKey: ['transactions', locale],
-    queryFn: () => getTransactions(5000),
+    queryFn: () => getAllTransactions(),
   });
   const {
     data: categories = [],

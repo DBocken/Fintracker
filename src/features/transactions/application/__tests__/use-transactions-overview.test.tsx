@@ -11,7 +11,7 @@ import { useTransactionsOverview } from '../use-transactions-overview';
 import { recordSkipped, clearIntegrityReport } from '@/services/data-integrity-report';
 
 vi.mock('@/services/transaction-service', () => ({
-  getTransactions: vi.fn(),
+  getAllTransactions: vi.fn(),
   getCategories: vi.fn(),
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock('react-hot-toast', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import { getTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
+import { getAllTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { getAllocationMap } from '@/services/transaction-allocation-service';
@@ -117,7 +117,7 @@ const BASE_FILTERS: DashboardFilterState = {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
-  vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
+  vi.mocked(getAllTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getAccounts).mockResolvedValue(FIXTURE_ACCOUNTS);
   vi.mocked(getContractDecisionMap).mockResolvedValue(new Map());
@@ -243,7 +243,7 @@ describe('useTransactionsOverview', () => {
 
   describe('Notiz-Suche', () => {
     it('sollte eine Buchung über ihre Notiz an der Buchung finden', async () => {
-      vi.mocked(getTransactions).mockResolvedValue([
+      vi.mocked(getAllTransactions).mockResolvedValue([
         ...FIXTURE_TRANSACTIONS,
         {
           id: asTransactionId('tx-note'), date: '2026-06-03', amount: -80, payee: 'Baumarkt', description: '', original_text: '',
