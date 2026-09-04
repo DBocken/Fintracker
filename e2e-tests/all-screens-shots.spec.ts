@@ -136,6 +136,23 @@ test.describe("Bildprüfung 360 px", () => {
     // Vor dem ersten goto: Der Demo-Datensatz hängt am aktuellen Datum.
     await freezeTime(page);
 
+    // OHNE DIESE ZEILE LÜGEN DIE AUFNAHMEN, und zwar lautlos.
+    //
+    // `freezeTime` faelscht auch requestAnimationFrame. Die datengetriebenen
+    // Aufbau-Animationen (AGENTS.md §9: "Daten poppen nicht auf, sie werden
+    // aufgebaut") starten dann bei opacity 0 und laufen nie an — auch
+    // `clock.runFor` treibt sie nicht zuverlaessig weiter. Auf /liquidity war
+    // die Folge eine ueber 4228 px durchgehend LEERE Aufnahme: Der Inhalt lag
+    // im DOM und belegte Platz, war aber unsichtbar. Eine Gegenprobe ohne
+    // eingefrorene Zeit fand dort 648 Elemente, 2768 Zeichen Text und genau
+    // drei unsichtbare Knoten (Recharts-Tooltips) — die Flaeche ist voellig in
+    // Ordnung, die Aufnahme war es nicht.
+    //
+    // Die Reduzierte-Bewegung-Einstellung loest beides zugleich: Die App
+    // respektiert sie ohnehin ueberall (§9), sie rendert deshalb sofort den
+    // Endzustand, und sie macht den Lauf reproduzierbar statt zeitabhaengig.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+
     await startDemo(page);
     // Ohne das ist /budgets leer und die Fläche nicht beurteilbar.
     await createBudgetFromSuggestion(page);
