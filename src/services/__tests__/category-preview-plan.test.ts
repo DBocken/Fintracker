@@ -19,6 +19,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Transaction } from '../../types';
+import { asTransactionId } from '@/lib/ids';
 import { localEncryption } from '../local-crypto';
 import { clearLocalKvStore } from '../idb-kv';
 import { saveTransactions, getCategoryPreview } from '../transaction-service';
@@ -26,7 +27,7 @@ import { getLocalCategories } from '../local-settings-service';
 
 function buchung(over: Partial<Transaction>): Transaction {
   return {
-    id: 'tx-1',
+    id: asTransactionId('tx-1'),
     account_id: 'a1',
     date: '2026-01-10',
     amount: -20,
@@ -80,7 +81,7 @@ describe('Vorschau als Plan der Übernahme', () => {
     const stichwort = kat.filters![0];
 
     await saveTransactions([
-      buchung({ id: 'tx-bestaetigt', payee: stichwort, confirmed: true, category_id: null }),
+      buchung({ id: asTransactionId('tx-bestaetigt'), payee: stichwort, confirmed: true, category_id: null }),
     ]);
 
     const plan = await getCategoryPreview(kat.id);
@@ -95,7 +96,7 @@ describe('Vorschau als Plan der Übernahme', () => {
     // oder 4.100 Buchungen betroffen waren.
     await saveTransactions(
       Array.from({ length: 12 }, (_, i) =>
-        buchung({ id: `tx-${i}`, payee: 'REWE', description: 'Einkauf', original_text: 'REWE SAGT DANKE' }),
+        buchung({ id: asTransactionId(`tx-${i}`), payee: 'REWE', description: 'Einkauf', original_text: 'REWE SAGT DANKE' }),
       ),
     );
 
@@ -118,7 +119,7 @@ describe('Vorschau als Plan der Übernahme', () => {
 
     await saveTransactions([
       buchung({
-        id: 'tx-entzug',
+        id: asTransactionId('tx-entzug'),
         payee: 'Voellig Unbekannter Empfaenger Ohne Muster',
         description: '',
         original_text: '',
@@ -139,14 +140,14 @@ describe('Vorschau als Plan der Übernahme', () => {
     // zwei gleichartige Buchungen — eine ohne Kategorie, eine bereits richtig
     // zugeordnet: Gezählt werden darf nur die erste.
     await saveTransactions([
-      buchung({ id: 'tx-offen', payee: 'REWE', description: 'Einkauf', original_text: 'REWE SAGT DANKE' }),
+      buchung({ id: asTransactionId('tx-offen'), payee: 'REWE', description: 'Einkauf', original_text: 'REWE SAGT DANKE' }),
     ]);
     const ziel = await zielKategorieFuer();
     expect(ziel.anzahl).toBe(1);
 
     await saveTransactions([
       buchung({
-        id: 'tx-schon-richtig',
+        id: asTransactionId('tx-schon-richtig'),
         payee: 'REWE',
         description: 'Einkauf',
         original_text: 'REWE SAGT DANKE',

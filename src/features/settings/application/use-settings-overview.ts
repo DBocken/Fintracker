@@ -18,7 +18,7 @@ import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
-import type { Category, CategorizationSnapshotEntry, Transaction } from '@/types';
+import type { Category, CategorizationSnapshotEntry } from '@/types';
 import {
   getCategoryPreview,
   type UebernahmePlan,
