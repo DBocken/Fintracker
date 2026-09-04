@@ -223,7 +223,7 @@ export default function OnboardingFlow({ catalog }: OnboardingFlowProps) {
             <Button
               variant="outline"
               size="sm"
-              className="mt-2"
+              className="mt-2 min-h-11"
               onClick={() => window.location.reload()}
             >
               {t('onboardingFlow.retry', 'Erneut versuchen')}

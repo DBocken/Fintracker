@@ -27,6 +27,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { showError } from '@/utils/toast';
 import { restartOnboarding } from '../data/onboarding-restart';
@@ -58,7 +59,7 @@ export default function RestartOnboardingButton({ className }: RestartOnboarding
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" className={className} disabled={laeuft}>
+        <Button variant="outline" size="sm" className={cn('min-h-11', className)} disabled={laeuft}>
           <RotateCcw className="mr-1 h-3 w-3" aria-hidden="true" />
           {t('onboardingFlow.restartAction', 'Einstieg neu starten')}
         </Button>

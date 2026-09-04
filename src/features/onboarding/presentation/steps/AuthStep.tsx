@@ -137,7 +137,12 @@ export default function AuthStep({ onBack }: AuthStepProps) {
       )}
 
       {isNative && (
-        <Button variant="secondary" size="sm" onClick={() => void signInWithGoogle()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="min-h-11"
+          onClick={() => void signInWithGoogle()}
+        >
           {t('onboardingFlow.authGoogleMobile', 'Google-Anmeldung (mobil)')}
         </Button>
       )}
@@ -151,11 +156,17 @@ export default function AuthStep({ onBack }: AuthStepProps) {
             <Button
               variant="outline"
               size="sm"
+              className="min-h-11"
               onClick={() => window.open(window.location.href, '_blank', 'noopener,noreferrer')}
             >
               {t('onboardingFlow.authOpenInNewTab', 'Im neuen Tab öffnen')}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => void signInWithGoogle()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="min-h-11"
+              onClick={() => void signInWithGoogle()}
+            >
               {t('onboardingFlow.authGoogleDirect', 'Google-Anmeldung (direkt)')}
             </Button>
           </div>
@@ -166,7 +177,7 @@ export default function AuthStep({ onBack }: AuthStepProps) {
         <p className="text-xs text-muted-foreground">
           {t('onboardingFlow.authFutureProviders', '')}
         </p>
-        <Button variant="ghost" size="sm" onClick={onBack}>
+        <Button variant="ghost" size="sm" className="min-h-11" onClick={onBack}>
           {t('onboardingFlow.authSwitchToAnonymous', 'Doch lieber anonym starten')}
         </Button>
       </div>
