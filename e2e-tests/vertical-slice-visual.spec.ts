@@ -23,6 +23,31 @@ import {
  *
  * Erstlauf schreibt die Baseline-Snapshots (schlägt dabei fehl), jeder
  * Folgelauf vergleicht gegen die Baseline.
+ *
+ * BENANNTE GRENZE: EIN DIAGRAMM MIT SEITENVERHAELTNIS FEHLT IN DER
+ * GANZSEITEN-AUFNAHME.
+ *
+ * In `dashboard-375-linux.png` ist die Verlaufs-Flaeche der Uebersicht leer —
+ * Beschriftung und Tabellen-Umschalter stehen da, dazwischen nichts. Das ist
+ * KEIN Fehler der Flaeche. Nachgemessen im selben Zustand (dieselbe Fixture,
+ * dieselbe Breite): Der Diagramm-Schlitz ist 343 x 114 px gross, das SVG
+ * ebenso, und es enthaelt drei Balken der Hoehen 102, 104 und 84.
+ *
+ * Die Ursache ist die Aufnahme: `fullPage` veraendert dazu die Viewport-
+ * Groesse, und ein Diagramm, dessen Hoehe ueber `aspect-ratio` von der Breite
+ * abhaengt (`ChartFigure` mit `form`), misst sich in diesem Moment neu — die
+ * Aufnahme erwischt es zwischen zwei Messungen. Das Diagramm bei 768 px hat
+ * eine feste Hoehe und ist deshalb unbetroffen; dort steht es im Bild.
+ *
+ * Praktische Folge: Der Vergleich bleibt fuer alles andere aussagekraeftig,
+ * kann aber ueber dieses eine Diagramm nichts sagen. Wer es preuefen will,
+ * misst die gezeichneten Balken im DOM statt Pixel zu vergleichen.
+ *
+ * Dieselbe Familie wie die beiden bereits bekannten Fallen: `fullPage` stellt
+ * `fixed`-Elemente falsch dar (die Bodennavigation landet mitten im Dokument),
+ * und eingefrorene Zeit unterdrueckt die Aufbau-Animationen
+ * (`docs/mobil-2026-09/bildpruefung.md`). Eine Aufnahme ist ein Zeuge, kein
+ * Beweis.
  */
 test.describe("Vertical Slice Visual Regression (WP-4.6)", () => {
   // reducedMotion: statische Endzustände; locale: deutsche Standard-Oberfläche.
