@@ -104,6 +104,18 @@ describe('Übersicht — fokussierte Dichte', () => {
     expect(container.querySelector('a[href^="/transactions"]')).not.toBeNull();
   });
 
+  it('[REGRESSION] [MOBILE] sollte den Leitwert-Anker fuer die E2E-Pruefungen tragen', () => {
+    // In CI gefallen: `vertical-slice-visual` oeffnet die Uebersicht bei
+    // 375 px und wartet auf `stat-hero-value`, bevor es aufnimmt. Die
+    // Kennung benennt den LEITWERT eines Bildschirms, nicht die Komponente
+    // `StatHero` — die kompakte Dichte liefert ihn darueber, hier waere eine
+    // Karte verboten (ADR Regel 9). Fuenf E2E-Aufrufstellen haengen daran.
+    rendere();
+
+    const anker = screen.getByTestId('stat-hero-value');
+    expect(anker).toHaveTextContent(/5\.011/);
+  });
+
   it('[REGRESSION] [MOBILE] sollte den Kontostand NICHT wiederholen', () => {
     // Er stand hier zweimal — als Hero und in der Kennzahlenreihe darunter —
     // und ein drittes Mal auf /coach. Die Übersicht zeigt ihn gar nicht mehr.

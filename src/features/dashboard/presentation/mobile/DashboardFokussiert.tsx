@@ -80,7 +80,17 @@ export default function DashboardFokussiert({ model }: { model: FinanceOverviewV
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {t("dashboard.fokussiert.spentLabel")}
           </div>
-          <div className="mt-1 text-5xl font-semibold tracking-tight tabular-nums">
+          {/* `stat-hero-value` benennt den LEITWERT eines Bildschirms, nicht die
+              Komponente `StatHero` — fuenf E2E-Aufrufstellen warten darauf,
+              dass die Uebersicht fertig gerendert hat. Die kompakte Dichte
+              liefert ihn ueber `StatHero`; hier waere eine Karte verboten
+              (ADR Regel 9), der Wert ist aber derselbe Anker. Ohne ihn bricht
+              jede Pruefung, die die Uebersicht schmal oeffnet — genau das ist
+              in CI passiert. */}
+          <div
+            className="mt-1 text-5xl font-semibold tracking-tight tabular-nums"
+            data-testid="stat-hero-value"
+          >
             {money.format(model.stats.expenses)}
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-sm text-primary">
