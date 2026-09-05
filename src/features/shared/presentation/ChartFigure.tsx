@@ -56,6 +56,10 @@ export type ChartTableColumn<Row> = {
  * - `zeitreihe` — Kontostand, Prognose, Monatsverlauf. Deutlich breiter als
  *   hoch: Eine Zeitachse braucht waagerechten Raum, sonst ist die Steigung
  *   zwischen zwei Punkten nicht mehr ablesbar.
+ * - `verdichtung` — dieselbe Zeitachse, aber als NEBENaussage auf einer
+ *   fremden Flaeche: Sie soll die Richtung zeigen, nicht die Zahlen. Deutlich
+ *   flacher (3:1), damit sie nicht ein Drittel des Schirms belegt. Die
+ *   Vollansicht liegt dann einen Tipp weiter.
  * - `verteilung` — Ring, Sonnenblume, Anteile. Quadratisch, denn hier gibt es
  *   keine Achse, die mehr Platz braeuchte als die andere.
  * - `fluss` — Sankey. **Bekommt bewusst KEIN Seitenverhaeltnis.** Seine Hoehe
@@ -63,7 +67,7 @@ export type ChartTableColumn<Row> = {
  *   brauchen zehnmal Platz fuer eine Beschriftung, ob die Flaeche nun 264 oder
  *   900 px breit ist. Ein Verhaeltnis waere hier eine Scheingenauigkeit.
  */
-export type DiagrammForm = 'zeitreihe' | 'verteilung' | 'fluss';
+export type DiagrammForm = 'zeitreihe' | 'verdichtung' | 'verteilung' | 'fluss';
 
 /**
  * Je Form eine zentral gepflegte Klasse.
@@ -95,6 +99,7 @@ export type DiagrammForm = 'zeitreihe' | 'verteilung' | 'fluss';
  */
 const FORM_KLASSEN: Record<DiagrammForm, string> = {
   zeitreihe: 'fokussiert:aspect-[16/9] fokussiert:max-h-[320px]',
+  verdichtung: 'fokussiert:aspect-[3/1] fokussiert:max-h-[130px]',
   verteilung:
     'fokussiert:mx-auto fokussiert:aspect-square fokussiert:max-h-[320px] fokussiert:w-full fokussiert:max-w-[320px]',
   fluss: '',

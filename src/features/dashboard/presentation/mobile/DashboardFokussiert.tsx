@@ -118,23 +118,26 @@ export default function DashboardFokussiert({ model }: { model: FinanceOverviewV
 
       {/* ── Aussage 3: der Verlauf ───────────────────────────────────────
           Eine Visualisierung IST die eine Aussage (Regel 9a) — deshalb steht
-          keine Zahl daneben. `form="zeitreihe"` gibt ihr 16:9 statt der festen
-          Höhe, die sie auf 360 px hochkant stellte. */}
+          keine Zahl daneben.
+
+          `form="verdichtung"` und nicht `zeitreihe`: Auf der Übersicht soll der
+          Verlauf die RICHTUNG zeigen, nicht die Zahlen; die Vollansicht liegt
+          einen Tipp weiter auf /auswertungen. 3:1 statt 16:9 spart die 22 px,
+          die zum einen Bildschirm fehlten.
+
+          Der erste Versuch war ein `max-h` mit `overflow-hidden` um die ganze
+          Figur — und der schnitt die Tabellen-Umschaltung darunter mit ab, also
+          ausgerechnet die barrierefreie Alternative zum Diagramm (WP-6.10). Die
+          Höhe gehört an die FORM, nicht an einen Deckel um alles. */}
       {verlauf.length > 1 && (
         <section className="border-t border-border/60 pt-4">
           <Link to="/auswertungen?view=verlauf" className="block">
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t("dashboard.fokussiert.trendLabel")}
             </div>
-            {/* Auf der Uebersicht ist der Verlauf eine VERDICHTUNG, keine
-                Vollansicht — er soll die Richtung zeigen, nicht die Zahlen.
-                Die Form gibt das Verhaeltnis (16:9), diese Flaeche deckelt
-                die Hoehe: Ein Drittel des Schirms fuer die dritte Aussage
-                waere zu viel, und die Vollansicht liegt einen Tipp weiter
-                auf /auswertungen. */}
-            <div className="mt-2 overflow-hidden fokussiert:max-h-[150px]">
+            <div className="mt-2">
               <ChartFigure
-                form="zeitreihe"
+                form="verdichtung"
                 caption={t("dashboard.fokussiert.trendLabel")}
                 columns={[
                   { key: "date", label: t("income.monthColumn"), format: (r) => String(r.date) },

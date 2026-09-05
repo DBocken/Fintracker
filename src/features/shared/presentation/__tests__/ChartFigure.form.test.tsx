@@ -96,3 +96,46 @@ describe('ChartFigure — die Form bestimmt das Seitenverhältnis', () => {
     }
   });
 });
+
+/**
+ * Die Verdichtung — dieselbe Zeitachse als NEBENaussage.
+ *
+ * Der erste Versuch, den Verlauf auf der Übersicht kleiner zu bekommen, war ein
+ * `max-h` mit `overflow-hidden` um die ganze Figur. Er hat funktioniert und
+ * dabei die Tabellen-Umschaltung darunter mit abgeschnitten — also ausgerechnet
+ * die barrierefreie Alternative zum Diagramm, für die dieser Baustein gebaut
+ * wurde. Die Höhe gehört an die FORM, nicht an einen Deckel um alles.
+ */
+describe('ChartFigure — die Verdichtung', () => {
+  it('[MOBILE] sollte deutlich flacher sein als die volle Zeitreihe', () => {
+    const verdichtung = rendere('verdichtung').className;
+
+    expect(verdichtung).toContain('fokussiert:aspect-[3/1]');
+    expect(verdichtung).not.toContain('aspect-[16/9]');
+  });
+
+  it('[REGRESSION] sollte die Tabellen-Umschaltung NICHT abschneiden', () => {
+    // Sie steht unter dem Diagramm, ausserhalb des Diagramm-Schlitzes. Ein
+    // Deckel am Schlitz darf sie nie erreichen.
+    const { container } = render(
+      <I18nProvider initialLocale="de">
+        <ChartFigure<Zeile>
+          form="verdichtung"
+          caption="Verlauf"
+          columns={[{ key: 'monat', label: 'Monat', format: (r) => r.monat }]}
+          rows={[{ monat: 'Jan' }]}
+          rowKey={(r) => r.monat}
+        >
+          <div />
+        </ChartFigure>
+      </I18nProvider>,
+    );
+
+    const umschalter = container.querySelector('figcaption button');
+    expect(umschalter).not.toBeNull();
+    // Der Deckel sitzt am Schlitz, nicht an der Figur darum.
+    const figur = container.querySelector('figure')!;
+    expect(figur.className).not.toContain('overflow-hidden');
+    expect(figur.className).not.toContain('max-h-');
+  });
+});
