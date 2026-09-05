@@ -3966,6 +3966,97 @@ export const en = {
     resetConfirmButtonLoading: 'Deleting…',
     resetCancelButton: 'Cancel',
   },
+  onboardingFlow: {
+    greeting: 'Welcome',
+    languageTitle: 'Choose your language',
+    languageHint: 'You can change it any time in the settings.',
+    languageChoose: 'Continue in {language}',
+
+    pathTitle: 'You have two options.',
+    pathAnonymousLabel: 'Anonymous',
+    pathAnonymousDescription:
+      'You can use every free feature — with one limitation: bank synchronisation requires an account.',
+    pathAccountLabel: 'Signed in',
+    pathAccountDescription:
+      'You can use every free feature without limitation. On top of that you can book paid options.',
+    pathLocalNote: 'Either way your financial data stays on your device.',
+
+    authTitle: 'Sign in or register',
+    authSubtitle: 'Both routes lead to the same account.',
+    authGoogleLabel: 'Continue with Google',
+    authGoogleDescription: 'One click, no extra password.',
+    authEmailLabel: 'Continue with email and password',
+    authEmailDescription: 'Register or sign in with your email address.',
+    authFutureProviders:
+      'More sign-in services will follow. Your data stays exactly as it is.',
+    authError: 'Sign-in could not be started. Please try again.',
+    authSwitchToAnonymous: 'Start anonymously after all',
+    authGoogleMobile: 'Google sign-in (mobile)',
+    authGoogleDirect: 'Google sign-in (direct)',
+    authOpenInNewTab: 'Open in a new tab',
+    authIframeWarning:
+      'Note: Google blocks sign-in inside the embedded preview window. Open it in a new tab or start the Google sign-in directly.',
+
+    greetingKnownTitle: 'Hello {name}',
+    greetingKnownBody: 'Good to have you here. Let us tailor the app to you.',
+    greetingAnonymousTitle: 'You chose to stay anonymous. What should I call you?',
+    greetingNameLabel: 'Your name',
+    greetingNamePlaceholder: 'for example Dana',
+    greetingLocalNote:
+      'Everything is stored locally on your device — nothing is sent back to the server.',
+    greetingSkipName: 'Continue without a name',
+
+    featuresTitle: 'Which features matter to you?',
+    featuresSubtitle: 'You can change this any time in the settings.',
+
+    modifiersNone: 'None of these',
+    featuresChosen: 'This is what we will show you',
+    featuresCoreHint:
+      'Coach, transactions and accounts are always included. Anything switched off is only hidden, not locked.',
+    featuresAdjust: 'Adjust areas',
+    featuresAdjustDone: 'Done',
+
+    premiumTitle: 'Much is free. The most powerful part is Premium.',
+    premiumIntro:
+      'While many features are already free, the most powerful ones are reserved for Premium users.',
+    premiumFreeHeading: 'Always free',
+    premiumPaidHeading: 'With Premium',
+    premiumFreeImport: 'File import, categories and analyses',
+    premiumFreeCoach: 'Coach, budgets and debt plan',
+    premiumFreeBank: 'Bank connection and simple contracts',
+    premiumPaidAnalytics: 'Deep analyses and reports',
+    premiumPaidSimulation: 'Simulation and advanced forecast',
+    premiumPaidContracts: 'Contract detection with notice periods',
+    premiumPaidOccasions: 'Occasions, receipt line items and family mode',
+    premiumAccountNote:
+      'Premium can only be booked with an account — everything free stays open anonymously.',
+    premiumOpenBilling: 'See pricing',
+    premiumLater: 'Continue',
+
+    startTutorialTitle: 'Would you like to start a tutorial?',
+    startTutorialDemoNote:
+      'For the tutorial the app is first filled with sample data. You can remove it again at any time.',
+    startTutorialYes: 'Start the tutorial',
+    startTutorialNo: 'Explore on my own',
+    startBankNeedsAccount:
+      'Bank synchronisation requires an account. You can sign in later at any time.',
+
+    restartAction: 'Restart the intro',
+    restartCancel: 'Cancel',
+    restartConfirmTitle: 'Restart the intro?',
+    restartConfirmBody:
+      'You will walk through the intro again, starting from the language choice. Your transactions, accounts and budgets stay untouched — only the answers from the setup are asked again.',
+    restartError: 'The intro could not be reset.',
+
+    next: 'Continue',
+    back: 'Back',
+    skip: 'Decide later',
+    progressLabel: 'Step {current} of {total}',
+    saveError: 'Your choice could not be saved.',
+    loadError: 'Your settings could not be read. Please reload the page.',
+    retry: 'Try again',
+  },
+
   login: {
     headline: 'Understand your money today – without spreadsheet stress.',
     privacyTitle: 'Your data never leaves your device.',

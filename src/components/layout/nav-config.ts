@@ -24,7 +24,14 @@ import {
   MessageCircleQuestion,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
-import { isNavPathVisible, type NavFeatureId } from "@/lib/life-situations";
+import {
+  ALWAYS_VISIBLE_NAV_PATHS,
+  isNavPathVisible,
+  NAV_FEATURE_PATHS,
+  navFeatureForPath,
+  type NavFeatureId,
+} from "@/lib/life-situations";
+import type { FeatureCatalog } from "@/features/onboarding/domain/feature-rows";
 
 export type NavItem = {
   label: string;
@@ -287,4 +294,47 @@ export function getBottomNavItems(
     const item = allItems.find((i) => i.path === path);
     return item ? [{ ...item, shortLabel, shortLabelKey }] : [];
   });
+}
+
+/**
+ * Der Bereichs-Katalog für die Bereichsauswahl des Einstiegs und für die
+ * Einstellungen.
+ *
+ * Labels und Symbole kommen aus `NAV_GROUPS` statt aus einer zweiten Liste —
+ * sonst driften Einstieg und Navigation auseinander. Die Funktion liegt hier
+ * und nicht im Onboarding-Slice, weil sie die Navigation LIEST: Der Slice gibt
+ * nur die Form vor (`features/onboarding/domain/feature-rows.ts`), gefüllt
+ * wird sie von der Seite, die die Navigation ohnehin kennt.
+ */
+export function onboardingFeatureCatalog(): FeatureCatalog {
+  const groups = NAV_GROUPS.map((group) => ({
+    id: group.id,
+    labelKey: group.labelKey ?? "",
+    label: group.label,
+    rows: group.items.flatMap((item) => {
+      const feature = navFeatureForPath(item.path);
+      if (!feature) return [];
+      return [
+        {
+          feature,
+          labelKey: item.labelKey ?? "",
+          label: item.label,
+          subtitleKey: item.subtitleKey,
+          subtitle: item.subtitle,
+          icon: item.icon,
+        },
+      ];
+    }),
+  })).filter((group) => group.rows.length > 0);
+
+  const core = NAV_GROUPS.flatMap((group) => group.items)
+    .filter((item) => ALWAYS_VISIBLE_NAV_PATHS.includes(item.path))
+    .map((item) => ({
+      path: item.path,
+      labelKey: item.labelKey ?? "",
+      label: item.label,
+      icon: item.icon,
+    }));
+
+  return { groups, core, total: Object.keys(NAV_FEATURE_PATHS).length };
 }

@@ -1,12 +1,14 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import BankCallbackPage from "./pages/BankCallbackPage";
-import Login from "./pages/Login";
+import OnboardingPage from "./pages/OnboardingPage";
 import UnlockPage from "./pages/Unlock";
 import { useDensityRootAttribute } from "@/hooks/useDensityRootAttribute";
 import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
-import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
+import OnboardingGate from "@/features/onboarding/presentation/OnboardingGate";
+import { useOnboardingStatus } from "@/features/onboarding/application/use-onboarding-status";
+import LoginRedirect from "@/features/onboarding/presentation/LoginRedirect";
 import { syncCategoryTemplate } from "@/services/category-template-service";
 import { runStoreMigrations } from "@/services/local-store-migrations";
 import AppShell from "@/components/layout/AppShell";
@@ -61,7 +63,12 @@ function App() {
 
   const { status } = useAuth();
   const { enabled, unlocked } = useLocalEncryption();
-  const [anonymousStarted, setAnonymousStarted] = useState(() => hasStartedAnonymousMode());
+  // Dieselbe Frage wie im `OnboardingGate`, hier für EINE Route: Solange der
+  // Einstieg noch aussteht, muss die Datenschutzseite ohne AppShell erreichbar
+  // sein (Issue #41) — die Navigation eines Nutzers zu zeigen, der noch gar
+  // nicht eingestiegen ist, wäre eine Behauptung. Beide Aufrufe teilen sich
+  // dieselbe Abfrage, es wird nichts doppelt geladen.
+  const onboarding = useOnboardingStatus();
   const [migrationState, setMigrationState] = useState<"idle" | "running" | "done">("idle");
   const [migrationError, setMigrationError] = useState<Error | null>(null);
 
@@ -145,29 +152,24 @@ function App() {
     return <div className="min-h-screen bg-background" />;
   }
 
-  // Erstbesuch ohne Anmeldung: Landing-Screen mit der Wahl
-  // "Ohne Anmeldung starten" oder Google-Login (Issue #28).
-  if (!isAuthenticated && !anonymousStarted) {
-    return (
-      <BrowserRouter>
-        <Suspense fallback={RouteFallback}>
-          <Routes>
-            <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
-            {/* Privacy-Seite auch vor dem Einstieg erreichbar (Issue #41) */}
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="*" element={<Login onStartAnonymous={() => setAnonymousStarted(true)} />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    );
-  }
-
-  // Ab hier: volle App — angemeldet ODER bewusst anonym (Issue #26).
+  // Ab hier: EIN Router für alles — Einstieg wie App.
+  //
+  // Bis zum Seiten-Onboarding standen hier zwei `<BrowserRouter>` nebeneinander:
+  // einer für den Landing-Screen, einer für die App. Das war nicht bloss
+  // doppelt, es kostete den Rückweg — der OAuth-Umweg kehrt auf eine ADRESSE
+  // zurück, und der Landing-Router kannte die Adressen der App nicht. Der
+  // Einstieg ist jetzt eine Route (`/willkommen/*`), und `OnboardingGate`
+  // schickt jeden dorthin, der ihn noch vor sich hat.
   return (
     <BrowserRouter>
       <Suspense fallback={RouteFallback}>
       <Routes>
         <Route path="/unlock" element={<UnlockPage />} />
+        {/* Der Einstieg steht VOR jeder Schranke ausser dem Tresor: Er ist der
+            einzige Weg für den Erstbesucher, und er muss auch ohne lesbare
+            Einstellungen laufen. */}
+        <Route path="/willkommen" element={<OnboardingPage />} />
+        <Route path="/willkommen/:step" element={<OnboardingPage />} />
 
         {locked ? (
           <Route path="*" element={<LockedRedirect />} />
@@ -175,18 +177,25 @@ function App() {
           <>
             <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
 
+            {onboarding.required && <Route path="/privacy" element={<PrivacyPage />} />}
+
+            {/* Der Altpfad bleibt als Weiterleitung: Lesezeichen und
+                Verweise von aussen zeigen weiter auf `/login`. Wer noch nicht
+                angemeldet ist, landet im ANMELDE-Schritt des Flusses — nicht
+                an dessen Wiederaufsetzpunkt, der für einen anonym gestarteten
+                Nutzer die Lebenssituation wäre. */}
             <Route
               path="/login"
-              element={
-                isAuthenticated ? (
-                  <Navigate to="/coach" replace />
-                ) : (
-                  <Login onStartAnonymous={() => setAnonymousStarted(true)} />
-                )
-              }
+              element={isAuthenticated ? <Navigate to="/coach" replace /> : <LoginRedirect />}
             />
 
-            <Route element={<AppShell />}>
+            <Route
+              element={
+                <OnboardingGate>
+                  <AppShell />
+                </OnboardingGate>
+              }
+            >
               <Route path="/" element={<Navigate to="/coach" replace />} />
               <Route path="/coach" element={<CoachPage />} />
               <Route path="/debts" element={<DebtsPage />} />

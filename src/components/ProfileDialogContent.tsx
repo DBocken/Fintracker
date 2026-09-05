@@ -25,6 +25,7 @@ import { useTier, TIER_OVERRIDE_EVENT } from "@/hooks/useTier";
 import { setTierOverride, clearTierOverride } from "@/lib/tier";
 import { useI18n } from "@/i18n/useI18n";
 import { displayNameFromIdentity } from "@/lib/identity";
+import RestartOnboardingButton from "@/features/onboarding/presentation/RestartOnboardingButton";
 
 function normalizeSkinId(raw?: string | null): SkinId {
   if (!raw) return 'ruhe';
@@ -250,17 +251,24 @@ export function ProfileDialogContent() {
         </p>
       </CardContent>
 
-      <CardFooter className="flex justify-between gap-2">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-2">
         {/* Schließt den Dialog (DialogClose) und navigiert zu den
             Einstellungen — vorher war der Button ohne Wirkung. */}
-        <DialogClose asChild>
-          <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link to="/settings">
-              <SettingsIcon className="mr-1 h-3 w-3" />
-              {t("profile.settingsButton")}
-            </Link>
-          </Button>
-        </DialogClose>
+        <div className="flex flex-wrap gap-2">
+          <DialogClose asChild>
+            <Button asChild variant="outline" size="sm" className="text-xs">
+              <Link to="/settings">
+                <SettingsIcon className="mr-1 h-3 w-3" />
+                {t("profile.settingsButton")}
+              </Link>
+            </Button>
+          </DialogClose>
+          {/* Der Weg zurück an den Anfang des Einstiegs. Er steht hier und
+              nicht in den Einstellungen, weil er den Nutzer betrifft und
+              nicht die App: „wie ich eingerichtet bin", nicht „wie sie
+              arbeitet". */}
+          <RestartOnboardingButton className="text-xs" />
+        </div>
         <LogoutButton className="text-xs text-muted-foreground" />
       </CardFooter>
     </Card>

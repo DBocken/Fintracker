@@ -171,7 +171,7 @@ const GROUPS = [
   { label: 'pages-1', files: [
     'src/pages/BudgetsPage.tsx',
     'src/pages/Unlock.tsx',
-    'src/pages/Login.tsx',
+    'src/pages/OnboardingPage.tsx',
     'src/pages/AnalysisPage.tsx',
     'src/pages/SettingsPage.tsx',
     'src/pages/ExportPage.tsx',

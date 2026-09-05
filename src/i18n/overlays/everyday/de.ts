@@ -226,6 +226,22 @@ export const everydayDe: TranslationOverlay = {
       },
     },
   },
+  onboardingFlow: {
+    // „Banksynchronisierung" ist Fachsprache; im Alltag heisst das die
+    // Verbindung zur Bank. Die Aussage bleibt dieselbe.
+    pathAnonymousDescription:
+      'Du kannst alle kostenlosen Funktionen nutzen — mit einer Einschränkung: Für die Verbindung zu deiner Bank brauchst du ein Konto.',
+    pathAccountDescription:
+      'Du kannst alle kostenlosen Funktionen ohne Einschränkung nutzen. Zusätzlich kannst du kostenpflichtige Zusätze dazubuchen.',
+    startBankNeedsAccount:
+      'Für die Verbindung zu deiner Bank brauchst du ein Konto. Du kannst dich später jederzeit anmelden.',
+    premiumAccountNote:
+      'Premium gibt es nur mit einem Konto — alles Kostenlose bleibt auch ohne Anmeldung offen.',
+    premiumPaidContracts: 'Verträge erkennen, samt Fristen zum Kündigen',
+    premiumPaidSimulation: 'Durchspielen, was passiert — und weiter vorausschauen',
+    authFutureProviders:
+      'Später kommen weitere Anmeldewege dazu. Was du erfasst hast, bleibt dabei erhalten.',
+  },
   upsell: {
     features: {
       basicContracts: {

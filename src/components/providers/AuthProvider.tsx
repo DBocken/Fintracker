@@ -1,32 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { localEncryption } from "@/services/local-crypto";
 import { useI18n } from "@/i18n/useI18n";
 import { identityFromSubject, type Identity } from "@/lib/identity";
-
-/**
- * Die Naht zum Identitätsanbieter (WP 2.1).
- *
- * Nach aussen gibt dieser Provider **nur** die eigene `Identity` und den
- * Status — keine Supabase-Typen. Das ist die Bedingung dafür, dass Phase 7
- * den Anbieter tauschen kann, ohne jede Aufrufstelle anzufassen: Wer hier
- * `Session`/`User` exportiert, verteilt ein Anbieterdetail über die ganze App.
- *
- * `session` gab es hier früher ebenfalls im Kontext — gelesen hat es **kein
- * einziger** Konsument (nachgezählt bei WP 2.1). Ein ungenutzter Export ist
- * keine Schnittstelle, sondern eine Einladung.
- */
-type AuthContextValue = {
-  identity: Identity | null;
-  status: "loading" | "authenticated" | "unauthenticated";
-};
-
-const AuthContext = createContext<AuthContextValue>({
-  identity: null,
-  status: "loading",
-});
+import { AuthContext, useAuth } from "@/hooks/useAuth";
 
 /**
  * Liest die Identität aus einer Anbieter-Sitzung.
@@ -56,6 +35,23 @@ function identityFromSession(
   });
 }
 
+/**
+ * Die Naht zum Identitätsanbieter (WP 2.1).
+ *
+ * Nach aussen gibt dieser Provider **nur** die eigene `Identity` und den
+ * Status — keine Supabase-Typen. Das ist die Bedingung dafür, dass Phase 7
+ * den Anbieter tauschen kann, ohne jede Aufrufstelle anzufassen: Wer hier
+ * `Session`/`User` exportiert, verteilt ein Anbieterdetail über die ganze App.
+ *
+ * `session` gab es hier früher ebenfalls im Kontext — gelesen hat es **kein
+ * einziger** Konsument (nachgezählt bei WP 2.1). Ein ungenutzter Export ist
+ * keine Schnittstelle, sondern eine Einladung.
+ *
+ * Der Kontext und der Lesezugriff `useAuth` liegen seit dem Seiten-Onboarding
+ * in `@/hooks/useAuth` — der Provider bleibt Komponente, der Lesezugriff
+ * nicht. `useAuth` wird hier nur noch weitergereicht, damit die vielen
+ * bestehenden Aufrufstellen nicht in einem Zug umgeschrieben werden müssen.
+ */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
@@ -118,6 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+/** @deprecated Direkt aus `@/hooks/useAuth` importieren. */
+export { useAuth };
 
 export default AuthProvider;

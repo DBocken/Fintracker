@@ -31,18 +31,38 @@ import type { FinanceOverviewViewModel } from "../../application/finance-overvie
  * breite Bildschirm behält — genau die Amputation, die §4 verbietet. Er hat
  * stattdessen eine eigene Bauform bekommen (`FlussAnsicht`).
  */
-const ANSICHTEN = [
-  { key: "verlauf", labelKey: "common.storyHistory" },
-  { key: "fluss", labelKey: "common.storyFlow" },
-  { key: "kategorien", labelKey: "common.categoriesLabel" },
-  { key: "ausgaben", labelKey: "common.storyExpenses" },
-  { key: "konten", labelKey: "common.storyAccounts" },
-] as const;
+const ANSICHTEN = ["verlauf", "fluss", "kategorien", "ausgaben", "konten"] as const;
 
-type Ansicht = (typeof ANSICHTEN)[number]["key"];
+type Ansicht = (typeof ANSICHTEN)[number];
 
 const istAnsicht = (wert: string | null): wert is Ansicht =>
-  ANSICHTEN.some((a) => a.key === wert);
+  ANSICHTEN.includes(wert as Ansicht);
+
+/**
+ * Die Beschriftungen der Reiter — als FUNKTION, mit LITERALEN Schluesseln.
+ *
+ * Zwei Regeln treffen hier aufeinander, und die naheliegende Loesung verletzt
+ * je eine davon. Ein `label` in der Modul-Konstante friert die Sprache beim
+ * Import ein (AGENTS.md Paragraf 6, `check:i18n-module-consts`). Ein
+ * `labelKey`, das die Aufrufstelle aus einer Variablen aufloest, macht den
+ * Schluessel dynamisch — und `call-site-keys.test.ts` kann einen Schluessel aus
+ * einer Variablen nicht mehr gegen den Sprachbaum halten; er zaehlt als
+ * unbeleuchteter Fleck. (Und dieser Waechter liest den Quelltext MIT
+ * Kommentaren: Ein Beispiel in dieser Form haette sich hier selbst gezaehlt.)
+ *
+ * Beides zugleich erfuellt nur diese Form: aufgeloest wird beim RENDERN (die
+ * Sprache stimmt), aber jeder Schluessel steht als Literal da (die Pruefung
+ * sieht ihn).
+ */
+function beschriftungen(t: (key: string) => string): Record<Ansicht, string> {
+  return {
+    verlauf: t("common.storyHistory"),
+    fluss: t("common.storyFlow"),
+    kategorien: t("common.categoriesLabel"),
+    ausgaben: t("common.storyExpenses"),
+    konten: t("common.storyAccounts"),
+  };
+}
 
 /** So viele Posten passen im Fluss auf einen Bildschirm; der Rest wird SUMMIERT, nicht abgeschnitten. */
 const FLUSS_POSTEN = 6;
@@ -273,7 +293,8 @@ export default function AuswertungenFokussiert({
 
   const angefragt = params.get("view");
   const aktuell: Ansicht = istAnsicht(angefragt) ? angefragt : "verlauf";
-  const index = ANSICHTEN.findIndex((a) => a.key === aktuell);
+  const index = ANSICHTEN.indexOf(aktuell);
+  const beschriftung = beschriftungen(t);
 
   const setzeAnsicht = (key: Ansicht) => {
     const naechste = new URLSearchParams(params);
@@ -299,7 +320,7 @@ export default function AuswertungenFokussiert({
       beruehrung.clientY - beginn.y,
       ANSICHTEN.length,
     );
-    if (ziel !== index) setzeAnsicht(ANSICHTEN[ziel].key);
+    if (ziel !== index) setzeAnsicht(ANSICHTEN[ziel]);
   };
 
   /**
@@ -345,15 +366,15 @@ export default function AuswertungenFokussiert({
         aria-label={t("mobileDashboard.diagramView")}
       >
         {ANSICHTEN.map((a) => {
-          const aktiv = a.key === aktuell;
+          const aktiv = a === aktuell;
           return (
             <button
-              key={a.key}
+              key={a}
               ref={aktiv ? aktiverReiter : undefined}
               type="button"
               role="tab"
               aria-selected={aktiv}
-              onClick={() => setzeAnsicht(a.key)}
+              onClick={() => setzeAnsicht(a)}
               className={cn(
                 "min-h-11 shrink-0 whitespace-nowrap px-2 text-sm transition-colors",
                 aktiv
@@ -361,7 +382,7 @@ export default function AuswertungenFokussiert({
                   : "text-muted-foreground",
               )}
             >
-              {t(a.labelKey)}
+              {beschriftung[a]}
             </button>
           );
         })}
