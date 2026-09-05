@@ -24,6 +24,7 @@ import type { CityModelTab } from '../application/use-city-model';
 import type { CityTimelineCursor } from '../application/use-city-timeline-cursor';
 import { CityBreadcrumb } from './CityBreadcrumb';
 import { CityTimelineBar } from './CityTimelineBar';
+import { useSeitennameVerdeckung } from '@/features/shared/presentation/SeitennameContext';
 
 const CITY_TABS = [
   { value: 'overview', labelKey: 'city.tabOverview' },
@@ -49,6 +50,7 @@ export type CityChromeProps = {
 
 export function CityChrome(props: CityChromeProps) {
   const { t } = useI18n();
+  const seitennameVerdeckung = useSeitennameVerdeckung();
 
   return (
     <div ref={props.chromeRef} className="flex shrink-0 flex-col gap-3">
@@ -80,7 +82,9 @@ export function CityChrome(props: CityChromeProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-foreground">{t('city.title')}</h1>
+          <h1 className={`text-lg font-semibold text-foreground ${seitennameVerdeckung}`}>
+            {t('city.title')}
+          </h1>
         </div>
       </header>
 

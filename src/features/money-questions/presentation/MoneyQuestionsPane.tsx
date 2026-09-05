@@ -22,6 +22,7 @@ import { KategorieAktionAntwort } from './KategorieAktionAntwort';
 import { AnlassAktionAntwort } from './AnlassAktionAntwort';
 import { TransferAktionAntwort } from './TransferAktionAntwort';
 import { BudgetAktionAntwort } from './BudgetAktionAntwort';
+import { useSeitennameVerdeckung } from '@/features/shared/presentation/SeitennameContext';
 
 /**
  * Die Fläche „Nachfragen" (WP-D).
@@ -63,6 +64,7 @@ const QUELLEN_KEY: Record<DataNeed, string> = {
 
 export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }) {
   const { t } = useI18n();
+  const seitennameVerdeckung = useSeitennameVerdeckung();
 
   if (model.isError) {
     return <FinanceErrorState variant="data" onRetry={model.refetch} />;
@@ -82,7 +84,10 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
         zwar unterhalb der CI-Schwelle, aber ein Screenreader fände hier sonst
         keine oberste Überschrift, wo er auf jeder anderen Fläche eine findet.
       */}
-      <h1 id="money-questions-heading" className="flex items-center gap-2 text-base font-semibold">
+      <h1
+        id="money-questions-heading"
+        className={`flex items-center gap-2 text-base font-semibold ${seitennameVerdeckung}`}
+      >
         <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
         {t('financeQuestions.title')}
       </h1>

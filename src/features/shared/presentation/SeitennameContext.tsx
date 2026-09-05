@@ -45,3 +45,23 @@ export function SeitennameProvider({
 export function useShellTraegtSeitenname(): boolean {
   return useContext(SeitennameContext);
 }
+
+/**
+ * Die Klasse, mit der eine flaecheneigene Ueberschrift sich zurueckzieht,
+ * solange die Shell den Namen traegt — leer, wenn sie ihn selbst setzen muss.
+ *
+ * **Warum als Haken und nicht als Handgriff je Flaeche.** `PageHeader` hatte
+ * diese Entscheidung zuerst, und die Annahme dahinter war, jede Flaeche fuehre
+ * ihren Namen darueber. Gemessen stimmte das nicht: `/settings`, `/city`,
+ * `/fragen` und `/trading` bringen ihre eigene `<h1>` mit, und dort stand der
+ * Name nach dem Umbau ZWEIMAL. Aufgefallen ist es nicht im Test, sondern in
+ * CI — Playwright brach mit „strict mode violation: resolved to 2 elements"
+ * ab, weil zwei Ueberschriften „Finanzstadt" hiessen. Zwei `<h1>` auf einem
+ * Bildschirm sind aber kein Testproblem, sondern eines fuer jede Sprachausgabe.
+ *
+ * Eine Klasse an vier Stellen abzuschreiben haette denselben Fehler ein
+ * fuenftes Mal moeglich gemacht. Hier steht er einmal.
+ */
+export function useSeitennameVerdeckung(): string {
+  return useShellTraegtSeitenname() ? "fokussiert:hidden" : "";
+}

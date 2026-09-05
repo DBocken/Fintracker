@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useShellTraegtSeitenname } from "./SeitennameContext";
+import { useSeitennameVerdeckung } from "./SeitennameContext";
 
 interface PageHeaderProps {
   title: string;
@@ -21,7 +21,7 @@ interface PageHeaderProps {
  * keinen Namen.
  */
 export default function PageHeader({ title, description, actions }: PageHeaderProps) {
-  const shellTraegtNamen = useShellTraegtSeitenname();
+  const seitennameVerdeckung = useSeitennameVerdeckung();
 
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -29,13 +29,7 @@ export default function PageHeader({ title, description, actions }: PageHeaderPr
         {/* Die Überschrift bleibt im Baum, solange die Shell keine rendert.
             In kompakt trägt sie die Leiste ohnehin nicht als Überschrift,
             sondern als Beschriftung — dort ist dieses h1 die einzige. */}
-        <h1
-          className={
-            shellTraegtNamen
-              ? "text-xl font-semibold tracking-tight sm:text-2xl fokussiert:hidden"
-              : "text-xl font-semibold tracking-tight sm:text-2xl"
-          }
-        >
+        <h1 className={`text-xl font-semibold tracking-tight sm:text-2xl ${seitennameVerdeckung}`}>
           {title}
         </h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
