@@ -15,11 +15,11 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
-import { ChartFigure } from '../ChartFigure';
+import { ChartFigure, type DiagrammForm } from '../ChartFigure';
 
 type Zeile = { monat: string };
 
-function rendere(form?: 'zeitreihe' | 'verteilung' | 'fluss') {
+function rendere(form?: DiagrammForm) {
   const { container } = render(
     <I18nProvider initialLocale="de">
       <ChartFigure<Zeile>

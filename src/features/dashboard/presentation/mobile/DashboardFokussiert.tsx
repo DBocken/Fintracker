@@ -131,11 +131,20 @@ export default function DashboardFokussiert({ model }: { model: FinanceOverviewV
           Höhe gehört an die FORM, nicht an einen Deckel um alles. */}
       {verlauf.length > 1 && (
         <section className="border-t border-border/60 pt-4">
-          <Link to="/auswertungen?view=verlauf" className="block">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("dashboard.fokussiert.trendLabel")}
-            </div>
-            <div className="mt-2">
+          {/* NUR die Beschriftung ist der Verweis, nicht die ganze Figur.
+              Am Geraet gesehen: Umschliesst ein `<a>` die Figur, verschwindet
+              die Tabellen-Umschaltung darin — ein `<button>` INNERHALB eines
+              Verweises ist ungueltiges HTML, der Browser hebt ihn heraus. Und
+              es waere auch ohne das falsch: verschachtelte Bedienelemente sind
+              mit Hilfstechnik nicht auseinanderzuhalten. */}
+          <Link
+            to="/auswertungen?view=verlauf"
+            className="flex min-h-11 items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            {t("dashboard.fokussiert.trendLabel")}
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+          <div className="mt-1">
               <ChartFigure
                 form="verdichtung"
                 caption={t("dashboard.fokussiert.trendLabel")}
@@ -158,8 +167,7 @@ export default function DashboardFokussiert({ model }: { model: FinanceOverviewV
                   </BarChart>
                 </ResponsiveContainer>
               </ChartFigure>
-            </div>
-          </Link>
+          </div>
         </section>
       )}
 
