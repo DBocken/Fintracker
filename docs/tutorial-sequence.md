@@ -13,6 +13,19 @@ die Overlay-Mechanik) und `docs/onboarding-life-situations.md` (die
 Bereichsauswahl, auf der die Kapitelliste aufsetzt). Diese Datei setzt beide
 voraus und wiederholt sie nicht.
 
+> **Nachtrag: die Weiche ist kein Dialog mehr.** Diese Datei nennt an mehreren
+> Stellen `DataSourceDialog` und `OnboardingDialog` — zwei modale Dialoge über
+> der laufenden App. Beide gibt es nicht mehr. Der Einstieg ist seit dem
+> Seiten-Onboarding ein zusammenhängender Fluss unter `/willkommen`
+> (`src/features/onboarding/`), und Kapitel 0 ist darin der vorletzte Schritt
+> (`presentation/steps/StartStep.tsx`), direkt vor der Tutorial-Frage.
+>
+> **Inhaltlich ändert das nichts** an dem, was hier entschieden wurde: ein
+> Lehrplan mit drei Eingängen, die Weiche vor der Lebenssituation, `undefined`
+> = nie gefragt gegen `null` = gefragt und übersprungen, die Vorbelegung aus
+> den importierten Daten. Nur die Hülle hat gewechselt — die Begründungen
+> unten gelten unverändert und werden deshalb nicht umgeschrieben.
+
 ## Einwand vorweg: ein Lehrplan, drei Eingänge — nicht drei Tutorials
 
 Der Auftrag lautete „je nach Auswahl bekomme ich das entsprechende Tutorial".

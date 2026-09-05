@@ -3770,6 +3770,97 @@ export const ru = {
     resetConfirmButtonLoading: 'Удаление…',
     resetCancelButton: 'Отмена',
   },
+  onboardingFlow: {
+    greeting: 'Добро пожаловать',
+    languageTitle: 'Выберите язык',
+    languageHint: 'Его можно в любой момент сменить в настройках.',
+    languageChoose: 'Продолжить на языке: {language}',
+
+    pathTitle: 'У вас есть два варианта.',
+    pathAnonymousLabel: 'Анонимно',
+    pathAnonymousDescription:
+      'Доступны все бесплатные функции — с одним ограничением: для синхронизации с банком нужна учётная запись.',
+    pathAccountLabel: 'С учётной записью',
+    pathAccountDescription:
+      'Все бесплатные функции без ограничений. Дополнительно можно подключить платные возможности.',
+    pathLocalNote: 'В обоих случаях финансовые данные остаются на вашем устройстве.',
+
+    authTitle: 'Вход или регистрация',
+    authSubtitle: 'Оба пути ведут к одной и той же учётной записи.',
+    authGoogleLabel: 'Продолжить через Google',
+    authGoogleDescription: 'Один клик, без отдельного пароля.',
+    authEmailLabel: 'Продолжить с почтой и паролем',
+    authEmailDescription: 'Регистрация или вход по адресу электронной почты.',
+    authFutureProviders:
+      'В будущем появятся другие способы входа. Ваши данные при этом сохранятся.',
+    authError: 'Не удалось начать вход. Попробуйте ещё раз.',
+    authSwitchToAnonymous: 'Всё-таки начать анонимно',
+    authGoogleMobile: 'Вход через Google (мобильный)',
+    authGoogleDirect: 'Вход через Google (напрямую)',
+    authOpenInNewTab: 'Открыть в новой вкладке',
+    authIframeWarning:
+      'Google блокирует вход во встроенном окне предпросмотра. Откройте вход в новой вкладке или запустите вход через Google напрямую.',
+
+    greetingKnownTitle: 'Здравствуйте, {name}',
+    greetingKnownBody: 'Рады видеть вас. Настроим приложение под вас.',
+    greetingAnonymousTitle: 'Вы выбрали анонимный режим. Как к вам обращаться?',
+    greetingNameLabel: 'Ваше имя',
+    greetingNamePlaceholder: 'например, Дана',
+    greetingLocalNote:
+      'Всё сохраняется локально на вашем устройстве, обратной передачи на сервер нет.',
+    greetingSkipName: 'Продолжить без имени',
+
+    featuresTitle: 'Какие функции для вас важны?',
+    featuresSubtitle: 'Это можно в любой момент изменить в настройках.',
+
+    modifiersNone: 'Ничего из этого',
+    featuresChosen: 'Вот что мы покажем',
+    featuresCoreHint:
+      'Помощник, операции и счета доступны всегда. Отключённое лишь скрыто, а не заблокировано.',
+    featuresAdjust: 'Настроить разделы',
+    featuresAdjustDone: 'Готово',
+
+    premiumTitle: 'Многое бесплатно. Самое мощное — в Premium.',
+    premiumIntro:
+      'Многие функции уже бесплатны, но самые мощные доступны только пользователям Premium.',
+    premiumFreeHeading: 'Всегда бесплатно',
+    premiumPaidHeading: 'С Premium',
+    premiumFreeImport: 'Импорт файлов, категории и разборы',
+    premiumFreeCoach: 'Помощник, бюджеты и план по долгам',
+    premiumFreeBank: 'Подключение банка и простые договоры',
+    premiumPaidAnalytics: 'Глубокие разборы и отчёты',
+    premiumPaidSimulation: 'Моделирование и расширенный прогноз',
+    premiumPaidContracts: 'Распознавание договоров со сроками расторжения',
+    premiumPaidOccasions: 'Поводы, позиции чеков и семейный режим',
+    premiumAccountNote:
+      'Premium можно подключить только с учётной записью — всё бесплатное остаётся доступным и анонимно.',
+    premiumOpenBilling: 'Посмотреть цены',
+    premiumLater: 'Дальше',
+
+    startTutorialTitle: 'Запустить обучение?',
+    startTutorialDemoNote:
+      'Для обучения приложение сначала заполняется примерами. Их можно в любой момент удалить.',
+    startTutorialYes: 'Запустить обучение',
+    startTutorialNo: 'Разберусь сам',
+    startBankNeedsAccount:
+      'Для синхронизации с банком нужна учётная запись. Войти можно позже в любой момент.',
+
+    restartAction: 'Пройти вступление заново',
+    restartCancel: 'Отмена',
+    restartConfirmTitle: 'Пройти вступление заново?',
+    restartConfirmBody:
+      'Вы пройдёте вступление ещё раз, начиная с выбора языка. Операции, счета и бюджеты останутся без изменений — заново будут заданы только вопросы настройки.',
+    restartError: 'Не удалось сбросить вступление.',
+
+    next: 'Дальше',
+    back: 'Назад',
+    skip: 'Решить позже',
+    progressLabel: 'Шаг {current} из {total}',
+    saveError: 'Не удалось сохранить ваш выбор.',
+    loadError: 'Не удалось прочитать настройки. Перезагрузите страницу.',
+    retry: 'Попробовать снова',
+  },
+
   login: {
     headline: 'Разберитесь со своими деньгами уже сегодня – без стресса от таблиц.',
     privacyTitle: 'Ваши данные никогда не покидают ваше устройство.',

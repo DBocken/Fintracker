@@ -3,15 +3,15 @@ import { expect, type Page } from "@playwright/test";
 /**
  * WP-4.6 Vertical-Slice-Fixture.
  *
- * Bringt die App durchs reale Onboarding in den gefüllten Demo-Zustand und
- * aufs Dashboard. Seeding läuft bewusst durch die App selbst
- * (loadDemoData → IndexedDB), nicht am UI vorbei.
+ * Bringt die App durch den REALEN Einstieg (`/willkommen/*`) in den
+ * gefüllten Demo-Zustand und aufs Dashboard. Seeding läuft bewusst durch die
+ * App selbst (loadDemoData → IndexedDB), nicht am UI vorbei.
  *
- * Realer Nach-Demo-Zustand (verifiziert): Die App startet auf /coach
- * (Startseite, Route "/" → /coach) und stellt den Onboarding-Dialog
- * (Lebenssituation) davor — er ist der einzige Blocker und wird hier
- * eindeutig beendet ("Später entscheiden" speichert `null`), damit der
- * Slice frei navigierbar ist.
+ * Bis zum Seiten-Onboarding standen hier drei Helfer, die MODALE Dialoge
+ * wegklickten (`dismissOnboarding`, `dismissAllStartDialogs`) — die gibt es
+ * nicht mehr: Der Einstieg ist eine Folge von Seiten, und man kommt nicht
+ * an ihm vorbei, sondern durch ihn hindurch. Genau deshalb gibt es jetzt
+ * EINEN Helfer statt dreier, die sich in ihren Vorbedingungen unterschieden.
  *
  * Determinismus: Der Demo-Datensatz hängt vom aktuellen Datum ab
  * (demo-data-service.buildDemoDataset — Monatsgrenzen relativ zu `now`).
@@ -35,71 +35,74 @@ export async function dismissTourInvitation(page: Page): Promise<void> {
   }
 }
 
-/** Onboarding-Dialog + Tutorial-Einladung beenden (idempotent im Testkontext). */
-export async function dismissOnboarding(page: Page): Promise<void> {
-  const skip = page.getByRole("button", { name: "Später entscheiden" });
-  await expect(skip).toBeVisible();
-  await skip.click();
-  await expect(page.getByRole("dialog")).toBeHidden();
-  await dismissTourInvitation(page);
-}
+/** Wohin der jeweilige Weg am Ende des Einstiegs führt. */
+const ZIEL: Record<"csv" | "bank" | "demo", RegExp> = {
+  csv: /\/csv$/,
+  bank: /\/accounts$/,
+  demo: /\/dashboard$/,
+};
 
 /**
- * Beendet ALLE Einstiegs-Dialoge eines blanken Starts (WP 7.3).
+ * Führt den kompletten Einstieg durch — Sprache, Weg, Anrede, Situation
+ * (übersprungen, damit auch die Umstände entfallen), Premium, Datenquelle,
+ * Tutorial.
  *
- * `dismissOnboarding()` darüber reicht nur für den Demo-Einstieg: Wer über
- * „Demo ansehen" hereinkommt, hat die Datenquellen-Weiche faktisch schon
- * beantwortet (`DataSourceDialog` notiert das still), und übrig bleibt der
- * eine Lebenssituations-Dialog. Wer dagegen blank startet — nach „Lokale
- * Daten löschen" oder über „Kostenlos starten" — bekommt ZWEI Dialoge
- * nacheinander: erst Kapitel 0 (`DataSourceDialog`), danach die
- * Lebenssituation (`OnboardingDialog`). Beide tragen dieselbe Schaltfläche
- * „Später entscheiden", weshalb ein einzelner Klick wie ein Erfolg aussieht
- * und der zweite Dialog trotzdem stehen bleibt.
- *
- * Die Dialoge werden bewusst NACHEINANDER und jeweils bis zum Verschwinden
- * abgearbeitet, nicht in einer Klick-Schleife: Beide speichern über
- * `updateUserSettings`, das den Bestand liest, ergänzt und zurückschreibt.
- * Zwei Klicks unmittelbar hintereinander — schneller, als ein Mensch je
- * klickt — lassen den zweiten Schreibvorgang auf einem Stand aufsetzen, der
- * den ersten noch nicht enthält; die Datenquellen-Weiche stand danach beim
- * nächsten Seitenwechsel wieder da. Erst wenn der Dialog verschwunden ist,
- * ist der Schreibvorgang durch.
+ * Jeder Schritt wartet auf die ADRESSE des nächsten und nicht auf eine
+ * Animation: Die Auflösung des Abgewählten läuft über echte Zeit, und ein
+ * Test, der auf Pixel wartet, wäre genau so lange flackernd wie die Kurve.
+ * Die Adresse wechselt erst, wenn der Schritt wirklich durch ist.
  */
-export async function dismissAllStartDialogs(page: Page): Promise<void> {
-  const sourceDialog = page.getByRole("dialog").filter({ hasText: "Womit möchtest du anfangen?" });
-  const lifeDialog = page
-    .getByRole("dialog")
-    .filter({ hasText: "Welche Situation beschreibt dich am ehesten?" });
+export async function completeOnboarding(
+  page: Page,
+  { source = "demo", tutorial = false }: { source?: "csv" | "bank" | "demo"; tutorial?: boolean } = {},
+): Promise<void> {
+  await page.goto("/");
 
-  for (const dialog of [sourceDialog, lifeDialog]) {
-    try {
-      await dialog.waitFor({ state: "visible", timeout: 15_000 });
-    } catch {
-      continue; // Dieser Dialog gehört zu diesem Einstieg nicht dazu.
-    }
-    await dialog.getByRole("button", { name: "Später entscheiden" }).click();
-    await expect(dialog).toBeHidden();
-  }
+  await expect(page).toHaveURL(/\/willkommen\/sprache$/, { timeout: 30_000 });
+  await page.getByRole("button", { name: /Deutsch/ }).click();
 
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await dismissTourInvitation(page);
+  await expect(page).toHaveURL(/\/willkommen\/weg$/);
+  await page.getByRole("button", { name: /Anonym/ }).click();
+
+  await expect(page).toHaveURL(/\/willkommen\/begruessung$/);
+  await page.getByRole("button", { name: "Ohne Namen fortfahren" }).click();
+
+  // „Später entscheiden" überspringt Lebenssituation UND Umstände — ohne
+  // Situation hätten die Umstände nichts, was sie ergänzen könnten.
+  await expect(page).toHaveURL(/\/willkommen\/situation$/);
+  await page.getByRole("button", { name: "Später entscheiden" }).click();
+
+  await expect(page).toHaveURL(/\/willkommen\/premium$/);
+  await page.getByRole("button", { name: "Weiter" }).click();
+
+  await expect(page).toHaveURL(/\/willkommen\/start$/);
+  const quelle = { csv: /Datei/, bank: /Bank/, demo: /Beispieldaten|umschauen/ }[source];
+  await page.getByRole("button", { name: quelle }).first().click();
+
+  await expect(page.getByText("Möchtest du ein Tutorial starten?")).toBeVisible();
+  await page
+    .getByRole("button", { name: tutorial ? "Tutorial starten" : "Selbst erkunden" })
+    .click();
+
+  await expect(page).toHaveURL(ZIEL[source], { timeout: 30_000 });
 }
 
 /**
- * Onboarding → „Demo ansehen" → Onboarding-Dialog beenden → über die
- * Seitennavigation aufs Dashboard (mit gefülltem Hero als Lade-Anker).
+ * Einstieg mit Beispieldaten → Dashboard mit gefülltem Hero als Lade-Anker.
  */
 export async function startDemo(page: Page): Promise<void> {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Demo ansehen" }).click();
-  await expect(page).toHaveURL(/\/coach$/);
-  await dismissOnboarding(page);
-  await page.getByRole("link", { name: "Dashboard" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await completeOnboarding(page, { source: "demo" });
   // Hero ist der Lade-Anker: erst wenn er sichtbar ist, stehen die Daten.
   await expect(page.getByTestId("stat-hero-value")).toBeVisible();
-  // Die Tutorial-Einladung erscheint kapitelbezogen erst auf dem Dashboard.
+  await dismissTourInvitation(page);
+}
+
+/**
+ * Einstieg OHNE Beispieldaten — der Weg für Tests, die einen leeren Bestand
+ * brauchen (etwa nach „Lokale Daten löschen"). Endet auf der Datei-Seite.
+ */
+export async function startEmpty(page: Page): Promise<void> {
+  await completeOnboarding(page, { source: "csv" });
   await dismissTourInvitation(page);
 }
 

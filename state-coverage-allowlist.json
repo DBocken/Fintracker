@@ -6,6 +6,11 @@
         "leer": "Die Meilensteine sind ein fester Katalog, kein Nutzerbestand: `evaluateMilestones` liefert immer alle Definitionen mit ihrem Erreicht-Kennzeichen. Eine leere Liste kann es nicht geben, ein Leerzustand waere toter Code."
       }
     },
+    "/willkommen": {
+      "entfaellt": {
+        "leer": "Der Einstieg zeigt Auswahlmoeglichkeiten, nie einen Bestand des Nutzers. Es gibt keinen Zustand 'noch nichts erfasst', der mit einem Lesefehler verwechselt werden koennte - der Fehlerzustand ist geprueft und meldet sich als eigener Hinweis ueber dem Schritt."
+      }
+    },
     "/simulation": {
       "entfaellt": {
         "leer": "Reine Eingabeflaeche mit Reglern; die Rechnung entsteht aus der Eingabe, nicht aus gespeicherten Buchungen.",

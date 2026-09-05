@@ -22,6 +22,32 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **Der Einstieg ist eine eigene Seite geworden, keine Overlays mehr.** Bis
+  hierher war die Anmeldeseite das Erste, was ein Besucher sah — und danach
+  legten sich zwei modale Dialoge über eine App, die im Hintergrund schon lief.
+  Jetzt führt ein zusammenhängender Fluss unter `/willkommen` durch neun
+  Schritte: Sprache · anonym oder angemeldet · Anmeldung · Anrede ·
+  Lebenssituation · Umstände · Bereiche · was kostenlos ist und was Premium ·
+  Datenquelle und Tutorial.
+- **Die Sprachwahl steht ganz am Anfang** — die Begrüßung erscheint
+  gleichzeitig in allen Sprachen, jede mit ihrer Flagge und ihrem eigenen
+  Namen. Bis hierher war der Sprachumschalter erst *hinter* dem Einstieg
+  erreichbar, also ausgerechnet für den nicht, der ihn zuerst braucht.
+- **„Du hast zwei Möglichkeiten."** Anonym und angemeldet stehen als
+  gleichrangige Wahl nebeneinander, jeweils mit ihrer Einschränkung beim Namen
+  genannt statt als spätere Überraschung.
+- **Anmelden geht jetzt auch mit E-Mail und Passwort** — sichtbar als eigener
+  Weg neben Google, im Stil des Flusses.
+- **Die App fragt, wie sie dich ansprechen soll.** Angemeldet steht dort der
+  Vorname aus dem Konto, anonym eine freie Eingabe — mit der Zusage daneben,
+  dass sie das Gerät nicht verlässt.
+- **Das Abgewählte zerfällt.** Wer eine Möglichkeit wählt, sieht die anderen zu
+  Asche zerfallen, die ein Wind nach links trägt und die dann aufsteigt.
+  `prefers-reduced-motion` schaltet das auf ein schlichtes Ausblenden um, ohne
+  den Fluss zu verlangsamen.
+
 ### Behoben
 
 - **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
@@ -32,6 +58,23 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Intern
 
+- Neuer Feature-Slice `src/features/onboarding/` mit reiner Schrittmaschine
+  (`domain`), Entwurfs-Ablage und Übernahme (`data`), ViewModel
+  (`application`) und den neun Schritten (`presentation`). `Login.tsx`,
+  `OnboardingDialog.tsx` und `DataSourceDialog.tsx` entfallen.
+- **Ein Router statt zwei.** `App.tsx` trug bisher einen eigenen
+  `<BrowserRouter>` nur für den Landing-Screen. Das kostete den Rückweg: Der
+  OAuth-Umweg kehrt auf eine Adresse zurück, und dieser Router kannte die
+  Adressen der App nicht.
+- Der Fortschritt liegt als zod-geprüfter Entwurf im `localStorage` und
+  übersteht damit Neuladen und den Anbieter-Umweg; übernommen wird er am Ende
+  in **einem** Schreibvorgang.
+- Neues Einstellungsfeld `display_name` (die Anrede, nur lokal).
+- `useAuth` liegt jetzt in `@/hooks/useAuth` — der Provider bleibt Komponente,
+  der Lesezugriff nicht (dieselbe Trennung wie bei `useLocalEncryption`).
+- Wiederverwendbare `DissolveTransition` samt reiner Partikelrechnung in
+  `@/lib/dissolve-particles`, mit geprüfter Obergrenze und ohne neue
+  Abhängigkeit.
 - **Zwei neue Wächter für die Maße, die Prinzip 7 bisher nur behauptet hat.**
   „Tap-Ziele groß genug, Kontrast ausreichend" war für den Kontrast seit Langem
   eine Zahl (4.5:1) und für die anderen beiden Maße eine Absichtserklärung.
@@ -43,10 +86,20 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
   unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
   `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **Der Einstieg trifft die 44 px.** Sechs Schaltflächen des Flusses lagen bei
+  36 px — ausgerechnet auf der Fläche, die auf dem Telefon beginnt. Sie tragen
+  jetzt einen Trefferbereich neben ihrer optischen Größe; die Ratsche
+  `maxVarianten` sinkt von 186 auf den gemessenen Stand 182.
+- **Neun Advisories in Abhängigkeiten geschlossen** (`@xmldom/xmldom` 0.9.12,
+  `qs` 6.16.0, `fast-uri` 3.1.7) — durchweg transitiv, deshalb über
+  `pnpm.overrides` mit Obergrenze statt durch Anheben einer direkten
+  Abhängigkeit. `services/entitlements` bekommt dafür seinen ersten
+  Override-Block.
 - **§4 benennt jetzt vier Dimensionen der Anpassung** statt nur
   Feature-Parität: Layout, Tippziele, Navigationsmuster (jeder Hover-Zustand
   braucht ein Touch-Äquivalent) und Inhaltsrang — unter der Regel „anpassen,
   nicht amputieren".
+
 
 ## 2026.9.1 — 2026-09-02
 

@@ -5,9 +5,8 @@ import SideNav from "@/components/layout/SideNav";
 import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
-import DataSourceDialog from "@/components/onboarding/DataSourceDialog";
 import TutorialHost from "@/components/tutorial/TutorialHost";
-import OnboardingDialog from "@/components/onboarding/OnboardingDialog";
+import PendingTutorialStarter from "@/features/onboarding/presentation/PendingTutorialStarter";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
@@ -58,15 +57,14 @@ export default function AppShell() {
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <AtmosphereLayer state={atmosphere} />
       <CommandPalette />
-      {/* Reihenfolge ist Inhalt: erst woher die Daten kommen (Kapitel 0),
-          dann die Lebenssituation — siehe docs/tutorial-sequence.md. */}
-      <DataSourceDialog />
-      <OnboardingDialog />
       {/* Der Host umschließt den Seiteninhalt als Provider: nachrangige
           Hinweise (Coach-Streifen) lesen darüber, ob gerade eine Tutorial-
           Hinweisebene sichtbar ist (Befund A-2). Sein Einladungs-Banner
           rendert weiterhin an genau dieser Stelle, vor dem Flex-Container. */}
       <TutorialHost>
+      {/* Löst den im Einstieg vorgemerkten Tutorial-Wunsch ein — der Einstieg
+          selbst steht ausserhalb des Hosts und kann ihn nicht starten. */}
+      <PendingTutorialStarter />
       <div className="flex min-h-screen">
         {/* h-[100dvh] statt h-screen (100vh): An die *sichtbare* Viewport-Höhe
             koppeln, damit die ein-/ausblendende Browser-Leiste (Adressleiste/

@@ -215,6 +215,16 @@ export const everydayRu: TranslationOverlay = {
       },
     },
   },
+  onboardingFlow: {
+    pathAnonymousDescription:
+      'Доступны все бесплатные функции — с одним ограничением: для связи с банком нужна учётная запись.',
+    startBankNeedsAccount:
+      'Для связи с банком нужна учётная запись. Войти можно позже в любой момент.',
+    premiumPaidContracts: 'Находить договоры вместе со сроками отказа',
+    premiumPaidSimulation: 'Проигрывать, что будет — и заглядывать дальше',
+    authFutureProviders:
+      'Позже появятся другие способы входа. Всё, что вы внесли, сохранится.',
+  },
   upsell: {
     features: {
       basicContracts: {
