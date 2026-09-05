@@ -18,9 +18,10 @@ import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
-import type { Category, CategorizationSnapshotEntry, Transaction } from '@/types';
+import type { Category, CategorizationSnapshotEntry } from '@/types';
 import {
   getCategoryPreview,
+  type UebernahmePlan,
   getHierarchicalCategories,
   getTopCategorySuggestion,
   getUserSettings,
@@ -41,12 +42,20 @@ import {
   type SettingsOverviewModel,
 } from '../domain/settings-overview';
 
+/** Ein Plan ohne Inhalt — der Zustand vor der ersten Vorschau. */
+const LEERER_PLAN: UebernahmePlan = {
+  beispiele: [],
+  anzahlHinzu: 0,
+  anzahlEntzug: 0,
+  anzahlGesamt: 0,
+};
+
 export function useSettingsOverview(): SettingsOverviewModel {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [previewTransactions, setPreviewTransactions] = useState<Transaction[]>([]);
+  const [previewPlan, setPreviewPlan] = useState<UebernahmePlan>(LEERER_PLAN);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [undoSnapshot, setUndoSnapshot] = useState<CategorizationSnapshotEntry[]>([]);
   const [bulkStatus, setBulkStatus] = useState<BulkCategorizationStatus>('idle');
@@ -183,7 +192,7 @@ export function useSettingsOverview(): SettingsOverviewModel {
     }
     setIsPreviewLoading(true);
     try {
-      setPreviewTransactions(await getCategoryPreview(selectedCategoryId));
+      setPreviewPlan(await getCategoryPreview(selectedCategoryId));
     } catch {
       showError(t('settings.previewLoadError', 'Fehler beim Laden der Vorschau'));
     } finally {
@@ -204,7 +213,13 @@ export function useSettingsOverview(): SettingsOverviewModel {
     },
     preview: {
       category: selectedCategory,
-      transactions: previewTransactions,
+      // Die Beispiele sind gekappt, die Zahlen daneben sind es NICHT — genau
+      // diese Trennung fehlte, als die Flaeche "und {n} weitere" aus der Laenge
+      // einer bei 50 abgeschnittenen Liste rechnete.
+      transactions: previewPlan.beispiele,
+      anzahlHinzu: previewPlan.anzahlHinzu,
+      anzahlEntzug: previewPlan.anzahlEntzug,
+      anzahlGesamt: previewPlan.anzahlGesamt,
       isLoading: isPreviewLoading,
     },
     bulk: {

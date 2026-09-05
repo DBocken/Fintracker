@@ -248,9 +248,12 @@ export async function saveLocalCategory(category: Partial<Category>): Promise<Ca
 
 /**
  * Der Anlege-Schritt ohne Lock — er läuft IMMER innerhalb eines fremden Locks
- * (`saveLocalCategory` bzw. `updateLocalCategory`, das eine Standard-Kategorie
- * zur Nutzer-Kopie macht). Ohne diese Trennung nähme der Umweg über
- * `saveLocalCategory` den Lock ein zweites Mal und verklemmte.
+ * (`saveLocalCategory`). Ohne diese Trennung nähme der Umweg den Lock ein
+ * zweites Mal und verklemmte.
+ *
+ * `updateInKategorien` ruft ihn seit der Behebung NICHT mehr: Das Bearbeiten
+ * einer Standard-Kategorie war als Neuanlage verdrahtet und erzeugte damit
+ * entweder einen Dublettenfehler oder eine zweite Zeile.
  */
 async function saveInKategorien(
   categories: Category[],
@@ -290,18 +293,6 @@ export async function updateLocalCategory(category: Category): Promise<Category>
 async function updateInKategorien(categories: Category[], category: Category): Promise<Category> {
   const existing = categories.find((c) => c.id === category.id);
 
-  // Standard-Kategorie wird beim Bearbeiten zur Nutzer-Kopie (Verhalten wie Cloud-Pfad)
-  if (existing?.is_default) {
-    return saveInKategorien(categories, {
-      name: category.name,
-      color: category.color,
-      icon: category.icon,
-      filters: category.filters || [],
-      parent_id: category.parent_id || null,
-      attributes: category.attributes || {},
-    });
-  }
-
   if (!existing) {
     throw new Error(t("localSettingsService.categoryNotFound"));
   }
@@ -313,12 +304,46 @@ async function updateInKategorien(categories: Category[], category: Category): P
     throw new Error(t("localSettingsService.categoryNameExists"));
   }
 
+  // Bis hierher wurde eine Standard-Kategorie beim Bearbeiten an die NEUANLAGE
+  // umgeleitet — mit neuer ID, waehrend die alte in der Liste stehen blieb.
+  // Zwei Folgen, beide gemessen: Bleibt der Name gleich, schlaegt die
+  // Dublettenpruefung gegen die eigene Ursprungszeile an und das Speichern
+  // bricht mit "Eine Kategorie mit diesem Namen existiert bereits" ab. Wird
+  // umbenannt, stehen danach ZWEI Kategorien da, und saemtliche Buchungen,
+  // Budgets und Haendlerregeln haengen weiter an der alten. Da alle 112
+  // ausgelieferten Kategorien `is_default: true` tragen, war damit der
+  // Normalfall betroffen: "ich aendere die Stichwoerter von Lebensmittel".
+  //
+  // Bearbeiten bearbeitet jetzt — die ID bleibt, und damit bleibt alles daran
+  // haengen. Das "Kopieren beim Schreiben" war nie als zweite ZEILE gemeint,
+  // sondern als Uebergang der Eigentuemerschaft, und der wird durch das
+  // Zuruecksetzen von `is_default` ausgedrueckt.
+  const warStandard = existing.is_default === true;
+
+  // `is_default: false` ist in diesem Baum kein Herkunftsvermerk, sondern ein
+  // VERTRAG: Jede Migration und jedes Kategoriepaket laesst genau die Zeilen in
+  // Ruhe, die so markiert sind (`if (cat.is_default === false) return cat` an
+  // acht Stellen in category-migrations.ts und category-template.ts). Wer eine
+  // ausgelieferte Kategorie aendert, soll seine Aenderung behalten — also wird
+  // die Marke hier gesetzt und nicht bloss mitgeschleppt.
+  // Den ANGEZEIGTEN Namen ueber `localizeCategories` aufloesen statt ueber ein
+  // zweites Aufloesen ueber eine Schluessel-VARIABLE: So ein Schluessel laesst sich von
+  // der Aufrufstellen-Pruefung nicht mehr gegen den Sprachbaum halten, und
+  // `call-site-keys.test.ts` haelt ihre Zahl als Ratsche fest. Es gibt bereits
+  // genau eine Stelle, die das tut — eine zweite waere derselbe Dienst zweimal.
+  const [angezeigt] = localizeCategories([existing]);
+  const umbenannt = category.name !== angezeigt.name;
+
   const updated: Category = {
     ...existing,
     name: category.name,
     // Ab der ersten Umbenennung gewinnt der Text der Nutzerin; ein
-    // Sprachwechsel fasst ihn nicht mehr an.
-    name_key: null,
+    // Sprachwechsel fasst ihn nicht mehr an. UNVERAENDERT bleibt der
+    // Uebersetzungsschluessel dagegen, wenn nur Farbe, Symbol oder Filter
+    // geaendert wurden — sonst verloere eine Standard-Kategorie ihre
+    // Uebersetzung, weil jemand sie umgefaerbt hat.
+    name_key: umbenannt ? null : existing.name_key,
+    is_default: warStandard ? false : existing.is_default,
     color: category.color,
     icon: category.icon,
     filters: category.filters || [],

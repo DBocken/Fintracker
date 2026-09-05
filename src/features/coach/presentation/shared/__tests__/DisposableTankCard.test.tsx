@@ -14,7 +14,7 @@ vi.mock("@/components/providers/GentleModeProvider", () => ({
   useGentleMode: () => ({ enabled: false, toggle: () => {} }),
 }));
 
-import DisposableTankCard from "@/components/coach/DisposableTankCard";
+import DisposableTankCard from "@/features/coach/presentation/shared/DisposableTankCard";
 
 function account(p: Partial<ForecastAccount> & { id: string; kind: ForecastAccount["kind"]; openingBalance: number }): ForecastAccount {
   return { name: p.name ?? p.id, ...p };

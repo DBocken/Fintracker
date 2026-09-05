@@ -48,6 +48,26 @@
     "36 stehengeblieben und der Umzug in der Zahl unsichtbar."
   ],
   "_hinweis": "Bei jeder Migration hier BEIDE max-Werte auf den neuen Ist-Stand nachziehen, sonst gibt die Ratsche den Fortschritt wieder her. WP 6.2 (TransactionCharts -> features/dashboard/presentation/shared) hat die damals einzige Zahl von 18 auf 17 gesenkt. WP 6.3 laesst die Feature-UI-Spalte bei 12 (die Trading-Slice haengt an keinem fremden Screen mehr — PortfolioManager ist mitgezogen, seine Depotliste liegt jetzt in application/use-trading-portfolios.ts) und setzt die Baustein-Spalte auf 36. WP 6.7 laesst die Feature-UI-Spalte bei 12 (der Umzug beruehrt sie nicht: die Bausteine selbst greifen in keine fremde Feature-UI) und setzt die Baustein-Spalte auf 0.",
-  "max": 12,
+  "_coach_migration": [
+    "Coach-Slice (features/coach): Die Feature-UI-Spalte faellt von 12 auf 11 — und die Rechnung",
+    "dahinter ist die dritte Auflage derselben Lehre wie bei ui/ (WP 6.2) und components/common/ (WP 6.3).",
+    "",
+    "Aufgeloest hat der Umzug NEUN gezaehlte Importe (die sechs components/coach/-Bausteine plus",
+    "HealthScoreCard, FinancialLandscape, MilestonesStrip), die CoachDesktopView und CoachMobileToday",
+    "sonst aus der Alt-Oberflaeche geholt haetten. Neu hinzu kamen drei, weil die umgezogenen Dateien",
+    "jetzt SELBST Slice-Presentation sind und ihre eigenen Importe damit zaehlen:",
+    "  - DisposableTankCard -> components/budgets/BudgetTank: echter Befund, behoben durch Umzug nach",
+    "    features/shared/presentation/ (zwei Features nutzen ihn: budgets und coach, AGENTS.md Paragraf 3).",
+    "  - HealthScoreCard und FinancialLandscape -> components/providers/GentleModeProvider: KEIN Befund.",
+    "    Ein Context-Provider haengt einmal im AppShell, jede Praesentation liest denselben Context, und",
+    "    es gibt keine zweite Fassung davon — er zwingt also niemanden, die alte Oberflaeche",
+    "    mitzuschleppen. check:layers und check:view-data nehmen genau diesen Zugriff seit WP 2.3 aus",
+    "    (useAuth aus AuthProvider, useGentleMode aus GentleModeProvider); der Waechter benutzt dafuer",
+    "    jetzt DASSELBE istInfrastruktur()-Praedikat statt eines dritten eigenen Kriteriums.",
+    "",
+    "Ohne diese beiden Korrekturen waere die Zahl auf 14 GESTIEGEN — die Ratsche haette wieder genau",
+    "die Migration verurteilt, fuer die sie gebaut wurde."
+  ],
+  "max": 11,
   "maxBausteine": 0
 }

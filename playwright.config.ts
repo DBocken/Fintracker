@@ -32,10 +32,14 @@ import { defineConfig } from "@playwright/test";
 const target = process.env.E2E_TARGET === "preview" ? "preview" : "dev";
 export default defineConfig({
   testDir: "./e2e-tests",
-  // Der Motion-Review ist ein Erhebungslauf, kein Test: er zeichnet Videos auf
-  // und prüft nichts. In der regulären Suite kostet er nur Zeit und
-  // Speicherplatz. `E2E_MOTION_REVIEW=1` schaltet ihn gezielt frei.
-  testIgnore: process.env.E2E_MOTION_REVIEW === "1" ? [] : ["**/motion-review.spec.ts"],
+  // Zwei Erhebungslaeufe, kein Test: Der Motion-Review zeichnet Videos auf, die
+  // Bildpruefung nimmt jede Flaeche bei 360 px auf. Beide pruefen nichts und
+  // kosten in der regulaeren Suite nur Zeit und Speicherplatz. Je eine
+  // Umgebungsvariable schaltet sie gezielt frei.
+  testIgnore: [
+    ...(process.env.E2E_MOTION_REVIEW === "1" ? [] : ["**/motion-review.spec.ts"]),
+    ...(process.env.E2E_SHOTS === "1" ? [] : ["**/all-screens-shots.spec.ts"]),
+  ],
   workers: 1,
   // Demo-Seeding durchs reale UI + 9 Full-Page-Screenshots in einem Test —
   // die Playwright-Vorgabe (30 s) reicht dafür nicht.

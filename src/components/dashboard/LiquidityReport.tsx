@@ -338,7 +338,7 @@ export default function LiquidityReport() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">{t("liquidityReport.horizonLabel")}</span>
           <Select value={String(months)} onValueChange={(v) => setMonths(Number(v))}>
-            <SelectTrigger className="h-10 w-full" aria-label={t("liquidityReport.horizonLabel")}>
+            <SelectTrigger className="h-10 w-full fokussiert:min-h-11" aria-label={t("liquidityReport.horizonLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -354,7 +354,7 @@ export default function LiquidityReport() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">{t("liquidityReport.bufferLabel")}</span>
           <Select value={String(safetyBuffer)} onValueChange={(v) => setSafetyBuffer(Number(v))}>
-            <SelectTrigger className="h-10 w-full" aria-label={t("liquidityReport.bufferLabel")}>
+            <SelectTrigger className="h-10 w-full fokussiert:min-h-11" aria-label={t("liquidityReport.bufferLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -370,7 +370,7 @@ export default function LiquidityReport() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">{t("liquidityReport.basisLabel")}</span>
           <Select value={bufferBasis} onValueChange={(v) => setBufferBasis(v as BufferBasis)}>
-            <SelectTrigger className="h-10 w-full" aria-label={t("liquidityReport.basisLabel")}>
+            <SelectTrigger className="h-10 w-full fokussiert:min-h-11" aria-label={t("liquidityReport.basisLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -37,6 +37,16 @@ export type NavItem = {
   label: string;
   /** i18n-Key für das Label; `label` dient als Fallback (DE). */
   labelKey?: string;
+  /**
+   * Langform des Seitennamens für die Überschrift im Inhalt.
+   *
+   * `labelKey` ist bewusst die KURZFORM — Navigationslabels sind
+   * breitenbegrenzt (Bodennavigation), weshalb dort „Verfügbar" statt
+   * „Verfügbares Geld" und „Unterm Strich" statt „Besitz minus Schulden"
+   * steht. Als Überschrift wäre das eine Verschlechterung. Ohne Angabe gilt
+   * `labelKey`; gemessen weichen nur drei Ziele ab.
+   */
+  titleKey?: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   /** Mindest-Tier für dieses Ziel (Issue #27). Ohne Angabe: anonym nutzbar. */
@@ -68,11 +78,12 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: "nav.groups.coach",
     items: [
       { label: "Heute für dich", labelKey: "nav.items.coach", path: "/coach", icon: Sparkles },
-      { label: "Schulden", labelKey: "nav.items.debts", path: "/debts", icon: Banknote },
-      { label: "Nettovermögen", labelKey: "nav.items.netWorth", path: "/net-worth", icon: Coins },
+      { label: "Schulden", labelKey: "nav.items.debts", titleKey: "debts.title", path: "/debts", icon: Banknote },
+      { label: "Nettovermögen", labelKey: "nav.items.netWorth", titleKey: "netWorth.title", path: "/net-worth", icon: Coins },
       {
         label: "Liquidität",
         labelKey: "nav.items.liquidity",
+        titleKey: "other.liquidityTitle",
         path: "/liquidity",
         icon: Activity,
         subtitle: "Wann wird dein Geld knapp?",
@@ -95,6 +106,14 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: "nav.groups.analysen",
     items: [
       { label: "Dashboard", labelKey: "nav.items.dashboard", path: "/dashboard", icon: BarChart3 },
+      {
+        label: "Auswertungen",
+        labelKey: "nav.items.auswertungen",
+        path: "/auswertungen",
+        icon: LineChart,
+        subtitle: "Verlauf, Fluss, Kategorien — zum Wischen",
+        subtitleKey: "nav.subtitles.auswertungen",
+      },
       {
         label: "Einkommen",
         labelKey: "nav.items.income",

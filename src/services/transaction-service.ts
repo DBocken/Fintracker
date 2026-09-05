@@ -541,21 +541,85 @@ export async function applyAutoCategorization(transactions: Transaction[]): Prom
   });
 }
 
-export async function getCategoryPreview(categoryId: string, limit: number = 50): Promise<Transaction[]> {
+/**
+ * Was eine Uebernahme WIRKLICH tut — der Plan der Aktion, nicht eine
+ * aehnliche Rechnung daneben.
+ */
+export interface UebernahmePlan {
+  /** Zeilen zum Zeigen. Gekappt — die ZAHLEN darunter sind es nicht. */
+  beispiele: Transaction[];
+  /** Buchungen, die diese Kategorie BEKOMMEN. Vollstaendig gezaehlt. */
+  anzahlHinzu: number;
+  /** Buchungen, die diese Kategorie VERLIEREN. Vollstaendig gezaehlt. */
+  anzahlEntzug: number;
+  /** Buchungen, die der Lauf INSGESAMT aendert — ueber alle Kategorien. */
+  anzahlGesamt: number;
+}
+
+/**
+ * Die Vorschau auf eine Uebernahme.
+ *
+ * BIS HIERHER RECHNETE SIE ANDERS ALS DIE AKTION DANEBEN, und zwar in vier
+ * Punkten zugleich — jeder einzelne machte die Anzeige falsch:
+ *
+ * 1. Sie nahm `categorize` (JEDE Konfidenz, auch der Regex-Rueckfall bei 0,55),
+ *    die Aktion nimmt `categorizeConfident` (Schwelle 0,7). Die Liste enthielt
+ *    also Buchungen, die der Lauf gar nicht anfasst.
+ * 2. Sie liess BESTAETIGTE Buchungen stehen, die Aktion ueberspringt sie. Auch
+ *    diese standen in der Liste, ohne je geaendert zu werden.
+ * 3. Sie zeigte nur, was IN die Kategorie wandert. Der Lauf entzieht aber auch
+ *    Zuordnungen — eine frueher automatisch zugeordnete Buchung, die heute
+ *    keine 0,7 mehr erreicht, verliert ihre Kategorie. Der gefaehrlichste Teil
+ *    kam in der Vorschau gar nicht vor.
+ * 4. Sie war bei 50 Treffern gedeckelt und sah wie der Bestand aus. Die Flaeche
+ *    schrieb darunter "und {n} weitere" mit n = Laenge minus 10 — also
+ *    hoechstens "und 40 weitere", ob nun 41 oder 4.100 Buchungen betroffen
+ *    waren.
+ *
+ * Der Nutzer bestaetigte damit eine Menge und bekam eine andere. Die Vorschau
+ * ist die EINZIGE Stelle, an der er vorher sieht, was passiert.
+ *
+ * Jetzt laeuft sie mit denselben Regeln wie `recategorizeTransactions` und in
+ * EINEM Durchgang: dieselbe Entscheidungsfunktion, derselbe Bestaetigt-Filter,
+ * beide Richtungen, und die Zahlen sind vollstaendig — gekappt wird nur, wie
+ * viele Zeilen gezeigt werden.
+ */
+export async function getCategoryPreview(
+  categoryId: string,
+  beispielGrenze: number = 50,
+): Promise<UebernahmePlan> {
+  const leer: UebernahmePlan = { beispiele: [], anzahlHinzu: 0, anzahlEntzug: 0, anzahlGesamt: 0 };
+
   const categories = await getCategories();
-  const catExists = categories.some(c => c.id === categoryId);
-  if (!catExists) return [];
+  if (!categories.some((c) => c.id === categoryId)) return leer;
 
   const learnedRules = await getMerchantRules();
   const all = await getAllTransactions();
   const context = modellKontext(all, learnedRules);
   const categorizer = createCategorizer(categories, learnedRules, context);
-  const affected = all.filter((t) => {
-    const newCat = categorizer.categorize(t);
-    return t.category_id !== categoryId && newCat === categoryId;
-  });
 
-  return affected.slice(0, limit);
+  const plan: UebernahmePlan = { beispiele: [], anzahlHinzu: 0, anzahlEntzug: 0, anzahlGesamt: 0 };
+
+  for (const tx of all) {
+    // Dieselbe Regel wie im Lauf: bestaetigte Zuordnungen sind manuelle Arbeit
+    // und werden nie ueberschrieben.
+    if (tx.confirmed) continue;
+
+    const neu = categorizer.categorizeConfident(tx);
+    const alt = tx.category_id || null;
+    if (alt === neu) continue;
+
+    plan.anzahlGesamt += 1;
+
+    if (neu === categoryId) {
+      plan.anzahlHinzu += 1;
+      if (plan.beispiele.length < beispielGrenze) plan.beispiele.push(tx);
+    } else if (alt === categoryId) {
+      plan.anzahlEntzug += 1;
+    }
+  }
+
+  return plan;
 }
 
 export async function getTopCategorySuggestion(): Promise<CategorySuggestion | null> {

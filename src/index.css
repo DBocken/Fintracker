@@ -2,6 +2,25 @@
 @config "../tailwind.config.js";
 
 /*
+ * Dichte-Varianten (docs/architecture/darstellungsdichte.md).
+ *
+ * `fokussiert:` und `kompakt:` greifen auf das `data-density`-Attribut, das
+ * `useDensityRootAttribute()` an das Wurzelelement schreibt. Damit folgt CSS
+ * derselben EINEN Entscheidung wie die Wahl der Praesentation.
+ *
+ * Bewusst KEINE eigene Media Query (`pointer: coarse`, `max-width: 768px`):
+ * Die ADR verwirft ein zweites Kriterium ausdruecklich — zwei Kriterien
+ * widersprechen sich in Randfaellen (Telefon mit Maus, Laptop mit
+ * Touchscreen), und dann entscheidet niemand mehr nachvollziehbar.
+ *
+ * `:where(...)` haelt die Spezifitaet bei 0, damit die Variante sich wie
+ * jede andere Tailwind-Variante verhaelt und nicht ueberraschend gewinnt.
+ */
+@custom-variant fokussiert (&:where([data-density="fokussiert"], [data-density="fokussiert"] *));
+@custom-variant kompakt (&:where([data-density="kompakt"], [data-density="kompakt"] *));
+
+
+/*
  * Design-Tokens „Ruhe"-Theme (Default) — siehe Issue #54
  *
  * Farbregeln:

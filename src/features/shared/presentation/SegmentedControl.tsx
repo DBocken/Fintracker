@@ -51,7 +51,7 @@ export default function SegmentedControl<T extends string>({
             aria-selected={active}
             onClick={() => onValueChange(opt.value)}
             className={cn(
-              "inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "fokussiert:min-h-11 inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               size === "sm" ? "text-xs" : "text-sm",
               fill && "flex-1",
               active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",

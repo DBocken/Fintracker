@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import BankCallbackPage from "./pages/BankCallbackPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import UnlockPage from "./pages/Unlock";
+import { useDensityRootAttribute } from "@/hooks/useDensityRootAttribute";
 import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import OnboardingGate from "@/features/onboarding/presentation/OnboardingGate";
@@ -22,6 +23,7 @@ const LiquidityPage = lazy(() => import("@/pages/LiquidityPage"));
 const MilestonesPage = lazy(() => import("@/pages/MilestonesPage"));
 const BudgetsPage = lazy(() => import("@/pages/BudgetsPage"));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const AuswertungenPage = lazy(() => import("@/pages/AuswertungenPage"));
 const IncomePage = lazy(() => import("@/pages/IncomePage"));
 const IncomeWrappedPage = lazy(() => import("@/pages/IncomeWrappedPage"));
 const TransactionsPage = lazy(() => import("@/pages/TransactionsPage"));
@@ -53,6 +55,12 @@ function LockedRedirect() {
 const RouteFallback = <div className="min-h-screen bg-background" />;
 
 function App() {
+  // Die Dichte steht damit als `data-density` am Wurzelelement — CSS-Regeln
+  // (Tippziel-Mindestgrösse, Verzicht auf Karten-Chrome) folgen derselben
+  // EINEN Entscheidung wie die Wahl der Präsentation. Hier und nicht im
+  // AppShell, weil Login und Unlock ausserhalb der Shell rendern.
+  useDensityRootAttribute();
+
   const { status } = useAuth();
   const { enabled, unlocked } = useLocalEncryption();
   // Dieselbe Frage wie im `OnboardingGate`, hier für EINE Route: Solange der
@@ -196,6 +204,7 @@ function App() {
               <Route path="/milestones" element={<MilestonesPage />} />
               <Route path="/budgets" element={<BudgetsPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/auswertungen" element={<AuswertungenPage />} />
               <Route path="/income" element={<IncomePage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/fragen" element={<MoneyQuestionsPage />} />

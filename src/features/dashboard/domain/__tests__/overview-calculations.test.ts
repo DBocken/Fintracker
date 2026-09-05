@@ -113,17 +113,39 @@ describe('buildIncomeExpenseSeries', () => {
       expect(buildIncomeExpenseSeries(txs, 'weekly')).toEqual([{ date: '05.01.', income: 100, expenses: 0 }]);
     });
 
-    it('sollte die Einfüge-Reihenfolge (erstes Vorkommen) erhalten, nicht chronologisch sortieren', () => {
+    it('[REGRESSION] sollte chronologisch aufsteigend sortieren, nicht nach erstem Vorkommen', () => {
+      // Die Buchungsliste ist datum-ABSTEIGEND sortiert. Wer ihre Reihenfolge
+      // uebernimmt, zeichnet jede Zeitachse von rechts nach links — am Geraet
+      // stand unter dem Verlauf `01.26 · 12.25 · 11.25`, also eine steigende
+      // Kurve, die in Wahrheit faellt. Der Vorgaengertest hielt genau diese
+      // Reihenfolge fest; sie war nie entschieden, sondern aus der
+      // Inline-Berechnung in Dashboard.tsx uebernommen.
       const txs = [
         makeTx({ date: '2026-01-20', amount: 10 }),
         makeTx({ date: '2026-01-05', amount: 20 }),
         makeTx({ date: '2026-01-20', amount: 5 }),
       ];
       const series = buildIncomeExpenseSeries(txs, 'daily');
-      expect(series.map((p) => p.date)).toEqual(['20.01.', '05.01.']);
+      expect(series.map((p) => p.date)).toEqual(['05.01.', '20.01.']);
       expect(series).toEqual([
-        { date: '20.01.', income: 15, expenses: 0 },
         { date: '05.01.', income: 20, expenses: 0 },
+        { date: '20.01.', income: 15, expenses: 0 },
+      ]);
+    });
+
+    it('[REGRESSION] sollte über den Jahreswechsel richtig sortieren', () => {
+      // Ueber die Beschriftung zu sortieren waere hier falsch: `01.26` steht
+      // lexikalisch vor `12.25`, chronologisch dahinter. Und `dd.MM.` traegt
+      // gar kein Jahr.
+      const txs = [
+        makeTx({ date: '2026-01-10', amount: 10 }),
+        makeTx({ date: '2025-12-10', amount: 20 }),
+        makeTx({ date: '2025-11-10', amount: 30 }),
+      ];
+      expect(buildIncomeExpenseSeries(txs, 'monthly').map((p) => p.date)).toEqual([
+        '11.25',
+        '12.25',
+        '01.26',
       ]);
     });
   });

@@ -56,8 +56,20 @@ export const MIN_TIPPZIEL_PX = 44;
 /** Tailwind-Spacing: eine Einheit sind 4 px. */
 const SPACING_PX = 4;
 
-/** Höhen der Button-Varianten aus `src/components/ui/button.tsx`. */
-const VARIANTEN_PX = { default: 40, sm: 36, lg: 44, icon: 40 };
+/**
+ * Höhen der Button-Varianten — **Notnagel**, falls `button.tsx` nicht gelesen
+ * werden konnte. Der Wächter leitet sie normalerweise aus der Datei selbst ab
+ * (`varianteHoehenAus`).
+ *
+ * Diese Zahlen standen hier bis zur Mobil-Überarbeitung als einzige Quelle,
+ * und das war der stille Fehler: `touch-target-budget.json` verspricht, die
+ * 186 Fundstellen seien „EINE Entscheidung über die Höhen der Varianten in
+ * ui/button.tsx — danach erreicht die Zahl 0". Einlösen liess sich das nicht.
+ * Wer die Entscheidung tatsächlich traf, änderte `button.tsx`; der Wächter
+ * las weiter seine eigene Kopie und zählte unverändert 186. Eine Ratsche, die
+ * ihre Behebung nicht bemerken kann, misst nichts — sie hält nur fest.
+ */
+const VARIANTEN_PX_FALLBACK = { default: 40, sm: 36, lg: 44, icon: 40 };
 
 /** Elemente, die ein Finger treffen soll. */
 const INTERAKTIV = ['button', 'a', 'Button', 'SelectTrigger', 'TabsTrigger', 'ToggleGroupItem'];
@@ -89,10 +101,84 @@ function hoeheAus(attrs) {
 }
 
 /**
+ * Liest die wirksamen Trefferhöhen der Button-Varianten aus dem Quelltext von
+ * `src/components/ui/button.tsx`.
+ *
+ * Gemessen wird die Höhe **unter dem Finger**, nicht die optische: Ein
+ * `fokussiert:min-h-11` neben `h-9` heisst 36 px in der kompakten Dichte und 44 px
+ * mit dem Daumen — und der Daumen ist die Frage dieses Wächters. Deshalb
+ * zählt jeder `min-h-`-Boden, mit oder ohne Variantenpräfix, und das Maximum
+ * aus Grundhöhe und Boden gewinnt.
+ *
+ * Bewusst als reine Funktion über einen übergebenen String: Der Wächter
+ * bleibt damit ohne Dateisystem testbar (dieselbe Bauform wie
+ * `type-scale-core.mjs`).
+ *
+ * @param quelle Inhalt von `button.tsx`
+ * @returns z. B. `{ default: 44, sm: 44, lg: 44, icon: 44 }` — oder `null`,
+ *          wenn der `size`-Block nicht gefunden wurde (dann greift der
+ *          Notnagel, statt still 0 zu messen).
+ */
+export function varianteHoehenAus(quelle) {
+  // Der `size`-Block enthaelt nur Zeichenketten, keine verschachtelten
+  // Klammern — die erste schliessende Klammer ist also seine.
+  const block = quelle.match(/\bsize\s*:\s*\{([\s\S]*?)\}/);
+  if (!block) return null;
+
+  const hoehen = {};
+  for (const zeile of block[1].matchAll(/(\w+)\s*:\s*"([^"]*)"/g)) {
+    const [, name, klassen] = zeile;
+    const grund = hoeheAus(klassen);
+    const boden = bodenAus(klassen);
+    const px = Math.max(grund ?? 0, boden);
+    if (px > 0) hoehen[name] = px;
+  }
+  return Object.keys(hoehen).length > 0 ? hoehen : null;
+}
+
+/**
  * Findet Bedienelemente mit ausdrücklich zu kleinem Trefferbereich.
+ *
+ * @param variantenPx Trefferhöhen je Button-Variante. Der Aufrufer liest sie
+ *        aus `button.tsx` (`varianteHoehenAus`); ohne Angabe greift der
+ *        Notnagel.
  * @returns {{ zeile: number, px: number, element: string, herkunft: 'klasse'|'variante' }[]}
  */
-export function findeKleineTippziele(quelle, pfad) {
+/**
+ * Das Ende eines oeffnenden JSX-Tags — das erste `>`, das WIRKLICH eines ist.
+ *
+ * Die erste Fassung nahm `indexOf('>')`, und daran ist der Waechter blind
+ * geworden: Eine Pfeilfunktion im Attribut (`onClick={() => …}`) enthaelt ein
+ * `>`, und der Attributausschnitt endete dort. Stand `className` dahinter — die
+ * uebliche Reihenfolge —, sah der Waechter ihn nie. Gemessen betraf das die
+ * 26 Farb- und Symbolknoepfe des Kategorie-Formulars mit je 32 px: Die Ratsche
+ * stand auf 0 und behauptete damit, es gebe keinen Rueckfall mehr.
+ *
+ * Ein `>` zaehlt nur bei Klammertiefe 0 und ausserhalb einer Zeichenkette.
+ */
+function tagEndeAb(text, start) {
+  let tiefe = 0;
+  let anfuehrung = null;
+
+  for (let i = start; i < text.length; i += 1) {
+    const zeichen = text[i];
+
+    if (anfuehrung) {
+      if (zeichen === '\\') { i += 1; continue; }
+      if (zeichen === anfuehrung) anfuehrung = null;
+      continue;
+    }
+
+    if (zeichen === '"' || zeichen === "'" || zeichen === '`') { anfuehrung = zeichen; continue; }
+    if (zeichen === '{') { tiefe += 1; continue; }
+    if (zeichen === '}') { tiefe -= 1; continue; }
+    if (zeichen === '>' && tiefe === 0) return i;
+  }
+
+  return -1;
+}
+
+export function findeKleineTippziele(quelle, pfad, variantenPx = VARIANTEN_PX_FALLBACK) {
   if (!pfad.endsWith('.tsx')) return [];
   if (pfad.includes('__tests__') || pfad.includes('/test-utils/')) return [];
 
@@ -102,7 +188,7 @@ export function findeKleineTippziele(quelle, pfad) {
   for (const element of INTERAKTIV) {
     const opener = new RegExp(`<${element}(?=[\\s/>])`, 'g');
     for (const treffer of text.matchAll(opener)) {
-      const ende = text.indexOf('>', treffer.index);
+      const ende = tagEndeAb(text, treffer.index);
       if (ende === -1) continue;
       const attrs = text.slice(treffer.index, ende);
 
@@ -115,7 +201,7 @@ export function findeKleineTippziele(quelle, pfad) {
         herkunft = 'variante';
         const variante = attrs.match(/\bsize\s*=\s*["']([a-z]+)["']/);
         if (!variante || element !== 'Button') continue;
-        px = VARIANTEN_PX[variante[1]] ?? null;
+        px = variantenPx[variante[1]] ?? null;
       }
       if (px === null || px >= MIN_TIPPZIEL_PX) continue;
 

@@ -30,6 +30,7 @@ import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
+import { useSeitennameVerdeckung } from '@/features/shared/presentation/SeitennameContext';
 
 function SectionHeader({
   icon,
@@ -71,6 +72,7 @@ function SectionHeader({
  */
 export function EnhancedSettings() {
   const { t } = useI18n();
+  const seitennameVerdeckung = useSeitennameVerdeckung();
   const businessMode = useBusinessMode();
   // Sämtliche Datenzugriffe der Fläche liegen seit WP 6.5b im ViewModel der
   // Slice (`features/settings/application`) — hier bleibt die Darstellung.
@@ -96,7 +98,9 @@ export function EnhancedSettings() {
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {t('settings.privacyFocusedBadge', 'Datenschutzorientierte Einstellungen')}
               </div>
-              <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <h1
+                className={`flex items-center gap-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl ${seitennameVerdeckung}`}
+              >
                 <SettingsIcon className="h-8 w-8 text-primary md:h-9 md:w-9" />
                 {t('settings.pageTitle', 'Einstellungen')}
               </h1>
@@ -139,6 +143,9 @@ export function EnhancedSettings() {
             <CategoryPreview
               category={settings.preview.category}
               affectedTransactions={settings.preview.transactions}
+              anzahlHinzu={settings.preview.anzahlHinzu}
+              anzahlEntzug={settings.preview.anzahlEntzug}
+              anzahlGesamt={settings.preview.anzahlGesamt}
               onPreview={() => void settings.loadPreview()}
               onApply={settings.recategorize}
               onUndo={settings.undoRecategorization}

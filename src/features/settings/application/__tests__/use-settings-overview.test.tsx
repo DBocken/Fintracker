@@ -198,7 +198,14 @@ describe('useSettingsOverview', () => {
 
   it('sollte die Vorschau der betroffenen Buchungen laden', async () => {
     erfolgreichesLaden();
-    getCategoryPreview.mockResolvedValue([BUCHUNG]);
+    // Die Vorschau liefert seit der Behebung den PLAN der Aktion, nicht eine
+    // Liste: Die Beispiele sind gekappt, die Zahlen daneben sind vollstaendig.
+    getCategoryPreview.mockResolvedValue({
+      beispiele: [BUCHUNG],
+      anzahlHinzu: 1,
+      anzahlEntzug: 0,
+      anzahlGesamt: 1,
+    });
     const { wrapper } = createHookWrapper();
 
     const { result } = renderHook(() => useSettingsOverview(), { wrapper });
@@ -211,6 +218,36 @@ describe('useSettingsOverview', () => {
 
     expect(getCategoryPreview).toHaveBeenCalledWith('food');
     expect(result.current.preview.transactions).toEqual([BUCHUNG]);
+    expect(result.current.preview.anzahlHinzu).toBe(1);
+    expect(result.current.preview.anzahlGesamt).toBe(1);
+  });
+
+  it('[REGRESSION] sollte die Zahlen des Plans durchreichen, nicht die Laenge der Beispiele', async () => {
+    // Der Befund: Die Flaeche rechnete "und {n} weitere" aus der Laenge einer
+    // bei 50 abgeschnittenen Liste — also hoechstens "und 40 weitere", ob nun
+    // 41 oder 4.100 Buchungen betroffen waren. Beispiele und Zahlen muessen
+    // getrennt durchgereicht werden.
+    erfolgreichesLaden();
+    getCategoryPreview.mockResolvedValue({
+      beispiele: [BUCHUNG],
+      anzahlHinzu: 4100,
+      anzahlEntzug: 12,
+      anzahlGesamt: 5000,
+    });
+    const { wrapper } = createHookWrapper();
+
+    const { result } = renderHook(() => useSettingsOverview(), { wrapper });
+    await waitFor(() => expect(result.current.categories).toEqual([LEBENSMITTEL]));
+
+    act(() => result.current.selectCategory('food'));
+    await act(async () => {
+      await result.current.loadPreview();
+    });
+
+    expect(result.current.preview.transactions).toHaveLength(1);
+    expect(result.current.preview.anzahlHinzu).toBe(4100);
+    expect(result.current.preview.anzahlEntzug).toBe(12);
+    expect(result.current.preview.anzahlGesamt).toBe(5000);
   });
 
   it('sollte ohne ausgewählte Kategorie keine Vorschau laden, sondern darum bitten', async () => {

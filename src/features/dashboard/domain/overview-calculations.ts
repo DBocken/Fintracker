@@ -7,9 +7,22 @@ import type { BalanceHistoryPoint, DashboardGranularity, IncomeExpensePoint } fr
 export { computeFlowTotals } from '@/features/shared/domain/flow-calculations';
 
 /**
- * Zeitreihe Einnahmen/Ausgaben je Granularitäts-Bucket. Die Bucket-Reihenfolge
- * folgt dem ersten Vorkommen in `visibleTransactions` (kein Sortieren) —
- * identisch zur bisherigen Inline-Berechnung in Dashboard.tsx.
+ * Zeitreihe Einnahmen/Ausgaben je Granularitäts-Bucket, **chronologisch
+ * aufsteigend**.
+ *
+ * Bis hierher folgte die Reihenfolge dem ersten Vorkommen in
+ * `visibleTransactions` — „identisch zur bisherigen Inline-Berechnung in
+ * Dashboard.tsx", also übernommen und nie entschieden. Die Buchungsliste ist
+ * datum-ABSTEIGEND sortiert, und damit lief die Zeitachse jedes Diagramms, das
+ * diese Reihe zeichnet, von rechts nach links. Am Gerät aufgenommen stand
+ * unter dem Verlauf `01.26 · 12.25 · 11.25`: eine steigende Kurve, die in
+ * Wahrheit fällt. Kein Test wurde rot — einer hielt die Reihenfolge sogar
+ * ausdrücklich fest.
+ *
+ * **Sortiert wird über einen echten Zeitstempel, nicht über die Beschriftung.**
+ * `dd.MM.` trägt gar kein Jahr und `MM.yy` sortiert lexikalisch falsch
+ * (`01.26` vor `12.25`); der Schlüssel ist deshalb der früheste Zeitpunkt im
+ * Bucket, und er verlässt die Funktion nicht.
  */
 export function buildIncomeExpenseSeries(
   visibleTransactions: Transaction[],
@@ -17,19 +30,29 @@ export function buildIncomeExpenseSeries(
 ): IncomeExpensePoint[] {
   const flowTransactions = visibleTransactions.filter((t) => !t.is_transfer);
 
-  const seriesObj = flowTransactions.reduce((acc, t) => {
+  const buckets = new Map<string, { income: number; expenses: number; zeitpunkt: number }>();
+
+  for (const t of flowTransactions) {
+    const zeitpunkt = parseISO(t.date);
     const date = format(
-      parseISO(t.date),
+      zeitpunkt,
       granularity === 'daily' ? 'dd.MM.' : granularity === 'weekly' ? 'dd.MM.' : 'MM.yy',
       { locale: resolveDateFnsLocale() }
     );
-    if (!acc[date]) acc[date] = { income: 0, expenses: 0 };
-    if (t.amount > 0) acc[date].income += t.amount;
-    else acc[date].expenses += Math.abs(t.amount);
-    return acc;
-  }, {} as Record<string, { income: number; expenses: number }>);
+    const bucket = buckets.get(date) ?? {
+      income: 0,
+      expenses: 0,
+      zeitpunkt: Number.POSITIVE_INFINITY,
+    };
+    if (t.amount > 0) bucket.income += t.amount;
+    else bucket.expenses += Math.abs(t.amount);
+    bucket.zeitpunkt = Math.min(bucket.zeitpunkt, zeitpunkt.getTime());
+    buckets.set(date, bucket);
+  }
 
-  return Object.entries(seriesObj).map(([date, data]) => ({ date, ...data }));
+  return [...buckets.entries()]
+    .sort((a, b) => a[1].zeitpunkt - b[1].zeitpunkt)
+    .map(([date, { income, expenses }]) => ({ date, income, expenses }));
 }
 
 /** Summe aller Transaktionsbeträge (inkl. Transfers) — Gesamtfluss für die Saldo-Rückrechnung. */

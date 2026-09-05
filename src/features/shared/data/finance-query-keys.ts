@@ -24,6 +24,27 @@ export const financeKeys = {
    * damit eine Invalidierung der Wurzel beide trifft (Prefix-Matching).
    */
   allocationMap: ['allocations', 'map'] as const,
+  /**
+   * Die vier Schluessel, die sich mehrere Slices TEILEN (S4 der
+   * Mobil-Ueberarbeitung). Sie standen bis hierher als rohe Literale an rund
+   * zwanzig Aufrufstellen und zusaetzlich dreifach definiert — in
+   * `account-query-keys`, `coach-query-keys` und `settings-query-keys`.
+   *
+   * Ein abweichender Schluessel bricht nichts, was `tsc` sieht: Er fuehrt
+   * still zwei Caches nebeneinander, und eine Invalidierung trifft dann nur
+   * einen davon. Genau deshalb liegen sie hier und nicht je Slice.
+   */
+  netWorth: ['net-worth'] as const,
+  /**
+   * Meilensteine haengen an der Sprache, weil ihre Titel uebersetzt sind —
+   * eine andere Sprache ist eine andere Frage und damit ein anderer
+   * Cache-Eintrag. Deshalb eine Funktion und kein Feld: Der Parameter gehoert
+   * in den Schluessel, nicht in die Aufrufstelle.
+   */
+  milestones: (locale: string) => ['milestones', locale] as const,
+  budgetOverview: ['budget-overview'] as const,
+  /** Buchungen, aus denen die Vertragserkennung liest. */
+  transactionContracts: ['transactions', 'contracts'] as const,
 } as const;
 
 // `FINANCE_TRANSACTION_LIMIT = 5000` stand hier bis zum Audit 2026-09 (F2).

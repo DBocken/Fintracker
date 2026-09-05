@@ -72,7 +72,22 @@
     "FinanceEmptyState.tsx den Service-Import demo-data-service mitnimmt und ihr neuer Ort nicht mehr",
     "unter src/components/ liegt. Kein Zugriff ist aufgeloest worden, keiner ist verschwunden — die",
     "Zahl misst 'Zugriff IN der Darstellungsschicht', und die Baustein-Sammlung ist ab jetzt Slice-",
-    "Presentation. Wer sie zurueckrechnen will: 220 + 1 = der Stand von WP 6.5a."
+    "Presentation. Wer sie zurueckrechnen will: 220 + 1 = der Stand von WP 6.5a.",
+    "",
+    "Coach-Slice (CoachPage -> features/coach): 220 -> 204. Aufschluesselung der 16:",
+    "4 aus CoachPage.tsx selbst (die useQuery auf coach-overview, financial-health, milestones und die",
+    "Bestandsfrage has-finance-data) samt ihren 6 Service-Importen (coach-, financial-health-,",
+    "milestones-, transaction-, debt-, receivable-service). Sie liegen jetzt in",
+    "features/coach/application/use-coach-overview.ts. Die restlichen 6 sind KEIN aufgeloester Zugriff,",
+    "sondern ein Ortswechsel: DisposableTankCard, FoundationLadder, CategorySuggestionsInbox,",
+    "UpcomingChargesList, HealthScoreCard und FinancialLandscape tragen ihre eigenen Abfragen bzw.",
+    "Service-Importe mit sich und liegen ab jetzt unter features/, wo diese Zahl nicht mehr hinsieht.",
+    "",
+    "Das ist ausdruecklich zu benennen, weil es die Zahl schmeichelhafter macht, als die Sache ist:",
+    "Diese sechs Bausteine holen ihre Daten weiterhin selbst. Fuer die Fachfrage dieser Ratsche —",
+    "laesst sich eine zweite Praesentation danebenstellen? — ist das trotzdem geloest, denn die",
+    "Bausteine sind nach dem Umzug fuer BEIDE Praesentationen dieselben. Der verbleibende Rest ist",
+    "Kochrezept-Schritt 8 (Kind-Komponenten props-getrieben machen) und bleibt offen."
   ],
-  "max": 220
+  "max": 204
 }

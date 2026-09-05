@@ -16,6 +16,7 @@ import BudgetTile from "@/components/budgets/BudgetTile";
 import BudgetDetailDialog from "@/components/budgets/BudgetDetailDialog";
 import BudgetFormDialog from "@/components/budgets/BudgetFormDialog";
 import SuggestedBudgets from "@/components/budgets/SuggestedBudgets";
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 export default function BudgetsPage() {
   const { t } = useI18n();
@@ -30,7 +31,7 @@ export default function BudgetsPage() {
     isError: overviewError,
     refetch: refetchOverview,
   } = useQuery({
-    queryKey: ["budget-overview"],
+    queryKey: financeKeys.budgetOverview,
     queryFn: () => getBudgetOverview(),
   });
 
@@ -60,7 +61,7 @@ export default function BudgetsPage() {
     void refetchAccounts();
   };
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["budget-overview"] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: financeKeys.budgetOverview });
 
   const saveMutation = useMutation({
     mutationFn: (data: Partial<Budget>) => saveBudget(data),

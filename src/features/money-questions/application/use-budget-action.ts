@@ -19,6 +19,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteBudget, saveBudget } from '@/services/budget-service';
 import type { Budget } from '@/lib/budget-types';
 import type { BudgetAktionsVorschlag } from '@/features/shared/domain/question-registry';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 export type BudgetAktionsStand =
   | { art: 'offen' }
@@ -47,7 +48,7 @@ export function useBudgetAction(budgets: readonly Budget[]): BudgetActionModel {
   // Beide Schlüssel: Die Budget-Fläche liest die Übersicht, andere Flächen
   // die rohe Liste — nach einer Chat-Aktion muss beides frisch sein.
   const invalidieren = () => {
-    void queryClient.invalidateQueries({ queryKey: ['budget-overview'] });
+    void queryClient.invalidateQueries({ queryKey: financeKeys.budgetOverview });
     void queryClient.invalidateQueries({ queryKey: ['budgets'] });
   };
 

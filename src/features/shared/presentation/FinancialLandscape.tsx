@@ -203,7 +203,7 @@ export default function FinancialLandscape({ health, variant = "hero", className
             <MetricDetailSheet meta={meta} score={s.score} explanation={s.explanation} gentleMode={gentleMode}>
               <button
                 type="button"
-                aria-label={`${meta.label}: Details ansehen`}
+                aria-label={`${meta.label}: ${t('health.viewDetailsFor')}`}
                 className="flex flex-col items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <MetricIcon file={meta.file} stage={stage} emoji={meta.emoji} size={iconSize} />

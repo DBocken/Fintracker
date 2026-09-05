@@ -18,7 +18,18 @@ export default function BottomNav() {
   const items = getBottomNavItems(enabled, unlocked);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    // Seitliche Einrückung neben der unteren: Im Querformat liegt der
+    // Kamera-Ausschnitt an einer der Schmalseiten, und die Bodennavigation
+    // spannt über die volle Breite (`inset-x-0`) — der äußerste Tab läge sonst
+    // teilweise darunter. Die App ist nicht auf Hochformat festgelegt.
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden"
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
       <div className="flex items-stretch justify-around">
         {items.map((item) => {
           const Icon = item.icon;

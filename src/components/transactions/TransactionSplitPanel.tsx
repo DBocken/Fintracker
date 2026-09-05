@@ -181,7 +181,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs text-destructive hover:text-destructive"
+            className="h-7 text-xs text-destructive hover:text-destructive fokussiert:min-h-11"
             onClick={() => clearMutation.mutate()}
             disabled={clearMutation.isPending}
           >
@@ -268,7 +268,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 w-full border border-dashed border-border text-xs"
+        className="h-7 w-full border border-dashed border-border text-xs fokussiert:min-h-11"
         data-tour-id="split-add-row"
         onClick={addRow}
       >

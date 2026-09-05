@@ -65,13 +65,31 @@ export function InfoStatStrip({ items, className }: InfoStatStripProps) {
   return (
     <dl
       className={cn(
-        "grid gap-x-6 gap-y-4 rounded-xl bg-muted/30 p-4",
-        "sm:grid-flow-col sm:auto-cols-fr sm:divide-x sm:divide-border/60",
+        "grid gap-x-6 gap-y-4",
+        // Kompakt: ein ruhig hinterlegter Block, nebeneinander mit Trennlinien.
+        // Auf einem breiten Bildschirm ordnet die Fläche, was nebeneinander
+        // liegt — dafür ist der Hintergrund da.
+        "kompakt:rounded-xl kompakt:bg-muted/30 kompakt:p-4",
+        // Die Spalten folgen der DICHTE, nicht einer Breite. Vorher stand hier
+        // `sm:` (640 px) — in der kompakten Dichte ist das immer wahr, denn
+        // kompakt beginnt bei 768. Der Breakpoint entschied also nichts und
+        // hätte umgekehrt in einer breiten fokussierten Ansicht (Tablet-App)
+        // fälschlich gegriffen. Genau davor warnt die ADR: Layout-Schwellen
+        // dürfen nie über die Dichte entscheiden.
+        "kompakt:grid-flow-col kompakt:auto-cols-fr kompakt:divide-x kompakt:divide-border/60",
+        // Fokussiert: KEINE Box. `docs/architecture/darstellungsdichte.md`
+        // Regel 9 verbietet Rahmen, Hintergrund und Schatten um Inhalt — auch
+        // den weichen. Auf einem Telefon liegt nichts nebeneinander, dort
+        // ordnet die Reihenfolge; getrennt wird über Haarlinien.
+        "fokussiert:divide-y fokussiert:divide-border/60",
         className,
       )}
     >
       {items.map((s, i) => (
-        <div key={i} className="min-w-0 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+        <div
+          key={i}
+          className="min-w-0 kompakt:px-4 kompakt:first:pl-0 kompakt:last:pr-0 fokussiert:py-3 fokussiert:first:pt-0 fokussiert:last:pb-0"
+        >
           <dt className="truncate text-xs text-muted-foreground">{s.label}</dt>
           <dd className={cn("mt-1 text-xl font-semibold tabular-nums", toneClass[s.tone ?? "default"])}>
             {s.value}

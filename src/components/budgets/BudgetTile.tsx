@@ -1,7 +1,7 @@
 import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
-import BudgetTank from "./BudgetTank";
+import BudgetTank from "@/features/shared/presentation/BudgetTank";
 
 const STATUS_DOT: Record<BudgetStatus["health"], string> = {
   ok: "bg-emerald-500",

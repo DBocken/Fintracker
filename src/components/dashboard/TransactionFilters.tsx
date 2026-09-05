@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account } from '../../types';
-import { DASHBOARD_RANGE_OPTIONS, PERIOD_RANGES } from '@/features/shared/domain/dashboard-filters';
+import { DASHBOARD_RANGE_OPTIONS, PERIOD_RANGES, CUSTOM_RANGE, type DashboardRange } from '@/features/shared/domain/dashboard-filters';
 import type { FilterViewModel } from '@/features/shared/domain/filter-view-model';
 import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
 
@@ -21,6 +21,38 @@ interface TransactionFiltersProps {
   stacked?: boolean;
 }
 
+/**
+ * Anzeigetext je Zeitraum-Token — mit **literalen** i18n-Keys.
+ *
+ * Vorher rendert die Auswahlliste den Token selbst als Beschriftung
+ * (`<SelectItem>{label}</SelectItem>`), und der Token ist deutsch: In der
+ * englischen Oberflaeche stand dort „Gesamt", „Jahr", „7 Tage",
+ * „Benutzerdefiniert". Auf dem Geraet nachgesehen war „Gesamt" das einzige
+ * deutsche Wort auf dem ganzen englischen Bildschirm.
+ *
+ * Bewusst ein `switch` mit Literalen und KEINE Token-Key-Tabelle: Eine
+ * Tabelle braeuchte einen dynamisch gebauten Key, und `call-site-keys.test.ts`
+ * fuehrt darauf eine Ratsche, weil ein solcher Aufruf von keiner statischen
+ * Pruefung mehr erreicht wird. Zehn feste Optionen rechtfertigen das nicht.
+ */
+function useRangeLabel(): (range: DashboardRange) => string {
+  const { t } = useI18n();
+  return (range) => {
+    switch (range) {
+      case 'Gesamt': return t('transactionFilters.rangeAll');
+      case 'Jahr': return t('transactionFilters.rangeYear');
+      case 'Quartal': return t('transactionFilters.rangeQuarter');
+      case 'Monat': return t('transactionFilters.rangeMonth');
+      case '7 Tage': return t('transactionFilters.range7Days');
+      case '30 Tage': return t('transactionFilters.range30Days');
+      case '90 Tage': return t('transactionFilters.range90Days');
+      case '6 Monate': return t('transactionFilters.range6Months');
+      case '1 Jahr': return t('transactionFilters.range1Year');
+      case 'Benutzerdefiniert': return t('transactionFilters.customRange');
+    }
+  };
+}
+
 export function TransactionFilters({
   filters,
   showSearch = true,
@@ -28,6 +60,7 @@ export function TransactionFilters({
 }: TransactionFiltersProps) {
   const { values, set, periodOptions, categories, accounts } = filters;
   const { t } = useI18n();
+  const rangeLabel = useRangeLabel();
 
   // Im Stacked-Modus füllen die Trigger die Spalte; in der Toolbar feste Breiten.
   const triggerClass = (barWidth: string) =>
@@ -126,8 +159,8 @@ export function TransactionFilters({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {DASHBOARD_RANGE_OPTIONS.map((label) => (
-              <SelectItem key={label} value={label}>{label}</SelectItem>
+            {DASHBOARD_RANGE_OPTIONS.map((option) => (
+              <SelectItem key={option} value={option}>{rangeLabel(option)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -152,7 +185,8 @@ export function TransactionFilters({
         </Field>
       )}
 
-      {values.range === t('transactionFilters.customRange') && (
+      {/* Gegen den TOKEN, nicht gegen den Anzeigetext — siehe CUSTOM_RANGE. */}
+      {values.range === CUSTOM_RANGE && (
         <>
           <Field label={t('transactionFilters.daysLabel').replace(/{days}/g, String(values.customDays))}>
             <div className="flex items-center gap-2">

@@ -15,6 +15,7 @@ import { ReceiptScanDialog } from "@/components/transactions/ReceiptScanDialog";
 import { CashWithdrawalDialog } from "./CashWithdrawalDialog";
 import type { Account, Transaction } from "@/types";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
 
@@ -41,7 +42,7 @@ export function CashSection() {
     isError: netWorthError,
     refetch: refetchNetWorth,
   } = useQuery({
-    queryKey: ["net-worth"],
+    queryKey: financeKeys.netWorth,
     queryFn: getNetWorthBreakdown,
     enabled: !!cashAccount,
   });
@@ -73,7 +74,7 @@ export function CashSection() {
   // (['transactions', 5000] und ['transactions', 1000], PERF-2).
   const invalidateAfterAccountOnlyChange = () => {
     queryClient.invalidateQueries({ queryKey: ["accounts"] });
-    queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+    queryClient.invalidateQueries({ queryKey: financeKeys.netWorth });
     queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
   };
 
@@ -83,7 +84,7 @@ export function CashSection() {
   const invalidateAfterTransactionChange = () => {
     queryClient.invalidateQueries({ queryKey: ["accounts"] });
     queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+    queryClient.invalidateQueries({ queryKey: financeKeys.netWorth });
     queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
   };
 

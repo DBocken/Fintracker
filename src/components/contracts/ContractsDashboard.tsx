@@ -33,6 +33,7 @@ import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -47,7 +48,7 @@ export function ContractsDashboard() {
     isError: transactionsError,
     refetch: refetchTransactions,
   } = useQuery<Transaction[]>({
-    queryKey: ["transactions", "contracts"],
+    queryKey: financeKeys.transactionContracts,
     queryFn: () => getAllTransactions(),
   });
 
@@ -80,7 +81,7 @@ export function ContractsDashboard() {
   const rescanMutation = useMutation({
     mutationFn: applyDetectedContracts,
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
+      queryClient.invalidateQueries({ queryKey: financeKeys.transactionContracts });
       showSuccess(count > 0 ? t("contracts.rescanSuccess", "{count} Buchungen als Verträge erkannt").replace('{count}', String(count)) : t("contracts.rescanNoNewContracts", "Keine neuen Verträge gefunden"));
     },
     onError: () => showError(t("contracts.rescanError", "Neueinlesen fehlgeschlagen")),
@@ -338,7 +339,7 @@ export function ContractsDashboard() {
               </div>
             </div>
             <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
-              <SelectTrigger className="h-10 w-full sm:w-64" aria-label={t("contracts.viewPlaceholder")}><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-64 fokussiert:min-h-11 fokussiert:min-w-11" aria-label={t("contracts.viewPlaceholder")}><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
                 <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>

@@ -123,7 +123,7 @@ export const everydayEn: TranslationOverlay = {
     title: 'What you own minus debts',
     netWorth: 'What you own minus debts',
     liquidity: 'Money available now',
-    composition: 'Money available now + investments + money owed to you − debts',
+    composition: 'Money available now + investments + tangible assets + money owed to you − debts',
     // Closes a wave-1 inconsistency: the tile already said "Money available
     // now" while its own explanation still said "Liquidity".
     liquidityDetailedDescription: 'If an account is linked to a bank, the most recently fetched bank balance is used — even without synced transactions. Without a bank link, the balance is calculated from locally recorded transactions.',

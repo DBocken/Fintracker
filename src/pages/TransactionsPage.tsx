@@ -11,7 +11,7 @@ import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState"
 import DataIntegrityWarning from "@/features/shared/presentation/DataIntegrityWarning";
 import { useI18n } from "@/i18n/useI18n";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
-import { decodeDashboardFilters, encodeDashboardFilters } from "@/features/shared/domain/dashboard-filtering";
+import { decodeDashboardFilters, mergeDashboardFilters } from "@/features/shared/domain/dashboard-filtering";
 import { useTransactionsOverview } from "@/features/transactions/application/use-transactions-overview";
 import { transactionsKeys } from "@/features/transactions/data/transactions-query-keys";
 import { TransactionsListPane } from "@/features/transactions/presentation/shared/TransactionsListPane";
@@ -59,7 +59,14 @@ export default function TransactionsPage() {
   // Tastendruck). `model.filters.values` ist referenzstabil, solange sich kein
   // Filterfeld ändert (siehe ViewModel-Doku) – keine Sync-Schleife.
   useEffect(() => {
-    setSearchParams(encodeDashboardFilters(model.filters.values), { replace: true });
+    // ZUSAMMENFUEHREN, nicht ersetzen. Vorher stand hier das Ergebnis von
+    // `encodeDashboardFilters` als komplette neue Abfragezeichenkette — und die
+    // Funktion baut ein FRISCHES URLSearchParams. Jeder fremde Parameter war
+    // damit weg, schon beim ersten Rendern. Ein Detailschritt `?detail=…` (ADR
+    // Regel 9b) konnte auf dieser Flaeche deshalb gar nicht existieren.
+    setSearchParams((bestehend) => mergeDashboardFilters(bestehend, model.filters.values), {
+      replace: true,
+    });
   }, [model.filters.values, setSearchParams]);
 
   const openDetails = (tx: Transaction) => {

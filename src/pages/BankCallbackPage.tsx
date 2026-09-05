@@ -26,6 +26,7 @@ import { isSafeExternalAuthUrl } from '@/lib/safe-url';
 import { logger } from '@/utils/logger';
 import { safeParseAtBoundary } from '@/lib/schemas/boundary';
 import { gocardlessAccountsResponseSchema, type GoCardlessAccount } from '@/lib/schemas/gocardless-account.schema';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 export function isSafeBankCallbackAuthLink(link: string | null | undefined, origin?: string): boolean {
   const currentOrigin = origin ?? (typeof window !== 'undefined' ? window.location.origin : undefined);
@@ -239,7 +240,7 @@ export default function BankCallbackPage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      queryClient.invalidateQueries({ queryKey: financeKeys.transactionContracts });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     } catch (err: unknown) {
       logger.error('[bank-callback] Initialer Sync nach Kontoverknüpfung fehlgeschlagen.', {

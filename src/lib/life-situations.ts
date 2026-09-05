@@ -74,6 +74,12 @@ export type ModifierId =
 export const ALWAYS_VISIBLE_NAV_PATHS: readonly string[] = [
   '/coach',
   '/dashboard',
+  // Die Auswertungen sind die Vertiefung der Uebersicht — dieselbe Frage,
+  // eine Ebene tiefer. Waere die Uebersicht Kern und ihre Vertiefung
+  // abwaehlbar, fuehrten dort drei Aussagen ins Leere. Sie steht hier
+  // ausdruecklich und nicht bloss deshalb sichtbar, weil ihr eine
+  // Bereichszuordnung fehlt: Ein stiller Vorgabewert ist kein Beschluss.
+  '/auswertungen',
   '/transactions',
   '/accounts',
   '/csv',

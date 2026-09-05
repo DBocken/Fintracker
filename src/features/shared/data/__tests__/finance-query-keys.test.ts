@@ -70,3 +70,47 @@ describe('invalidateFinanceData (WP 4.3, PERF-5)', () => {
     expect(queryClient.getQueryState(financeKeys.accounts)?.isInvalidated).toBe(true);
   });
 });
+
+/**
+ * S4: Die vier geteilten Schluessel.
+ *
+ * Sie standen als rohe Literale an rund zwanzig Aufrufstellen und zusaetzlich
+ * DREIFACH definiert — in account-, coach- und settings-query-keys. Ein
+ * abweichender Schluessel bricht nichts, was `tsc` sieht: Er fuehrt still zwei
+ * Caches nebeneinander, und eine Invalidierung trifft dann nur einen davon.
+ * Genau deshalb pruefen diese Tests die WERTE und nicht nur die Existenz.
+ */
+describe('Geteilte Schluessel (S4)', () => {
+  it('sollte byte-identisch zu den bisherigen Literalen sein', () => {
+    // Diese vier Werte standen so im Bestand. Sie zu aendern hiesse, jeden
+    // bestehenden Cache-Eintrag zu verwaisen — deshalb stehen sie hier
+    // ausgeschrieben und nicht abgeleitet.
+    expect(financeKeys.netWorth).toEqual(['net-worth']);
+    expect(financeKeys.budgetOverview).toEqual(['budget-overview']);
+    expect(financeKeys.transactionContracts).toEqual(['transactions', 'contracts']);
+    expect(financeKeys.milestones('de')).toEqual(['milestones', 'de']);
+  });
+
+  it('sollte die Sprache in den Meilenstein-Schluessel aufnehmen', () => {
+    // Meilenstein-Titel sind uebersetzt: Eine andere Sprache ist eine andere
+    // Frage und damit ein anderer Cache-Eintrag. Waere die Sprache nicht im
+    // Schluessel, zeigte ein Sprachwechsel die alten Titel weiter.
+    expect(financeKeys.milestones('en')).not.toEqual(financeKeys.milestones('de'));
+  });
+
+  it('[REGRESSION] sollte in den Slice-Modulen DIESELBE Referenz liefern', async () => {
+    // Der eigentliche Befund: Drei Slices definierten denselben Schluessel je
+    // selbst. Gleichheit per Wert wuerde eine spaetere Abweichung nicht
+    // verhindern — geprueft wird deshalb, dass sie auf dieselbe Quelle zeigen.
+    const [konten, coach, einstellungen] = await Promise.all([
+      import('@/features/accounts/data/account-query-keys'),
+      import('@/features/coach/data/coach-query-keys'),
+      import('@/features/settings/data/settings-query-keys'),
+    ]);
+
+    expect(konten.accountQueryKeys.netWorth).toBe(financeKeys.netWorth);
+    expect(konten.accountQueryKeys.transactionContracts).toBe(financeKeys.transactionContracts);
+    expect(coach.coachKeys.milestones).toBe(financeKeys.milestones);
+    expect(einstellungen.SETTINGS_QUERY_KEYS.budgetOverview).toBe(financeKeys.budgetOverview);
+  });
+});

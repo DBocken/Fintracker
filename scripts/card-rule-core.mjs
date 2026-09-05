@@ -36,6 +36,15 @@
 const DEFINITION_FILES =
   /src\/(components\/ui\/card|features\/shared\/presentation\/(InteractiveCard|InfoGroup|ChartFigure|LoadingSwap))\.tsx$/;
 
+/**
+ * Kommentare ausblenden. Dieselbe Lehre wie bei `check:platform-parity`: Ein
+ * erklärender Satz, der die verbotene Bauform ZITIERT, ist kein Befund — sonst
+ * erzieht der Wächter zum Schweigen statt zum Dokumentieren.
+ */
+function ohneKommentare(quelle) {
+  return quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
 /** Erkennt Karten-Chrome: Komponente, Design-System-Klasse oder Ad-hoc-Box. */
 export function hasCardChrome(content) {
   const usesCardComponent = /<Card(\s|>|\/)/.test(content) || /<CardContent(\s|>)/.test(content);
@@ -106,4 +115,74 @@ export function analyzeCardRule(relativePath, content) {
       'Entweder <InteractiveCard to|href|onClick …> (die GANZE Fläche klickbar) ' +
       'oder <InfoGroup>/<InfoStatStrip> (kein Rahmen, kein Schatten).',
   };
+}
+
+/**
+ * Zählt **Kartenrahmen** — unabhängig davon, ob die Datei irgendwo ein
+ * Klick-Signal trägt.
+ *
+ * **Warum das neben `analyzeCardRule` steht.** Jene Prüfung fragt je DATEI:
+ * Karten-Chrome vorhanden und nirgends eine Interaktion? Eine Karte voller
+ * anklickbarer ZEILEN erfüllt das immer — und genau die ist die tote
+ * Schachtel, die Prinzip 8 verbietet („niemals nur ein verschachtelter Button
+ * in einer ansonsten toten Karte"). Gemessen auf der Übersicht: `<Card>`
+ * umschliesst „Letzte Buchungen", angeklickt werden die Zeilen darin, und der
+ * Wächter schwieg.
+ *
+ * Ob eine Karte „als Ganzes" klickbar ist, bleibt statisch unentscheidbar —
+ * daran hat sich nichts geändert. Entscheidbar ist die **Menge**: Wie viele
+ * Kartenrahmen stehen überhaupt im Baum. Gemessen waren es 80 in 55 Dateien
+ * gegen 25 `InteractiveCard`. Diese Zahl darf nur sinken; jede Fläche, die
+ * ihre Liste entrahmt oder auf `InteractiveCard`/`InfoGroup` umstellt, senkt
+ * sie.
+ *
+ * `InteractiveCard` zählt NICHT mit: Sie IST die Bauform, die das
+ * Klickversprechen einlöst.
+ */
+export function zaehleKartenrahmen(relativePath, content) {
+  if (!/src\/.+\.tsx$/.test(relativePath)) return 0;
+  if (/\.(test|spec)\.tsx?$/.test(relativePath) || /__tests__/.test(relativePath)) return 0;
+  if (DEFINITION_FILES.test(relativePath)) return 0;
+
+  const text = ohneKommentare(content);
+  let n = 0;
+  for (const _ of text.matchAll(/<Card(?=[\s/>])/g)) n += 1;
+  for (const _ of text.matchAll(/className="[^"]*\bbg-card\b[^"]*"/g)) n += 1;
+  return n;
+}
+
+/**
+ * Boxen in einer **fokussierten** Präsentation — dort verbietet ADR Regel 9
+ * sie ganz („keine Boxen"; gegliedert wird über Weissraum, Typografie und
+ * höchstens eine Haarlinie).
+ *
+ * Strenger als `zaehleKartenrahmen`: Hier zählt auch der Rahmen ohne
+ * `bg-card`, weil auf einem Telefon schon er die Schachtelung erzeugt, die es
+ * nicht gibt. **Bedienelemente sind ausgenommen** — ein Knopf mit Rundung und
+ * Rahmen ist ein Knopf, keine Box; ihn mitzuzählen hiesse, jede Registerleiste
+ * zum Befund zu machen und den Wächter damit unbrauchbar.
+ *
+ * Eine Haarlinie (`border-t`, `border-b`) ist ausdrücklich erlaubt und wird
+ * nicht erfasst: Sie trennt, sie umschliesst nicht.
+ */
+export function zaehleBoxenInFokussiert(relativePath, content) {
+  if (!/src\/features\/[^/]+\/presentation\/mobile\/.+\.tsx$/.test(relativePath)) return 0;
+  if (/__tests__/.test(relativePath)) return 0;
+
+  const text = ohneKommentare(content);
+  let n = 0;
+  for (const treffer of text.matchAll(/<(div|section|article|li|Card)(?=[\s/>])[^>]*>/g)) {
+    const tag = treffer[0];
+    if (tag.startsWith('<Card')) {
+      n += 1;
+      continue;
+    }
+    const klassen = tag.match(/className="([^"]*)"/);
+    if (!klassen) continue;
+    const k = klassen[1];
+    const gerundet = /\brounded-(?:lg|xl|2xl|3xl|full)\b/.test(k);
+    const umschliesst = /(?<!-)\bborder\b(?!-[tblrxy]\b)/.test(k) || /\bshadow(?:-|\b)/.test(k) || /\bbg-card\b/.test(k);
+    if (gerundet && umschliesst) n += 1;
+  }
+  return n;
 }

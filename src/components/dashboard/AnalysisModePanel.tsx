@@ -78,7 +78,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
             onClick={() => setMode(m.key)}
             aria-pressed={mode === m.key}
             className={cn(
-              "min-h-[36px] rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "fokussiert:min-h-11 min-h-[36px] rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               mode === m.key ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
             )}
           >
@@ -91,7 +91,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
             onClick={() => setMode("compare")}
             aria-pressed={mode === "compare"}
             className={cn(
-              "inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "fokussiert:min-h-11 inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               mode === "compare" ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
             )}
           >
@@ -103,7 +103,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
             type="button"
             disabled
             title={t("analysisModePanel.premiumFeature")}
-            className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70"
+            className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70 fokussiert:min-h-11"
           >
             <Lock className="h-3 w-3" />
             {t("analysisModePanel.compareMonths")}

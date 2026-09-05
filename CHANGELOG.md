@@ -24,6 +24,15 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Die Einstiegsfläche hat eine eigene Telefon-Ansicht.** `/` leitet auf
+  `/coach` um — und ausgerechnet dieser Bildschirm war bisher auf dem Telefon
+  derselbe Stapel wie auf dem Desktop, nur schmaler: zehn Abschnitte
+  untereinander, zehn Bildschirmlängen Scrollen, keine Rangfolge. Mobil steht
+  jetzt **eine** Hauptaussage oben — der priorisierte nächste Schritt — und
+  alles Übrige liegt in vier Registern (Status · Geld · Ziele · Mehr), die
+  sich antippen und wischen lassen. Nichts ist weggefallen: Jeder
+  Desktop-Abschnitt hat seinen Ort, die aktive Ansicht steht in der URL
+  (`?view=`) und ist damit verlinkbar.
 - **Der Einstieg ist eine eigene Seite geworden, keine Overlays mehr.** Bis
   hierher war die Anmeldeseite das Erste, was ein Besucher sah — und danach
   legten sich zwei modale Dialoge über eine App, die im Hintergrund schon lief.
@@ -50,6 +59,22 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Behoben
 
+- **217 Bedienelemente waren mit dem Daumen nicht sicher zu treffen.** Die
+  Ratsche hielt sie seit ihrer Einführung fest, gesenkt hat sie nie jemand:
+  186 hingen an einer einzigen Entscheidung über die Höhen der
+  Button-Varianten, 31 an je einer Klasse. Beide Zahlen stehen jetzt auf
+  **0**. Unter einem groben Zeigegerät — also am Telefon — ist jede
+  Trefferfläche mindestens 44 px; mit der Maus bleibt alles wie es war, denn
+  das Mass kommt von der Fingerkuppe und nicht vom Bildschirm.
+- **Der Kopf der App lief auf Android unter die Uhr.** `targetSdkVersion = 36`
+  bedeutet seit Android 15 erzwungenes Edge-to-Edge: Die App zeichnet unter
+  Statusleiste und Kamera-Ausschnitt, und ein `sticky top-0` beginnt damit am
+  Bildschirmrand statt am sichtbaren Rand. Die Einrückung war an drei Stellen
+  gesetzt — und alle drei nur **unten**. Oben und seitlich stand nichts. Kopf
+  und Inhalt halten jetzt auch oben und (fürs Querformat) seitlich Abstand.
+  Dass nie etwas rot wurde, hat einen einfachen Grund: `env(safe-area-inset-*)`
+  ist im Testbrowser und auf dem Desktop 0, die fehlende Klasse also folgenlos
+  — geprüft wird deshalb die Anweisung, nicht ihre gerechnete Wirkung.
 - **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
   gerade den Stellen, an denen etwas abgelesen werden soll: die Beschriftungen
   der Bodennavigation, die Abzeichen an Kategorien und Verträgen, das
@@ -86,6 +111,29 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
   unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
   `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **Die Tippziel-Ratsche konnte ihre eigene Behebung nicht bemerken.**
+  `touch-target-core.mjs` hielt eine **Kopie** der Variantenhöhen
+  (`{ default: 40, sm: 36, … }`), während das Budget daneben versprach, die
+  186 Fundstellen seien „EINE Entscheidung über die Höhen der Varianten in
+  `ui/button.tsx` — danach erreicht die Zahl 0". Wer die Entscheidung traf,
+  änderte `button.tsx`; der Wächter las weiter seine Kopie und zählte
+  unverändert 186. Er leitet die Höhen jetzt aus der Datei selbst ab; die
+  Kopie ist nur noch Notnagel, falls sie unlesbar ist.
+- **Der Coach ist eine Feature-Slice.** `CoachPage.tsx` trug vier eigene
+  Abfragen und sechs Service-Importe; solange eine Fläche ihre eigene
+  Datenschicht **ist**, lässt sich keine zweite Präsentation danebenstellen.
+  Beides liegt jetzt in `features/coach/application/use-coach-overview.ts`,
+  die Seite ist ein dünner Routen-Einstieg. `check:view-data` fällt von
+  **220 auf 204**, `check:slice-presentation` von **12 auf 11**.
+- **Ein Context-Provider zählt nicht mehr als Alt-Oberfläche.** Dieselbe
+  Lehre wie bei `components/ui/` (WP 6.2), ein Verzeichnis weiter: Der Umzug
+  von `HealthScoreCard` und `FinancialLandscape` in Slices löste zwei echte
+  Feature-UI-Importe auf — und wäre trotzdem **teurer** geworden, weil beide
+  den Sanften Modus über `useGentleMode` lesen und dafür gezählt wurden. Ein
+  Provider hängt einmal im `AppShell` und zwingt niemanden, die alte
+  Oberfläche mitzuschleppen; `check:layers` und `check:view-data` nehmen ihn
+  seit WP 2.3 aus. `check:slice-presentation` benutzt dafür jetzt **dasselbe**
+  `istInfrastruktur()`-Prädikat statt eines dritten eigenen Kriteriums.
 - **Der Einstieg trifft die 44 px.** Sechs Schaltflächen des Flusses lagen bei
   36 px — ausgerechnet auf der Fläche, die auf dem Telefon beginnt. Sie tragen
   jetzt einen Trefferbereich neben ihrer optischen Größe; die Ratsche

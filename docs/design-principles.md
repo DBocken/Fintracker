@@ -66,6 +66,19 @@ Zwei Regeln dazu, die der Bestand gelehrt hat:
   auch wenn er auf dem Desktop gut aussieht. Der Umbau betrifft die Fläche, nicht das Icon.
 
 ### 8. Karten sind Aktionen, nicht Dekoration
+
+> **Geltungsbereich (seit 2026-09-04):** Dieses Prinzip gilt in der
+> **kompakten** Dichte. In der **fokussierten** gibt es gar keine Karten —
+> `docs/architecture/darstellungsdichte.md` Regel 9 („keine Boxen") und
+> Regel 10. Das ist kein Widerspruch, sondern die Auflösung eines: Prinzip 8
+> sagt „Karten-Optik = Klick-Versprechen", und wo keine Karten stehen, ist
+> nichts versprochen.
+>
+> In **beiden** Dichten gilt zusätzlich die Verschärfung aus Regel 10: Eine
+> Liste bekommt keine Karte um sich, ein wiederholter Eintrag keine Karte je
+> Stück. Die tote Karte um „Letzte Buchungen" ist der gemessene Befund dazu —
+> angeklickt werden die Zeilen darin, nicht sie.
+
 Aus dem Usability-Test: Nutzer erwarten, dass alles, was wie eine **Karte** aussieht (Rahmen +
 Hintergrund + Schatten/Elevation), als Ganzes **anklickbar** ist – und entweder **navigiert**, ein
 **Popup/Sheet/Dialog** öffnet oder **auf-/zuklappt**. Reine Anzeige-Information **ohne Follow-up**

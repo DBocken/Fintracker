@@ -41,6 +41,7 @@
  */
 
 import { IMPORT_RE, stripComments, resolveTarget, isTestFile } from './layers-core.mjs';
+import { istInfrastruktur } from './view-data-core.mjs';
 
 /** Nur die Presentation-Schicht der Feature-Slices wird gezählt. */
 export function istSlicePresentation(relPath) {
@@ -74,6 +75,34 @@ export function istSlicePresentation(relPath) {
  */
 function istDesignSystemPrimitiv(target) {
   return /^src\/components\/ui\//.test(target);
+}
+
+/**
+ * Ein Context-Provider ist Infrastruktur, nicht die Alt-Oberfläche — und
+ * deshalb von der Zählung ausgenommen.
+ *
+ * **Warum die Ausnahme jetzt kommt.** Dieselbe Lehre wie bei
+ * `istDesignSystemPrimitiv()` (WP 6.2), ein Verzeichnis weiter: Sichtbar wurde
+ * der Fall erst, als die Coach-Migration `HealthScoreCard` und
+ * `FinancialLandscape` WIRKLICH in Slices geschoben hat. Beide lesen den
+ * Sanften Modus über `useGentleMode` aus `@/components/providers/
+ * GentleModeProvider` — und beide wurden dafür gezählt, obwohl der Umzug
+ * zwei echte Feature-UI-Importe aufgelöst hat. Unterm Strich wäre die Zahl
+ * gestiegen: die Ratsche hätte wieder genau die Migration verurteilt, für die
+ * sie gebaut wurde.
+ *
+ * Die Fachfrage entscheidet, nicht die Arithmetik. Gezählt wird, was eine
+ * zweite Präsentation zwingen würde, die ALTE Oberfläche mitzuschleppen. Auf
+ * einen Provider trifft das nicht zu: Er hängt einmal im `AppShell`, jede
+ * Präsentation liest denselben Context, und es gibt keine zweite Fassung
+ * davon. `check:layers` nimmt denselben Zugriff seit WP 2.3 ausdrücklich aus
+ * (`useAuth` aus `AuthProvider`, `useGentleMode` aus `GentleModeProvider`),
+ * `check:view-data` ebenso — und zwar über GENAU dieses Prädikat. Ein
+ * drittes, eigenes Kriterium hier hiesse, denselben Begriff dreimal zu
+ * pflegen; deshalb wird `istInfrastruktur()` importiert statt nachgebaut.
+ */
+function istProviderInfrastruktur(target) {
+  return istInfrastruktur(target);
 }
 
 /**
@@ -153,6 +182,7 @@ export function countLegacyImports(relPath, source) {
     const target = resolveTarget(spec, relPath);
     if (!target) continue;
     if (istDesignSystemPrimitiv(target)) continue;
+    if (istProviderInfrastruktur(target)) continue;
     if (istBaustein(target)) {
       bausteinSpecs.push(spec);
       continue;

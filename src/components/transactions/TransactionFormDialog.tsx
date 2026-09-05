@@ -20,6 +20,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { TaxCategorySelect } from "@/components/tax/TaxCategorySelect";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import type { Account, Category } from "@/types";
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 export interface TransactionPrefill {
   accountId?: string | null;
@@ -144,7 +145,7 @@ export function TransactionFormDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+      queryClient.invalidateQueries({ queryKey: financeKeys.netWorth });
       queryClient.invalidateQueries({ queryKey: ["financial-health"] });
       queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });

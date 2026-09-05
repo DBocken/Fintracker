@@ -549,6 +549,12 @@ export const ru = {
     checkBackup: 'Проверить резервную копию',
   },
   specialCategories: {
+    fokussiert: {
+      largest: 'Самое дорогое событие',
+      listTitle: 'Все события',
+      suggestionsCount: 'Предложений: {count}',
+      detailTitle: 'Событие подробно',
+    },
     service: {
       nameRequired: 'Событию нужно имя',
       cycle: 'Событие нельзя вложить в себя или в свои под-события',
@@ -583,6 +589,7 @@ export const ru = {
     unassign: 'Убрать',
   },
   common: {
+    next: 'Далее',
     errorWithMessage: 'Ошибка: {message}',
     restCategory: 'Прочее / без подкатегории',
     categoriesLabel: 'Категории',
@@ -611,6 +618,7 @@ export const ru = {
     deleteError: 'Ошибка при удалении: ',
   },
   shell: {
+    toolsGroup: 'Инструменты',
     appName: 'Ausgabentracker',
     copilot: 'Финансовый помощник',
     search: 'Поиск',
@@ -675,6 +683,10 @@ export const ru = {
     resetButton: 'Сбросить',
   },
   tutorials: {
+    fokussiert: {
+      progressLine: '{done} из {total} глав',
+      nextChapter: 'Дальше: {titel}',
+    },
     title: 'Обучение',
     description: 'Все экскурсии по Fintracker — раздел за разделом. Просмотренные главы отмечаются галочкой, любую можно пройти ещё раз.',
     progressLabel: 'Просмотрено глав',
@@ -699,6 +711,7 @@ export const ru = {
       verwaltung: 'Управление',
     },
     items: {
+      auswertungen: 'Отчёты',
       tutorials: 'Обучение',
       coach: 'Сегодня для вас',
       debts: 'Долги',
@@ -722,6 +735,7 @@ export const ru = {
       city: 'Финансовый город',
     },
     subtitles: {
+      auswertungen: 'Динамика, потоки, категории — листайте',
       tutorials: 'Все экскурсии, раздел за разделом',
       liquidity: 'Когда у вас будут финансовые трудности?',
       budgets: 'Резервуары для ваших расходов',
@@ -740,6 +754,14 @@ export const ru = {
     },
   },
   city: {
+    fokussiert: {
+      detailTitle: 'Всё о городе',
+      more: 'Ещё',
+      pathHeading: 'Где вы сейчас',
+      monthHeading: 'Выберите месяц',
+      overviewHeading: 'Доходы и расходы',
+      detailsHeading: 'Что на этом уровне',
+    },
     title: 'Финансовый город',
     tabOverview: 'Обзор',
     tabIncome: 'Доходы',
@@ -827,6 +849,14 @@ export const ru = {
     },
   },
   premium: {
+    fokussiert: {
+      expensesLabel: 'Расходы',
+      biggestItem: 'Самая крупная статья',
+      shareOfSpending: '{percent} ваших расходов',
+      detailTitle: 'Все отчёты',
+      more: 'Больше отчётов',
+      backToMain: 'Назад к основным категориям',
+    },
     addWidget: 'Добавить виджет',
     heatmap: {
       title: 'Календарь активности',
@@ -1147,6 +1177,13 @@ export const ru = {
     updateError: 'Ошибка при обновлении: {error}',
   },
   settings: {
+    fokussiert: {
+      dataStateLabel: 'Ваши данные на этом устройстве',
+      securityAction: 'Настроить шифрование',
+      categoryCount: 'Категорий: {count}',
+      retentionMonths: 'Хранение: {months} мес.',
+      groupDisplay: 'Вид и язык',
+    },
       questionLearning: {
         title: 'Выученные вопросы',
         description: 'Страница вопросов сохранила {anzahl} подтверждённых соответствий (зашифровано, только на этом устройстве). Они помогают сразу понимать ваши формулировки.',
@@ -1194,6 +1231,7 @@ export const ru = {
       applyingLabel: 'Применение...',
       affectedTransactionsTitle: 'Затронутые транзакции',
       moreItemsLabel: '... и ещё {count}',
+      planLine: 'Применение отнесёт к этой категории {hinzu} операций и снимет её с {entzug}. Всего запуск изменит {gesamt} операций по всем категориям.',
       noTransactionsMessage: 'Эти правила категорий не изменят ни одной транзакции.',
       undoButton: 'Отменить последнее действие',
     },
@@ -1344,7 +1382,28 @@ export const ru = {
       copyFieldAriaLabel: 'Копировать {label}',
     },
   },
+  auswertungen: {
+    fokussiert: {
+      incomeLabel: 'Доходы',
+      remainsLabel: 'Остаётся',
+      othersLabel: 'Ещё категорий: {count}',
+      othersTitle: 'Остальные категории',
+      balanceCaption: 'Как менялся баланс',
+      expensesCaption: 'Расходы по месяцам',
+    },
+  },
   dashboard: {
+    fokussiert: {
+      spentLabel: 'Потрачено',
+      trendLabel: 'Динамика',
+      biggestLabel: 'Самая крупная статья',
+      biggestShare: '{share} % ваших расходов',
+      noExpenses: 'За этот период расходов нет',
+      transactionsAction: 'Показать операции',
+      more: 'Показать всё',
+      detailTitle: 'Обзор подробно',
+      periodSection: 'Период и фильтры',
+    },
     allTransactions: 'Выбрать все видимые транзакции',
     search: 'Поиск...',
     selectAll: 'Выбрать все',
@@ -1436,6 +1495,15 @@ export const ru = {
     summaryFlat: '{title}: почти без изменений, около {last}. Максимум {max} — {maxLabel}, минимум {min} — {minLabel}, значений: {count}.',
   },
   liquidityReport: {
+    fokussiert: {
+      lowestOn: '{date}',
+      bufferHolds: 'Запаса {amount} хватит на {months} мес.',
+      bufferBreaks: 'Запаса {amount} не хватит с {date}',
+      scenarioActive: 'Сценарий включён',
+      scenarioClear: 'отменить',
+      moreLink: 'Допущения и анализ',
+      detailTitle: 'Допущения и анализ',
+    },
     forecastError: 'Не удалось рассчитать прогноз',
     unknownError: 'Неизвестная ошибка.',
     riskStatus: 'Риск',
@@ -1544,6 +1612,14 @@ export const ru = {
     unknownUser: 'Неизвестный пользователь',
   },
   transactions: {
+    fokussiert: {
+      balanceLabel: 'Остаток · все счета',
+      balanceScoped: 'Остаток · {account}',
+      selectionLabel: 'Итог по выборке',
+      selectionCount: '{count} из {total} операций',
+      more: 'Доходы и расходы',
+      detailTitle: 'Выбранный период',
+    },
     title: 'Транзакции',
     description: 'Все транзакции — нажмите на строку для редактирования.',
     search: 'Поиск транзакций…',
@@ -1551,6 +1627,7 @@ export const ru = {
     moneyIncome: 'Получены деньги',
     receiptTitle: 'Расход наличными по чеку',
     reset: 'Сбросить',
+    filter: 'Фильтр',
     splitBadge: 'разделено',
     splitExpand: 'Показать разделение',
     splitCollapse: 'Скрыть разделение',
@@ -1559,6 +1636,14 @@ export const ru = {
     dayHeadingYesterday: 'Вчера',
   },
   debts: {
+    fokussiert: {
+      debtFreeInMonths: 'Без долгов через {months} мес.',
+      monthlyRate: '{amount} в месяц',
+      planLink: 'Посмотреть план',
+      listTitle: 'Ваши долги',
+      addLink: 'Добавить долг',
+      planDetailTitle: 'Погашение долгов подробно',
+    },
     title: 'Долги и требования',
     description: 'Отслеживайте обязательства и одолженные деньги одним взглядом и планируйте погашение долгов.',
     tabDebts: 'Долги',
@@ -1766,6 +1851,12 @@ export const ru = {
     },
   },
   milestones: {
+    fokussiert: {
+      progressCount: 'Достигнуто {achieved} из {total}',
+      goalProgress: '{amount} из {target}',
+      allLink: 'Все вехи',
+      detailTitle: 'Ваш путь',
+    },
     title: 'Вехи',
     description: 'Ваш прогресс к финансовой безопасности – шаг за шагом.',
     achieved: 'Достигнутые вехи',
@@ -1795,11 +1886,18 @@ export const ru = {
     },
   },
   netWorth: {
+    manualAssets: 'Материальные активы',
+    manualAssetsDesc: 'Значения, которые вы ведёте вручную, например автомобиль или недвижимость — каждое с датой последней оценки.',
+    noManualAssets: 'Материальные активы не указаны.',
+    fokussiert: {
+      compositionTitle: 'Из чего это состоит',
+      scaleLink: 'Порядок величин',
+    },
     volumeShare: '{label}: {value} — {percent}% состояния',
     title: 'Собственный капитал',
     description: 'Счета и инвестиции минус ваши долги – ваше истинное состояние.',
     netWorth: 'Собственный капитал',
-    composition: 'Ликвидность + Инвестиции + Требования − Долги',
+    composition: 'Ликвидность + инвестиции + материальные активы + требования − долги',
     liquidity: 'Ликвидность',
     liquidityDesc: 'Сумма остатков по всем счетам.',
     liquidityDetailedDescription: 'Если счёт связан с банком, используется последний полученный банковский остаток — даже без синхронизированных транзакций. Без банковской интеграции остаток рассчитывается по локально записанным транзакциям.',
@@ -1914,6 +2012,18 @@ export const ru = {
     dashboardSupport: 'Панель управления остаётся вашей опорой для анализа графиков, транзакций и фильтров.',
     beforePayday: 'До следующей зарплаты',
     detailsInDashboard: 'Подробности в панели',
+    focusedNextStep: 'Ваш следующий шаг',
+    balanceLabel: 'Баланс счетов',
+    noFixedCostsUntilPayday: 'До зарплаты больше нет обязательных списаний',
+    balanceAction: 'Показать операции',
+    focusedMore: 'Подробнее о вашей ситуации',
+    focusedDetailTitle: 'Ваша финансовая ситуация',
+    scoreOutOf: '{score} из 100',
+    mobileViewsLabel: 'Разделы коуча',
+    mobileViewStatus: 'Статус',
+    mobileViewMoney: 'Деньги',
+    mobileViewGoals: 'Цели',
+    mobileViewMore: 'Ещё',
   },
   debtService: {
     typeCreditCard: 'Кредитная карта',
@@ -2066,6 +2176,13 @@ export const ru = {
     },
   },
   privacy: {
+    fokussiert: {
+      headline: 'Ваши финансовые данные хранятся на этом устройстве.',
+      encryptionLocked: 'Зашифровано, заблокировано',
+      neverLeavesLine: '{items} остаются здесь.',
+      detailTitle: 'Что именно и куда уходит',
+      detailAction: 'Все подробности',
+    },
     title: 'Как мы обращаемся с вашими данными',
     intro:
       'Коротко: ваши финансовые данные остаются на вашем устройстве. У нас нет облачной базы данных с вашими транзакциями — и мы не хотим её иметь.',
@@ -2208,6 +2325,15 @@ export const ru = {
     },
   },
   trading: {
+    fokussiert: {
+      detailTitle: 'Портфель подробно',
+      more: 'Всё о портфеле',
+      investedHint: 'вложено {amount}',
+      unconvertedHint: 'Позиции в иностранной валюте не учтены: {count}',
+      sortLabel: 'Сортировать по',
+      etoroSections: 'Счёт eToro',
+      settingsSection: 'Котировки и импорт',
+    },
     etoro: {
       tabs: {
         overview: 'Обзор',
@@ -2608,11 +2734,17 @@ export const ru = {
     selectLocaleAriaLabel: 'Выбрать {label}',
   },
   dataExport: {
+    fokussiert: {
+      stepRange: 'Какой период?',
+      stepFormat: 'Какой формат?',
+      stepConfirm: 'Начать экспорт',
+    },
     exportSuccess: 'Успешно экспортировано транзакций: {count}',
     exportError: 'Ошибка экспорта: {error}',
     genericExportFailed: 'Не удалось выполнить экспорт',
     pdfExportTitle: 'Экспорт из Expense Tracker',
     pdfExportedAt: 'Экспортировано: {date}',
+    pdfPeriod: 'Период: {range}',
     pdfTotalIncome: 'Общий доход: €{amount}',
     pdfTotalExpenses: 'Общие расходы: €{amount}',
     pdfBalance: 'Баланс: €{amount}',
@@ -2688,6 +2820,17 @@ export const ru = {
       loadError: 'Не удалось загрузить взносы и снятия.',
     },
   accounts: {
+    fokussiert: {
+      title: 'Счета',
+      totalLabel: 'На всех счетах',
+      listLabel: 'Ваши счета ({count})',
+      consentExpiredOne: 'Обновите доступ к 1 банку',
+      consentExpiredMany: 'Обновите доступ к {count} банкам',
+      manage: 'Управление счетами',
+      manageTitle: 'Управление счетами',
+      accountDetailTitle: 'Счёт',
+      noAnchorHint: 'Подтверждённый остаток ещё не задан',
+    },
     formDialog: {
       titleEdit: 'Редактировать счёт',
       titleNew: 'Создать новый счёт',
@@ -2945,6 +3088,13 @@ export const ru = {
     defaultTaxCategoryNone: 'Без предустановки',
   },
   euer: {
+    fokussiert: {
+      detailTitle: 'Ваш отчёт подробно',
+      reserveGap: 'Ещё отложить',
+      reserveDone: 'Резерв собран',
+      unassigned: 'Расходов без раздела: {count}',
+      allAssigned: 'Всё распределено',
+    },
     export: {
       colSection: 'Раздел',
       colLine: 'Строка',
@@ -3001,6 +3151,12 @@ export const ru = {
     },
   },
   tax: {
+    fokussiert: {
+      detailTitle: 'Всё о налогах',
+      more: 'Разделы, дорога на работу и экспорт',
+      openSuggestions: 'Операций на проверку: {count}',
+      allMarked: 'Всё отмечено',
+    },
     page: {
       title: 'Налоги',
       subtitle: 'Что можно вычесть?',
@@ -3202,6 +3358,13 @@ export const ru = {
     saveButton: 'Сохранить',
     payeeLabel: 'Получатель/плательщик',
     applyToSimilar: 'Применить к похожим операциям',
+    similarCountOne: '1 подходящая операция тоже будет изменена.',
+    similarCountMany: 'Подходящих операций будет изменено: {count}.',
+    probableExcluded: '(вероятных исключено: {count})',
+    whyGrouped: 'Почему сгруппировано?',
+    suggestionLabel: 'Предложение',
+    suggestionAccept: 'Применить',
+    suggestionReject: 'Отклонить',
     markAsTransferLabel: 'Отметить как внутренний перевод между своими счетами',
     counterpartyIbanLabel: 'IBAN контрагента',
     cycleLabel: 'Цикл платежей',
@@ -3228,6 +3391,16 @@ export const ru = {
     unmarkedAsTax: 'Налоговая отметка снята',
   },
   contracts: {
+    fokussiert: {
+      title: 'Подписки и договоры',
+      monthlyLabel: 'Постоянные расходы в месяц',
+      fromActive: 'из {count} активных договоров',
+      listLabel: 'Активные договоры ({count})',
+      candidatesOne: 'Найден 1 возможный договор',
+      candidatesMany: 'Найдено договоров: {count}',
+      more: 'Всё о договорах',
+      detailTitle: 'Договоры подробно',
+    },
     monthly: 'Ежемесячно',
     weekly: 'Еженедельно',
     quarterly: 'Ежеквартально',
@@ -3398,6 +3571,14 @@ export const ru = {
     networkError: 'Ошибка сети.',
   },
   csv: {
+    fokussiert: {
+      stepFile: 'Выберите файл',
+      stepAccount: 'На какой счёт?',
+      stepRequiredColumns: 'Что в каком столбце?',
+      stepOptionalColumns: 'Необязательные столбцы',
+      stepReview: 'Проверить операции: {count}',
+      progress: 'Шаг {step} из {total}',
+    },
     title: 'Загрузить CSV',
     description: 'Импорт операций из CSV вашего банка',
     targetAccount: 'Целевой счёт',
@@ -3439,6 +3620,7 @@ export const ru = {
     liquidity: 'Ликвидность',
     contracts: 'Договоры',
     financialHealthScore: 'Показатель финансового здоровья',
+    viewDetailsFor: 'Подробнее',
     subscores: 'Подпоказатели',
     lastAchieved: 'Последнее достижение',
     nextGoal: 'Следующая цель',
@@ -3602,6 +3784,20 @@ export const ru = {
     finishButton: 'Назад к учёту расходов',
   },
   budgets: {
+    fokussiert: {
+      freeThisMonth: 'Свободно в этом месяце',
+      overThisMonth: 'Перерасход в этом месяце',
+      perDay: '{amount} в день',
+      perDayHint: 'на оставшиеся дни: {days}',
+      overCount: 'Превышено бюджетов: {over} из {total}',
+      rowRemaining: 'осталось {amount}',
+      rowOver: 'сверх {amount}',
+      moreLink: 'Предложения и подробности',
+      detailTitle: 'Бюджеты подробно',
+      addShort: 'Бюджет',
+      suggestionAdd: 'Взять {amount}/мес.',
+      nonMonthlyHint: 'Бюджетов с другим периодом: {count}',
+    },
     saved: 'Бюджет сохранён',
     saveFailed: 'Не удалось сохранить',
     deleted: 'Бюджет удалён',
@@ -4032,6 +4228,12 @@ export const ru = {
     expensesLabel: 'Расходы',
   },
   income: {
+    fokussiert: {
+      window: 'последние {months} мес.',
+      concentration: '{name} даёт {percent} · {verdict}',
+      detailLink: 'Состав и динамика',
+      detailTitle: 'Доходы подробно',
+    },
     monthColumn: 'Месяц',
     totalColumn: 'Итого',
     sourceColumn: 'Источник',
@@ -4393,6 +4595,9 @@ export const ru = {
     indexedDbUnavailable: 'Локальное хранилище недоступно, поэтому запись НЕ сохранена. Обычно это происходит в приватном режиме или когда браузер блокирует данные сайтов.',
   },
   demoData: {
+    bannerShort: 'Демоданные активны',
+    removeShort: 'Убрать',
+    importShort: 'Импорт',
     removeSuccess: 'Демо-данные удалены',
     banner: 'Вы просматриваете демо-данные.',
     description: 'Всё здесь работает и с вашими реальными данными —',
@@ -4462,6 +4667,15 @@ export const ru = {
     of: 'из',
   },
   financeQuestions: {
+    fokussiert: {
+      prompt: 'Что вы хотите узнать о своих деньгах?',
+      examplesLabel: 'Например',
+      understoodLine: 'Понято как: {label}',
+      detailTitle: 'Как это посчитано',
+      detailAction: 'Ход расчёта и поправки',
+      settingsTitle: 'Понимание вопросов',
+      settingsAction: 'Настройки понимания вопросов',
+    },
       showForecast: 'Открыть прогноз',
       showCoach: 'Открыть коуча',
       showContract: 'Посмотреть этот договор',
@@ -4966,6 +5180,10 @@ export const ru = {
     lightModeLabel: 'Переключить на тёмную',
   },
   billing: {
+    fokussiert: {
+      statusLabel: 'Ваш доступ',
+      none: 'Без подписки',
+    },
     title: 'Премиум',
     subtitle: 'Откройте все функции — отмена в любой месяц.',
     loading: 'Проверяем статус подписки …',
@@ -5357,6 +5575,15 @@ export const ru = {
     periodPlaceholder: 'Выберите период…',
     periodNone: 'Нет данных',
     customRange: 'Произвольный',
+    rangeAll: 'За всё время',
+    rangeYear: 'Год',
+    rangeQuarter: 'Квартал',
+    rangeMonth: 'Месяц',
+    range7Days: '7 дней',
+    range30Days: '30 дней',
+    range90Days: '90 дней',
+    range6Months: '6 месяцев',
+    range1Year: '1 год',
     daysLabel: 'Дней: {days}',
     granularityLabel: 'Детализация',
     granularityAriaLabel: 'Выбрать детализацию графика',

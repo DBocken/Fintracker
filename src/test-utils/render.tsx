@@ -44,6 +44,13 @@ export interface RenderProvidersOptions {
   wording?: Wording;
   /** MemoryRouter ergänzen (Default an). */
   router?: boolean;
+  /**
+   * Startadresse des MemoryRouter — für Flächen, die ihren Zustand aus der
+   * Abfragezeichenkette lesen (`?view=`, `?detail=`). Ohne das musste jede
+   * solche Datei den Router selbst aufbauen und damit die zentral fixierte
+   * Provider-Reihenfolge nachbauen (AGENTS §5: Helfer nur zentral).
+   */
+  initialEntries?: string[];
   /** QueryClientProvider mit retry-freiem Client ergänzen (Default aus). */
   query?: boolean;
 }
@@ -60,11 +67,12 @@ export function renderWithProviders(
     wording = DEFAULT_WORDING,
     router = true,
     query = false,
+    initialEntries,
   }: RenderProvidersOptions = {},
 ) {
   pinI18n(locale, wording);
   let tree = ui;
-  if (router) tree = <MemoryRouter>{tree}</MemoryRouter>;
+  if (router) tree = <MemoryRouter initialEntries={initialEntries}>{tree}</MemoryRouter>;
   // Bei `query: true` wird der Client mit zurueckgegeben, damit Tests
   // Cache-Invalidierung zusichern koennen (WP 6.3b) — vorher war er im
   // Closure gefangen und genau diese Zusicherung nicht formulierbar.

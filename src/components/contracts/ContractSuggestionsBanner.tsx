@@ -10,6 +10,7 @@ import { upsertContractDecision } from "@/services/contract-decision-service";
 import { showSuccess, showError } from "@/utils/toast";
 import type { ContractRow } from "@/lib/contract-types";
 import { mapCycleToRhythmus } from "@/lib/contract-types";
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 const DISMISS_PREFIX = "contract-suggestion-dismissed:";
 
@@ -59,7 +60,7 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
     onSuccess: (_data, row) => {
       showSuccess(t("contracts.confirmationToast").replace('{payee}', row.payee));
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
+      queryClient.invalidateQueries({ queryKey: financeKeys.transactionContracts });
       queryClient.invalidateQueries({ queryKey: ["contract-decisions"] });
     },
     onError: () => showError(t("contracts.confirmError")),

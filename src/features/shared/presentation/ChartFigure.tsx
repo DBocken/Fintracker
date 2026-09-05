@@ -40,7 +40,77 @@ export type ChartTableColumn<Row> = {
   numeric?: boolean;
 };
 
+/**
+ * Die FORM einer Visualisierung — und damit ihr Seitenverhaeltnis.
+ *
+ * Bis hierher trug jede Aufrufstelle ihre eigene Pixelhoehe, und die Zahlen
+ * sind auseinandergelaufen: 288, 300, 256, 250, 176, 500. Auf einem 360-px-
+ * Telefon bleiben in einer Karte mit Inhaltsbereich nur 264 px Breite (zweimal
+ * `p-4` = 64 px Polsterung), und damit standen SECHS Diagramme hochkant,
+ * obwohl ihre Hauptachse eine Zeitachse ist — der Verlauf ueber Monate war
+ * hoeher als breit.
+ *
+ * Sechs feste Hoehen durch EINE feste Hoehe zu ersetzen haette den Fehler nur
+ * verschoben. Das Verhaeltnis ist eine Eigenschaft der Visualisierung:
+ *
+ * - `zeitreihe` — Kontostand, Prognose, Monatsverlauf. Deutlich breiter als
+ *   hoch: Eine Zeitachse braucht waagerechten Raum, sonst ist die Steigung
+ *   zwischen zwei Punkten nicht mehr ablesbar.
+ * - `verdichtung` — dieselbe Zeitachse, aber als NEBENaussage auf einer
+ *   fremden Flaeche: Sie soll die Richtung zeigen, nicht die Zahlen. Deutlich
+ *   flacher (3:1), damit sie nicht ein Drittel des Schirms belegt. Die
+ *   Vollansicht liegt dann einen Tipp weiter.
+ * - `verteilung` — Ring, Sonnenblume, Anteile. Quadratisch, denn hier gibt es
+ *   keine Achse, die mehr Platz braeuchte als die andere.
+ * - `fluss` — Sankey. **Bekommt bewusst KEIN Seitenverhaeltnis.** Seine Hoehe
+ *   haengt an der Zahl der Knoten, nicht an der Breite: Zehn Kategorien
+ *   brauchen zehnmal Platz fuer eine Beschriftung, ob die Flaeche nun 264 oder
+ *   900 px breit ist. Ein Verhaeltnis waere hier eine Scheingenauigkeit.
+ */
+export type DiagrammForm = 'zeitreihe' | 'verdichtung' | 'verteilung' | 'fluss';
+
+/**
+ * Je Form eine zentral gepflegte Klasse.
+ *
+ * NUR IN `fokussiert`, und das ist eine Abwaegung, keine Selbstverstaendlichkeit.
+ *
+ * Dagegen spricht ein guter Grund: Ein Seitenverhaeltnis ist von der Breite
+ * abgeleitet und passt sich von selbst an — es braucht eigentlich keine zweite
+ * Entscheidung daneben, und der Deckel `max-h` faengt den breiten Desktop
+ * ohnehin ab.
+ *
+ * Dafuer spricht der Umfang: Unbedingt gesetzt aendert die Regel das Aussehen
+ * JEDER Aufrufstelle auch am Desktop, wo heute nichts kaputt ist — in der
+ * kompakten Dichte steht der Verlauf mit `h-72 md:h-96` gegen rund 700 px
+ * Breite laengst im Querformat. Ein Mobil-Umbau, der nebenbei den Desktop
+ * umstellt, aendert mehr, als er geprueft hat.
+ *
+ * Bleibt die Regel eng, kostet das eine Zeile je Form; wird sie spaeter
+ * unbedingt gebraucht, ist das Entfernen des Praefixes eine Textersetzung.
+ * Umgekehrt waere es eine Regression, die niemand angefordert hat.
+ *
+ * Auf 264 px nutzbarer Breite ergibt 16:9 rund 148 px — breiter als hoch, wie
+ * es sich fuer eine Zeitachse gehoert. Der Deckel greift an der oberen Kante
+ * der fokussierten Dichte: Bei 768 px waeren es sonst 432 px, mehr als die
+ * halbe Sichthoehe eines Telefons fuer EINE Aussage.
+ *
+ * `h-auto` und `flex-none` heben die Flex-Hoehe der Huelle auf; ohne sie
+ * gewinnt `flex-1` und das Verhaeltnis bliebe wirkungslos.
+ */
+const FORM_KLASSEN: Record<DiagrammForm, string> = {
+  zeitreihe: 'fokussiert:aspect-[16/9] fokussiert:max-h-[320px]',
+  verdichtung: 'fokussiert:aspect-[3/1] fokussiert:max-h-[130px]',
+  verteilung:
+    'fokussiert:mx-auto fokussiert:aspect-square fokussiert:max-h-[320px] fokussiert:w-full fokussiert:max-w-[320px]',
+  fluss: '',
+};
+
 export type ChartFigureProps<Row> = {
+  /**
+   * Form der Visualisierung. Ohne Angabe bleibt es bei der Hoehe der
+   * Aufrufstelle — bestehende Diagramme aendern sich also nicht von selbst.
+   */
+  form?: DiagrammForm;
   /** Beschriftung der Tabelle — üblicherweise der Titel des Diagramms. */
   caption: string;
   /**
@@ -58,6 +128,7 @@ export type ChartFigureProps<Row> = {
 };
 
 export function ChartFigure<Row>({
+  form,
   caption,
   summary,
   columns,
@@ -92,7 +163,22 @@ export function ChartFigure<Row>({
           zentral ist). React 18 kennt `inert` noch nicht als Prop und reicht
           es als unbekanntes Attribut unverändert an das DOM weiter — daher
           die Schreibweise. */}
-      <div aria-hidden="true" className="min-h-0 flex-1" {...{ inert: '' }}>
+      <div
+        aria-hidden="true"
+        className={cn(
+          'min-h-0',
+          // `flex-1` NUR ohne Form. Am Geraet gemessen: Stehen beide da,
+          // entscheidet die Reihenfolge im erzeugten Stylesheet — die
+          // Dichte-Variante steht in `:where(...)` und hat deshalb dieselbe
+          // Spezifitaet wie `.flex-1`. Der Verlauf wurde dadurch rund dreimal
+          // so hoch, wie sein Seitenverhaeltnis erlaubt. Eine Klasse, die man
+          // ueberschreiben MUSS, gar nicht erst auszugeben, ist verlaesslicher
+          // als sie zu ueberbieten.
+          !form && 'flex-1',
+          form && FORM_KLASSEN[form],
+        )}
+        {...{ inert: '' }}
+      >
         {children}
       </div>
 

@@ -83,7 +83,20 @@ export interface BulkCategorizationState {
 export interface CategoryPreviewState {
   /** Über die ID aufgelöst; `null`, sobald die Kategorie fehlt oder keine gewählt ist. */
   category: HierarchicalCategory | null;
+  /**
+   * Zeilen zum Zeigen — GEKAPPT. Die Zahlen darunter sind es nicht.
+   *
+   * Genau diese Trennung fehlte: Die Fläche rechnete „und {n} weitere" aus der
+   * Länge einer bei 50 abgeschnittenen Liste, also höchstens „und 40 weitere",
+   * ob nun 41 oder 4.100 Buchungen betroffen waren.
+   */
   transactions: Transaction[];
+  /** Buchungen, die diese Kategorie bekommen. Vollständig gezählt. */
+  anzahlHinzu: number;
+  /** Buchungen, die diese Kategorie VERLIEREN — der Lauf entzieht auch. */
+  anzahlEntzug: number;
+  /** Buchungen, die der Lauf insgesamt ändert, über ALLE Kategorien. */
+  anzahlGesamt: number;
   isLoading: boolean;
 }
 

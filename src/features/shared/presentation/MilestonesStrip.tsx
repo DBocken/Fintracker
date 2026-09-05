@@ -40,13 +40,26 @@ export default function MilestonesStrip({
             />
           )}
   
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* KEIN `sm:` in dieser Datei, und das ist kein Geschmack: Die
+              fokussierte Dichte reicht bis 768 px, `sm` beginnt bei 640 —
+              zwischen beiden Werten waere `sm:grid-cols-2` in fokussiert AKTIV
+              und brauchte eine Gegenregel. `kompakt:` beginnt bei genau der
+              Dichteschwelle und laesst die Frage gar nicht erst entstehen
+              (dieselbe Lehre wie bei InfoStatStrip). */}
+          <div className="grid grid-cols-1 gap-3 kompakt:grid-cols-2">
             {cards.map((m) => (
             <div
               key={m.definition.key}
               className={cn(
-                "flex items-center gap-3 rounded-lg p-3",
-                m.achieved ? "bg-positive/5" : "bg-muted/20"
+                // Regel 10: ein wiederholter Eintrag bekommt keine Karte je
+                // Stueck. In kompakt liegen die Kacheln NEBENeinander, dort
+                // ordnet die Toenung wirklich; in fokussiert stehen sie
+                // untereinander, und dann ordnet die Reihenfolge — der Rahmen
+                // erzeugt nur Schachtelung.
+                "flex items-center gap-3 py-2 kompakt:rounded-lg kompakt:p-3",
+                m.achieved
+                  ? "kompakt:bg-positive/5"
+                  : "opacity-70 kompakt:bg-muted/20 kompakt:opacity-100"
               )}
             >
               <div className="relative text-2xl">
@@ -80,7 +93,10 @@ export default function MilestonesStrip({
         />
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/* `lg` (1024) liegt vollstaendig oberhalb der Dichteschwelle (768) und
+          ist deshalb nur in kompakt je wahr — es darf bleiben. `sm` (640)
+          liegt darunter und ist ersetzt. */}
+      <div className="grid grid-cols-1 gap-3 kompakt:grid-cols-3 lg:grid-cols-5">
         {milestones.map((m, i) => (
           <motion.div
             key={m.definition.key}
@@ -88,8 +104,10 @@ export default function MilestonesStrip({
             animate={{ opacity: 1, y: 0 }}
             transition={reduce ? { duration: 0 } : { delay: i * 0.04 }}
             className={cn(
-              "rounded-lg p-3 text-center",
-              m.achieved ? "bg-positive/5" : "bg-muted/20 opacity-70"
+              "py-2 kompakt:rounded-lg kompakt:p-3 kompakt:text-center",
+              m.achieved
+                ? "kompakt:bg-positive/5"
+                : "opacity-70 kompakt:bg-muted/20"
             )}
           >
             <div className="relative text-2xl">

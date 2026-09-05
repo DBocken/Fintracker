@@ -54,7 +54,7 @@ export function useGlobalAtmosphere(reference: Date = new Date()): AtmosphereSta
   const { data: budgetOverview } = useQuery<BudgetOverview>({
     // Schlüssel wie in BudgetsPage.tsx — bewusst identisch, damit derselbe
     // Cache-Eintrag getroffen wird.
-    queryKey: ['budget-overview'],
+    queryKey: financeKeys.budgetOverview,
     queryFn: () => getBudgetOverview(),
     enabled: false,
   });

@@ -50,7 +50,13 @@ export default function StatHero({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl bg-gradient-to-br from-brand/10 via-premium/15 to-transparent p-5",
+        // ADR Regel 9: In der fokussierten Dichte keine Boxen. Der Verlauf
+        // ist Dekoration — die AUSSAGE ist die Zahl darin, und die bleibt
+        // unveraendert gross. In kompakt ordnet der Kasten den Hero gegen
+        // die Kacheln daneben; auf einem Telefon steht nichts daneben.
+        "overflow-hidden py-2",
+        "kompakt:rounded-xl kompakt:bg-gradient-to-br kompakt:from-brand/10",
+        "kompakt:via-premium/15 kompakt:to-transparent kompakt:p-5",
         className,
       )}
     >

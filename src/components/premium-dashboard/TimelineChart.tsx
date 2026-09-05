@@ -204,8 +204,15 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
           ]}
           rows={chartData}
           rowKey={(row, index) => `${String(row.formattedDate)}-${index}`}
+          form="zeitreihe"
         >
-        <ResponsiveContainer width="100%" height={300}>
+        {/* Die Hoehe kommt aus der FORM (ChartFigure form="zeitreihe"), nicht
+            mehr aus einer Zahl an dieser Stelle. Gemessen standen hier 300 px
+            gegen 264 px nutzbare Breite auf einem 360-px-Telefon — der Verlauf
+            ueber Monate war hoeher als breit, obwohl seine X-Achse eine
+            Zeitachse ist. Der Deckel in ChartFigure haelt sie auf breiten
+            Bildschirmen bei 320 px. */}
+        <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
             <defs>
               {/* Sanfter Verlauf unter der Netto-Linie – gleicher Stil wie der Saldo-Chart (Design-Direktive C). */}

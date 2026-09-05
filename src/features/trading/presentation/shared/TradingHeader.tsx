@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Activity, FileText, Plus, RefreshCw, Shield, Upload } from 'lucide-react';
 import ProviderSelector from './ProviderSelector';
+import { useSeitennameVerdeckung } from '@/features/shared/presentation/SeitennameContext';
 
 export interface TradingHeaderProps {
   activePortfolio: Portfolio | null;
@@ -52,6 +53,7 @@ export default function TradingHeader({
   lastUpdate,
 }: TradingHeaderProps) {
   const { t } = useI18n();
+  const seitennameVerdeckung = useSeitennameVerdeckung();
 
   return (
     <>
@@ -74,7 +76,9 @@ export default function TradingHeader({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('trading.dashboard.title')}</h1>
+          <h1 className={`text-3xl font-bold ${seitennameVerdeckung}`}>
+            {t('trading.dashboard.title')}
+          </h1>
           <p className="text-muted-foreground">
             {t('trading.dashboard.subtitle')}
           </p>

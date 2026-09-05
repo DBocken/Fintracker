@@ -69,7 +69,7 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
             type="button"
             id={id}
             aria-labelledby={id && label ? `${id}-label` : undefined}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring fokussiert:min-h-11"
           >
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
             {monthLabel(value, t, locale)}
@@ -113,7 +113,7 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
                     setOpen(false);
                   }}
                   className={cn(
-                    "min-h-[40px] rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "fokussiert:min-h-11 min-h-[40px] rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isSelected
                       ? "border-primary bg-primary text-primary-foreground"
                       : isAvailable

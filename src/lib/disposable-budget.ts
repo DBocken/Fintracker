@@ -19,6 +19,27 @@ import { getUpcomingCharges, sumExpenses } from '@/lib/upcoming-charges';
 /** Direkt zahlungsrelevante Kontoarten – identisch zur Forecast-Engine (operatingCash). */
 const OPERATING_KINDS: ReadonlySet<ForecastAccountKind> = new Set(['checking', 'cash', 'wallet']);
 
+/**
+ * Ist von diesem Konto **heute** eine Zahlung möglich?
+ *
+ * Exportiert, weil die Coach-Fläche dieselbe Menge braucht: Sie zeigt den
+ * Kontostand über dem freien Betrag, und beide Zahlen dürfen sich nicht
+ * widersprechen. Auf dem Gerät gesehen stand dort „frei bis Gehalt
+ * 3.162,69 €" über einem „Kontostand 2.806,66 €" — mehr verfügbar als
+ * vorhanden. Beide Zahlen stimmten für sich: Die untere zählte alle Konten
+ * einschliesslich der Kreditkartenschuld (−356,03 €), die obere nur die
+ * Zahlungskonten.
+ *
+ * Nicht die ganze Rechnung wird geteilt, nur die **Kontenmenge**: Der Saldo
+ * entsteht weiter über `computeEffectiveBalances`
+ * (`features/shared/domain`), also über dieselbe Methode wie auf Dashboard
+ * und Buchungsseite. Ein zweiter Rechenweg wäre genau der Fehler, den diese
+ * Korrektur behebt.
+ */
+export function istZahlungskonto(kind: ForecastAccountKind): boolean {
+  return OPERATING_KINDS.has(kind);
+}
+
 /** Summe der operativen Guthaben (Giro + Bar + Wallet) aus den Forecast-Konten. */
 export function computeOperatingCash(accounts: ForecastAccount[]): number {
   return accounts

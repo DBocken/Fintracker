@@ -76,7 +76,7 @@ function SortableRow({
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
-          className="-ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+          className="-ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent fokussiert:min-h-11 fokussiert:min-w-11"
           {...attributes}
           {...listeners}
           aria-label={t('kpi.reorderLabel')}

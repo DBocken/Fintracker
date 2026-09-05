@@ -7,6 +7,7 @@ import {
   encodeDashboardFilters,
   decodeDashboardFilters,
   buildTransactionsHref,
+  mergeDashboardFilters,
 } from "../dashboard-filtering";
 import {
   DEFAULT_DASHBOARD_FILTERS,
@@ -469,5 +470,47 @@ describe("Händler-Achse", () => {
 
     expect(href).toContain("merchant=lidl");
     expect(href).not.toContain("iban");
+  });
+});
+
+/**
+ * Zusammenfuehren statt Ersetzen — der Befund aus der Bildpruefung 2026-09.
+ *
+ * `encodeDashboardFilters` baut ein FRISCHES URLSearchParams. Wer sein Ergebnis
+ * direkt als neue Abfragezeichenkette schreibt, loescht damit jeden fremden
+ * Parameter. Auf /transactions geschah genau das bei jedem Rendern, und ein
+ * Detailschritt `?detail=…` (ADR Regel 9b) konnte dort deshalb gar nicht
+ * existieren.
+ */
+describe('mergeDashboardFilters', () => {
+  it('[REGRESSION] sollte fremde Parameter erhalten', () => {
+    const bestehend = new URLSearchParams('detail=summen&fremd=x');
+    const zusammen = mergeDashboardFilters(bestehend, {
+      ...DEFAULT_DASHBOARD_FILTERS,
+      search: 'rewe',
+    });
+
+    expect(zusammen.get('detail')).toBe('summen');
+    expect(zusammen.get('fremd')).toBe('x');
+    expect(zusammen.get('q')).toBe('rewe');
+  });
+
+  it('sollte einen abgewaehlten Filter aus der Adresse entfernen', () => {
+    // Ohne das Loeschen der eigenen Schluessel bliebe der alte Wert stehen —
+    // die Adresse zeigte dann einen Filter, den die Flaeche nicht mehr hat.
+    const bestehend = new URLSearchParams('q=rewe&range=30d&detail=summen');
+    const zusammen = mergeDashboardFilters(bestehend, DEFAULT_DASHBOARD_FILTERS);
+
+    expect(zusammen.get('q')).toBeNull();
+    expect(zusammen.get('range')).toBeNull();
+    expect(zusammen.get('detail')).toBe('summen');
+  });
+
+  it('sollte dasselbe liefern wie das Kodieren, wenn nichts Fremdes dasteht', () => {
+    const filter = { ...DEFAULT_DASHBOARD_FILTERS, search: 'rewe', account: 'acc-1' };
+
+    expect(mergeDashboardFilters(new URLSearchParams(), filter).toString()).toBe(
+      encodeDashboardFilters(filter).toString(),
+    );
   });
 });

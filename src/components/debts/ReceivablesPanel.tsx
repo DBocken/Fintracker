@@ -43,6 +43,7 @@ import {
 } from "@/services/receivable-service";
 import { useI18n } from "@/i18n/useI18n";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
+import { financeKeys } from '@/features/shared/data/finance-query-keys';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -97,7 +98,7 @@ export function ReceivablesPanel() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["receivables"] });
     queryClient.invalidateQueries({ queryKey: ["receivable-transaction-assignments"] });
-    queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+    queryClient.invalidateQueries({ queryKey: financeKeys.netWorth });
     queryClient.invalidateQueries({ queryKey: ["financial-health"] });
     queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
   };
