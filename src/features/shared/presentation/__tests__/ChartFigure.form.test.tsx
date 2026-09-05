@@ -44,9 +44,8 @@ describe('ChartFigure — die Form bestimmt das Seitenverhältnis', () => {
     const schlitz = rendere('zeitreihe');
 
     expect(schlitz.className).toContain('fokussiert:aspect-[16/9]');
-    // Ohne das Aufheben der Höhe kann das Verhältnis nicht greifen — die
-    // Aufrufstelle gibt eine feste Höhe vor.
-    expect(schlitz.className).toContain('fokussiert:h-auto');
+    // Und eine Deckelung nach oben: Ein Verhältnis wächst mit der Breite.
+    expect(schlitz.className).toContain('fokussiert:max-h-[320px]');
   });
 
   it('[MOBILE] sollte eine Verteilung quadratisch setzen', () => {
@@ -61,6 +60,21 @@ describe('ChartFigure — die Form bestimmt das Seitenverhältnis', () => {
     const schlitz = rendere('fluss');
 
     expect(schlitz.className).not.toContain('aspect-');
+  });
+
+  it('[REGRESSION] [MOBILE] sollte neben der Form KEIN flex-1 ausgeben', () => {
+    // Am Gerät gemessen: Stehen `flex-1` und die Dichte-Variante nebeneinander,
+    // entscheidet die Reihenfolge im erzeugten Stylesheet, welche gewinnt — die
+    // Variante steht in `:where(...)` und hat dieselbe Spezifität. Der Verlauf
+    // wurde dadurch rund dreimal so hoch, wie sein Seitenverhältnis erlaubt.
+    // Eine Klasse, die man überschreiben MUSS, gibt man gar nicht erst aus.
+    expect(rendere('zeitreihe').className).not.toMatch(/(^|\s)flex-1(\s|$)/);
+  });
+
+  it('sollte ohne Form weiterhin die Fläche füllen', () => {
+    // Die Gegenrichtung: Ohne Formangabe bleibt es beim bisherigen Verhalten,
+    // sonst kollabierten alle bestehenden Diagramme auf null Höhe.
+    expect(rendere(undefined).className).toContain('flex-1');
   });
 
   it('sollte ohne Formangabe nichts ändern', () => {

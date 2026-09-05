@@ -711,6 +711,7 @@ export const ru = {
       verwaltung: 'Управление',
     },
     items: {
+      auswertungen: 'Отчёты',
       tutorials: 'Обучение',
       coach: 'Сегодня для вас',
       debts: 'Долги',
@@ -734,6 +735,7 @@ export const ru = {
       city: 'Финансовый город',
     },
     subtitles: {
+      auswertungen: 'Динамика, потоки, категории — листайте',
       tutorials: 'Все экскурсии, раздел за разделом',
       liquidity: 'Когда у вас будут финансовые трудности?',
       budgets: 'Резервуары для ваших расходов',
@@ -1383,6 +1385,7 @@ export const ru = {
   dashboard: {
     fokussiert: {
       spentLabel: 'Потрачено',
+      trendLabel: 'Динамика',
       biggestLabel: 'Самая крупная статья',
       biggestShare: '{share} % ваших расходов',
       noExpenses: 'За этот период расходов нет',

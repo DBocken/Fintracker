@@ -711,6 +711,7 @@ export const en = {
       verwaltung: 'Management',
     },
     items: {
+      auswertungen: 'Analyses',
       tutorials: 'Tutorials',
       coach: 'Today for you',
       debts: 'Debts',
@@ -734,6 +735,7 @@ export const en = {
       city: 'Finance City',
     },
     subtitles: {
+      auswertungen: 'Trend, flow, categories — swipe through',
       tutorials: 'Every guided tour, area by area',
       liquidity: 'When will your money get tight?',
       budgets: 'Tanks for your spending',
@@ -1383,6 +1385,7 @@ export const en = {
   dashboard: {
     fokussiert: {
       spentLabel: 'Spent',
+      trendLabel: 'Trend',
       biggestLabel: 'Biggest item',
       biggestShare: '{share}% of your spending',
       noExpenses: 'No spending in this period',

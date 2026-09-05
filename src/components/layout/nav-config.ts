@@ -100,6 +100,14 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Dashboard", labelKey: "nav.items.dashboard", path: "/dashboard", icon: BarChart3 },
       {
+        label: "Auswertungen",
+        labelKey: "nav.items.auswertungen",
+        path: "/auswertungen",
+        icon: LineChart,
+        subtitle: "Verlauf, Fluss, Kategorien — zum Wischen",
+        subtitleKey: "nav.subtitles.auswertungen",
+      },
+      {
         label: "Einkommen",
         labelKey: "nav.items.income",
         path: "/income",

@@ -712,6 +712,7 @@ export const de = {
       verwaltung: 'Verwaltung',
     },
     items: {
+      auswertungen: 'Auswertungen',
       tutorials: 'Tutorials',
       coach: 'Heute für dich',
       debts: 'Schulden',
@@ -735,6 +736,7 @@ export const de = {
       city: 'Finanzstadt',
     },
     subtitles: {
+      auswertungen: 'Verlauf, Fluss, Kategorien — zum Wischen',
       tutorials: 'Alle Führungen, Bereich für Bereich',
       liquidity: 'Wann wird dein Geld knapp?',
       budgets: 'Tanks für deine Ausgaben',
@@ -1384,6 +1386,7 @@ export const de = {
   dashboard: {
     fokussiert: {
       spentLabel: 'Ausgegeben',
+      trendLabel: 'Verlauf',
       biggestLabel: 'Größter Posten',
       biggestShare: '{share} % deiner Ausgaben',
       noExpenses: 'In diesem Zeitraum keine Ausgaben',

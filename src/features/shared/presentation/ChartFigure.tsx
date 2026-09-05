@@ -94,10 +94,9 @@ export type DiagrammForm = 'zeitreihe' | 'verteilung' | 'fluss';
  * gewinnt `flex-1` und das Verhaeltnis bliebe wirkungslos.
  */
 const FORM_KLASSEN: Record<DiagrammForm, string> = {
-  zeitreihe:
-    'fokussiert:aspect-[16/9] fokussiert:h-auto fokussiert:max-h-[320px] fokussiert:flex-none',
+  zeitreihe: 'fokussiert:aspect-[16/9] fokussiert:max-h-[320px]',
   verteilung:
-    'fokussiert:mx-auto fokussiert:aspect-square fokussiert:h-auto fokussiert:max-h-[320px] fokussiert:w-full fokussiert:max-w-[320px] fokussiert:flex-none',
+    'fokussiert:mx-auto fokussiert:aspect-square fokussiert:max-h-[320px] fokussiert:w-full fokussiert:max-w-[320px]',
   fluss: '',
 };
 
@@ -161,7 +160,18 @@ export function ChartFigure<Row>({
           die Schreibweise. */}
       <div
         aria-hidden="true"
-        className={cn('min-h-0 flex-1', form && FORM_KLASSEN[form])}
+        className={cn(
+          'min-h-0',
+          // `flex-1` NUR ohne Form. Am Geraet gemessen: Stehen beide da,
+          // entscheidet die Reihenfolge im erzeugten Stylesheet — die
+          // Dichte-Variante steht in `:where(...)` und hat deshalb dieselbe
+          // Spezifitaet wie `.flex-1`. Der Verlauf wurde dadurch rund dreimal
+          // so hoch, wie sein Seitenverhaeltnis erlaubt. Eine Klasse, die man
+          // ueberschreiben MUSS, gar nicht erst auszugeben, ist verlaesslicher
+          // als sie zu ueberbieten.
+          !form && 'flex-1',
+          form && FORM_KLASSEN[form],
+        )}
         {...{ inert: '' }}
       >
         {children}

@@ -237,7 +237,10 @@ export default function AppShell() {
               Inhalte (KPI-Strip, Tabellen, Sankey) scrollen in eigenen overflow-x-auto-
               Containern weiter. min-w-0 erlaubt dem Flex-Kind das Schrumpfen. */}
           <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] md:pb-0">
-            <div className="w-full min-w-0 px-4 py-6 sm:px-6 lg:px-8 2xl:px-10">
+            {/* In fokussiert weniger Aussenabstand: 48 px oben und unten sind auf
+                  einem 800-px-Schirm sechs Prozent der Hoehe, und Regel 9 rechnet
+                  in ganzen Bildschirmen. In kompakt bleibt es dabei. */}
+              <div className="w-full min-w-0 px-4 py-4 sm:px-6 lg:px-8 kompakt:py-6 2xl:px-10">
               {seitenname && (
                 <h1 className="mb-4 text-xl font-semibold tracking-tight kompakt:hidden">
                   {seitenname}
