@@ -43,6 +43,9 @@ const SEEDING_VIEWPORT = { width: 1280, height: 800 } as const;
 
 const ZIEL = path.join("test-results", "360");
 
+/** Die Ansichten der Auswertungen — jede eine eigene Flaeche hinter `?view=`. */
+const AUSWERTUNGS_ANSICHTEN = ["verlauf", "fluss", "kategorien", "ausgaben", "konten"] as const;
+
 /**
  * KEIN zweiter Durchgang für die "gesperrten" Routen (/premium, /contracts,
  * /occasions), und das ist ein GEMESSENES Ergebnis, keine Auslassung.
@@ -75,7 +78,15 @@ type Messung = {
 const messungen: Messung[] = [];
 
 function dateiname(route: string): string {
-  return route.replace(/^\//, "").replace(/\//g, "-") || "wurzel";
+  // `?` und `=` sind unter Windows in Dateinamen unzulaessig — eine Adresse mit
+  // Abfragezeichenkette (`/auswertungen?view=fluss`) laesst den Lauf sonst mit
+  // ENOENT abbrechen, und zwar erst nach dem Messen, also mitten im Ergebnis.
+  return (
+    route
+      .replace(/^\//, "")
+      .replace(/[/?=&]/g, "-")
+      .replace(/-+$/, "") || "wurzel"
+  );
 }
 
 /**
@@ -162,6 +173,14 @@ test.describe("Bildprüfung 360 px", () => {
 
     for (const route of ALL_ROUTES) {
       await flaecheAufnehmen(page, route);
+    }
+
+    // Die Auswertungen tragen ihre Ansicht in der Adresse, und jede ist eine
+    // eigene Flaeche mit eigener Laenge. `/auswertungen` allein misst nur die
+    // erste — der Anspruch „eine Ansicht, ein Bildschirm" ist damit fuer vier
+    // von fuenf Ansichten unbelegt.
+    for (const ansicht of AUSWERTUNGS_ANSICHTEN) {
+      await flaecheAufnehmen(page, `/auswertungen?view=${ansicht}`);
     }
 
     await writeFile(

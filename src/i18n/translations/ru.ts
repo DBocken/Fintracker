@@ -1382,6 +1382,16 @@ export const ru = {
       copyFieldAriaLabel: 'Копировать {label}',
     },
   },
+  auswertungen: {
+    fokussiert: {
+      incomeLabel: 'Доходы',
+      remainsLabel: 'Остаётся',
+      othersLabel: 'Ещё категорий: {count}',
+      othersTitle: 'Остальные категории',
+      balanceCaption: 'Как менялся баланс',
+      expensesCaption: 'Расходы по месяцам',
+    },
+  },
   dashboard: {
     fokussiert: {
       spentLabel: 'Потрачено',

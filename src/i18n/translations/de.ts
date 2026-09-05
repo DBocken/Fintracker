@@ -1383,6 +1383,16 @@ export const de = {
       copyFieldAriaLabel: '{label} kopieren',
     },
   },
+  auswertungen: {
+    fokussiert: {
+      incomeLabel: 'Einnahmen',
+      remainsLabel: 'Bleibt übrig',
+      othersLabel: '{count} weitere Kategorien',
+      othersTitle: 'Weitere Kategorien',
+      balanceCaption: 'Entwicklung des Saldos',
+      expensesCaption: 'Ausgaben je Monat',
+    },
+  },
   dashboard: {
     fokussiert: {
       spentLabel: 'Ausgegeben',

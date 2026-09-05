@@ -297,3 +297,70 @@ unterhalb der benannten Skala — die gewonnene Breite gehört in einen Sprung a
    Entwurf in die Vorlage: Aufschlüsselung je Zeile, Detailschritt für die
    übrigen Spalten, und eine bewusst betretene waagerechte Datensicht für den
    Fall, dass der Vergleich über Zeilen selbst die Aussage ist.
+
+## Nachmessung `/auswertungen` (2026-09-05)
+
+Die Übersicht ist seit dem 4.9. auf 1,00 Bildschirmlängen; ihre sechs Diagramme
+haben eine eigene Fläche bekommen. Die trug zunächst `DashboardMobileStory`
+unverändert weiter — also die kartenumwickelten Bausteine (allein
+`AdvancedBalanceChart` und `SankeyChart` bringen elf `<Card>` mit), eine
+Registerleiste aus sechs umrandeten Kacheln, einen `min-h-[60vh]`-Behälter und
+zwei berandete Verweis-Chips auf `/coach` und `/milestones`, die beide schon in
+der Bodennavigation stehen.
+
+**Die Ansicht steht in der Adresse, also musste sie auch gemessen werden.**
+`/auswertungen` allein misst nur die erste von fünf; der Anspruch „eine Ansicht,
+ein Bildschirm" wäre für die übrigen vier unbelegt geblieben. Der Erhebungslauf
+nimmt sie deshalb einzeln auf.
+
+| Adresse | Längen | Höhe | Waagerechter Überlauf |
+|---|---|---|---|
+| /auswertungen | 1,00 | 800 | 0 |
+| /auswertungen?view=verlauf | 1,00 | 800 | 0 |
+| /auswertungen?view=fluss | 1,00 | 800 | 0 |
+| /auswertungen?view=kategorien | 1,00 | 800 | 0 |
+| /auswertungen?view=ausgaben | 1,00 | 800 | 0 |
+| /auswertungen?view=konten | 1,00 | 800 | 0 |
+
+### Drei Befunde, die erst die Aufnahme gezeigt hat
+
+**Ein Diagramm ohne Beschriftung ist keine Aussage, sondern eine Form.** Die
+Verlaufs-Ansicht war ein blaues Dreieck, die Ausgaben-Ansicht drei türkise
+Balken — ohne Titel, ohne Achse, ohne Zahl. Der Grund steht in `ChartFigure`:
+Die `caption` landet ausschliesslich im `<caption>` der Tabelle für Hilfstechnik,
+sichtbar wird sie nie. Die Masse waren die ganze Zeit richtig und die Fläche
+trotzdem unlesbar. Behoben durch eine Kopfzeile (Beschriftung + die eine Zahl)
+und eine sichtbare Zeitachse; festgehalten als `[REGRESSION]`-Test.
+
+**Die Zeitachse lief rückwärts, und zwar überall.** Die Aufnahme zeigte unter
+dem Verlauf `01.26 · 12.25 · 11.25` — eine steigende Kurve, die in Wahrheit
+fällt. `buildIncomeExpenseSeries` übernahm die Reihenfolge der Buchungsliste
+(datum-absteigend), „identisch zur bisherigen Inline-Berechnung in
+Dashboard.tsx": nie entschieden, nur übernommen. Ein Test hielt diese
+Reihenfolge sogar ausdrücklich fest. Betroffen war jedes Diagramm auf dieser
+Reihe, nicht nur die neue Fläche. Sortiert wird jetzt über den frühesten
+Zeitstempel im Bucket — nicht über die Beschriftung: `dd.MM.` trägt kein Jahr,
+und `MM.yy` sortiert lexikalisch falsch (`01.26` vor `12.25`).
+
+**Fünf Beschriftungen sind auf 360 px rund 50 px zu breit.** „Konten" stand
+ausserhalb des Bildschirms. Zweizeilig umbrechen kostet 44 px und damit den
+einen Bildschirm; die Leiste läuft deshalb waagerecht bis unter den Rand und
+zieht den aktiven Reiter zu sich. Waagerecht ist hier kein Widerspruch zu „kein
+Scrollen": Gemeint ist die Fläche, nicht jedes Bedienelement darauf.
+
+### Was bewusst nicht mehr da ist
+
+- **Die Landschafts-Ansicht.** `CoachFokussiert` rendert dieselbe
+  `FinancialLandscape` in derselben Variante auf derselben Dichte, und `/coach`
+  steht in der Bodennavigation. Sechs Registerkarten für fünf Ansichten.
+- **Die Verweis-Chips auf `/coach` und `/milestones`.** Beide Ziele stehen
+  ebenfalls in der Bodennavigation.
+
+Der **Fluss bleibt** — und das ist die Gegenprobe zur Streichung oben:
+`/premium` ist stufenpflichtig, das einfache Sankey ausdrücklich kostenlos. Ihn
+aus der fokussierten Dichte zu nehmen hiesse, dem Telefon eine kostenlose
+Funktion zu entziehen, die der breite Bildschirm behält. Er hat stattdessen
+eine Bauform bekommen, die auf 360 px trägt: Einnahmen oben, die Posten als
+anteilige Balken darunter, der Rest unten — und was nicht auf den Bildschirm
+passt, wird zu EINER Zeile summiert und liegt im Detailschritt vollständig vor.
+Abgeschnitten wird nichts.
