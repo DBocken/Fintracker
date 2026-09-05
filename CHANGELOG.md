@@ -27,10 +27,10 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 - **Der Einstieg ist eine eigene Seite geworden, keine Overlays mehr.** Bis
   hierher war die Anmeldeseite das Erste, was ein Besucher sah — und danach
   legten sich zwei modale Dialoge über eine App, die im Hintergrund schon lief.
-  Jetzt führt ein zusammenhängender Fluss unter `/willkommen` durch acht
+  Jetzt führt ein zusammenhängender Fluss unter `/willkommen` durch neun
   Schritte: Sprache · anonym oder angemeldet · Anmeldung · Anrede ·
-  Lebenssituation · Bereiche · was kostenlos ist und was Premium · Datenquelle
-  und Tutorial.
+  Lebenssituation · Umstände · Bereiche · was kostenlos ist und was Premium ·
+  Datenquelle und Tutorial.
 - **Die Sprachwahl steht ganz am Anfang** — die Begrüßung erscheint
   gleichzeitig in allen Sprachen, jede mit ihrer Flagge und ihrem eigenen
   Namen. Bis hierher war der Sprachumschalter erst *hinter* dem Einstieg
@@ -48,11 +48,19 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   `prefers-reduced-motion` schaltet das auf ein schlichtes Ausblenden um, ohne
   den Fluss zu verlangsamen.
 
+### Behoben
+
+- **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
+  gerade den Stellen, an denen etwas abgelesen werden soll: die Beschriftungen
+  der Bodennavigation, die Abzeichen an Kategorien und Verträgen, das
+  Mitteltext-Label des Sunburst und — bei 8 px — die Beschriftungen der
+  Finanzlandschaft. Alle stehen jetzt mindestens auf der Lesbarkeitsgrenze.
+
 ### Intern
 
 - Neuer Feature-Slice `src/features/onboarding/` mit reiner Schrittmaschine
   (`domain`), Entwurfs-Ablage und Übernahme (`data`), ViewModel
-  (`application`) und den acht Schritten (`presentation`). `Login.tsx`,
+  (`application`) und den neun Schritten (`presentation`). `Login.tsx`,
   `OnboardingDialog.tsx` und `DataSourceDialog.tsx` entfallen.
 - **Ein Router statt zwei.** `App.tsx` trug bisher einen eigenen
   `<BrowserRouter>` nur für den Landing-Screen. Das kostete den Rückweg: Der
@@ -67,17 +75,6 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 - Wiederverwendbare `DissolveTransition` samt reiner Partikelrechnung in
   `@/lib/dissolve-particles`, mit geprüfter Obergrenze und ohne neue
   Abhängigkeit.
-
-### Behoben
-
-- **24 Beschriftungen waren zu klein zum Lesen.** Text unter 11 px stand an
-  gerade den Stellen, an denen etwas abgelesen werden soll: die Beschriftungen
-  der Bodennavigation, die Abzeichen an Kategorien und Verträgen, das
-  Mitteltext-Label des Sunburst und — bei 8 px — die Beschriftungen der
-  Finanzlandschaft. Alle stehen jetzt mindestens auf der Lesbarkeitsgrenze.
-
-### Intern
-
 - **Zwei neue Wächter für die Maße, die Prinzip 7 bisher nur behauptet hat.**
   „Tap-Ziele groß genug, Kontrast ausreichend" war für den Kontrast seit Langem
   eine Zahl (4.5:1) und für die anderen beiden Maße eine Absichtserklärung.
@@ -89,10 +86,20 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
   20 px gedrückten Elementen in eine Zahl zu werfen, hätte die akuten Fälle
   unter dem Rauschen begraben. `max` (Klasse) wird je Stelle behoben,
   `maxVarianten` mit einer Entscheidung in `ui/button.tsx`.
+- **Der Einstieg trifft die 44 px.** Sechs Schaltflächen des Flusses lagen bei
+  36 px — ausgerechnet auf der Fläche, die auf dem Telefon beginnt. Sie tragen
+  jetzt einen Trefferbereich neben ihrer optischen Größe; die Ratsche
+  `maxVarianten` sinkt von 186 auf den gemessenen Stand 182.
+- **Neun Advisories in Abhängigkeiten geschlossen** (`@xmldom/xmldom` 0.9.12,
+  `qs` 6.16.0, `fast-uri` 3.1.7) — durchweg transitiv, deshalb über
+  `pnpm.overrides` mit Obergrenze statt durch Anheben einer direkten
+  Abhängigkeit. `services/entitlements` bekommt dafür seinen ersten
+  Override-Block.
 - **§4 benennt jetzt vier Dimensionen der Anpassung** statt nur
   Feature-Parität: Layout, Tippziele, Navigationsmuster (jeder Hover-Zustand
   braucht ein Touch-Äquivalent) und Inhaltsrang — unter der Regel „anpassen,
   nicht amputieren".
+
 
 ## 2026.9.1 — 2026-09-02
 
